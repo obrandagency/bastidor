@@ -70,3 +70,10 @@ export function mesEAno(mes: string) {
   const [a, m] = mes.split("-");
   return `${MESES[Number(m) - 1]} ${a}`;
 }
+
+// "2026-10-23" + 1 -> "2026-10-24"
+export function somarDias(iso: string, dias: number) {
+  const d = utc(iso);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return isoDe(d);
+}

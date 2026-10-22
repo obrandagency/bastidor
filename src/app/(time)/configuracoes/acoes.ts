@@ -131,3 +131,15 @@ export async function salvarResponsaveisPadrao(_: Estado, form: FormData): Promi
   revalidatePath("/configuracoes");
   return { ok: "Responsáveis padrão salvos." };
 }
+
+export async function salvarDiasLembrete(_: Estado, form: FormData): Promise<Estado> {
+  const eu = await pessoaAtual();
+  if (eu?.perfil !== "socio") return { erro: "Só o Sócio muda o lembrete." };
+  const dias = Number(texto(form, "dias_lembrete"));
+  if (!Number.isInteger(dias) || dias < 1 || dias > 30) return { erro: "Use um número de 1 a 30." };
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.from("app_settings").update({ dias_lembrete: dias, updated_at: new Date().toISOString() }).eq("id", 1);
+  if (error) return { erro: "Não foi possível salvar." };
+  revalidatePath("/configuracoes");
+  return { ok: "Salvo." };
+}

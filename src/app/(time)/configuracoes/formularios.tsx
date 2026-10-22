@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { Aviso, Botao, Campo, Selecao, classeEntrada } from "@/components/formulario";
 import { ROTULO_PERFIL, type Perfil } from "@/lib/permissoes";
 import type { Estado } from "@/app/entrar/acoes";
-import { alternarAcesso, convidar, mudarPerfil, reenviarAcesso, salvarResponsaveisPadrao } from "./acoes";
+import { alternarAcesso, convidar, mudarPerfil, reenviarAcesso, salvarDiasLembrete, salvarResponsaveisPadrao } from "./acoes";
 
 function iniciaisDe(nome: string) {
   const partes = nome.trim().split(/\s+/).filter(Boolean);
@@ -179,6 +179,22 @@ export function FormResponsaveisPadrao({
         {estado?.erro && <small className="text-[12.5px] text-bad">{estado.erro}</small>}
         {estado?.ok && <small className="text-[12.5px] text-ok">{estado.ok}</small>}
       </div>
+    </form>
+  );
+}
+
+export function FormLembrete({ dias }: { dias: number }) {
+  const [estado, acao, enviando] = useActionState(salvarDiasLembrete, undefined);
+  return (
+    <form action={acao} className="flex flex-wrap items-end gap-3">
+      <div className="w-[160px]">
+        <Campo rotulo="Lembrar o cliente após" id="dias_lembrete" type="number" min={1} max={30} defaultValue={dias} dica="dias com o conteúdo parado" />
+      </div>
+      <Botao variante="principal" pequeno disabled={enviando} className="mb-6">
+        Salvar
+      </Botao>
+      {estado?.ok && <small className="mb-7 text-[12.5px] text-ok">{estado.ok}</small>}
+      {estado?.erro && <small className="mb-7 text-[12.5px] text-bad">{estado.erro}</small>}
     </form>
   );
 }

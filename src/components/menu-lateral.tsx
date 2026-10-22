@@ -10,7 +10,7 @@ import { ROTULO_PERFIL, menuDoPerfil, type PerfilTime } from "@/lib/permissoes";
 
 type Pessoa = { nome: string; iniciais: string; perfil: PerfilTime };
 
-export function MenuLateral({ pessoa, children }: { pessoa: Pessoa; children: React.ReactNode }) {
+export function MenuLateral({ pessoa, avisos = 0, children }: { pessoa: Pessoa; avisos?: number; children: React.ReactNode }) {
   const pathname = usePathname();
   const [aberto, setAberto] = useState(false);
   const grupos = menuDoPerfil(pessoa.perfil);
@@ -51,10 +51,24 @@ export function MenuLateral({ pessoa, children }: { pessoa: Pessoa; children: Re
           <span className="grid h-[26px] w-[26px] flex-none place-items-center rounded-full bg-ink text-[10.5px] font-semibold text-bg">
             {pessoa.iniciais}
           </span>
-          <div className="min-w-0 flex-1">
+          <Link href="/conta" className="min-w-0 flex-1 hover:underline">
             <div className="truncate font-medium">{pessoa.nome}</div>
             <small className="block text-[11.5px] text-rail-muted">{ROTULO_PERFIL[pessoa.perfil]}</small>
-          </div>
+          </Link>
+          <Link
+            href="/avisos"
+            aria-label={avisos ? `${avisos} avisos não lidos` : "Avisos"}
+            className="relative grid h-8 w-8 flex-none place-items-center rounded-lg hover:bg-rail-line"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-[17px] w-[17px] fill-none stroke-current" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0" />
+            </svg>
+            {avisos > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 font-mono text-[10px] text-accent-ink">
+                {avisos > 99 ? "99+" : avisos}
+              </span>
+            )}
+          </Link>
           <BotaoSair />
         </div>
       </aside>
@@ -74,6 +88,11 @@ export function MenuLateral({ pessoa, children }: { pessoa: Pessoa; children: Re
             Menu
           </button>
           <span className="font-display text-[19px] font-bold tracking-[-0.02em]">Bastidor</span>
+          {avisos > 0 && (
+            <Link href="/avisos" className="ml-auto rounded-full bg-accent px-2.5 py-0.5 text-[12px] font-medium text-accent-ink">
+              {avisos} aviso{avisos > 1 ? "s" : ""}
+            </Link>
+          )}
         </div>
         <main className="min-w-0 px-4 pb-14 pt-5 md:px-7 md:pb-16 md:pt-7">{children}</main>
       </div>

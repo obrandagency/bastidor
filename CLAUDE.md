@@ -38,6 +38,7 @@ src/app/(time)/tarefas/  quadro (quadro.tsx), detalhe (detalhe-tarefa.tsx, usado
 src/app/(time)/inicio/   calendário (calendario.tsx, só desenha) e resumo do dia (page.tsx busca os dados)
 src/app/portal/telas.tsx  telas do portal (TelaAprovar, TelaRelatorio) usadas pelo cliente e por "Ver como cliente"; interativos.tsx tem carrossel e botões de decisão
 src/app/(time)/criacao/  Criação (page.tsx busca, editor.tsx desenha; artes vão do navegador direto ao Storage e depois registrarArte)
+src/lib/notificacoes.ts  rotinas de e-mail (service role): avisarClientesParaAprovar, enviarLembretes, enviarAvisosPendentes, enviarResumoDiario; modelos em src/lib/email/
 src/lib/artes.ts     linksDasArtes(): links temporários (1h) gerados com a sessão de quem vê
 src/lib/dominio/tarefas.ts  etapas, formatos, áreas, próxima etapa, atraso, fuso de publicação (o mesmo que o banco)
 src/lib/datas.ts     hojeSP(), dataBR(), diaMes(), mesPorExtenso() (sempre fuso de São Paulo)
@@ -46,6 +47,7 @@ src/lib/supabase/    clientes do navegador, do servidor, admin (service role, s�
 src/middleware.ts    renova a sessão e manda quem não está logado para /entrar (precisa ficar dentro de src/)
 supabase/migrations/ banco versionado; aplicado no Supabase pelo GitHub Actions (.github/workflows/banco.yml + scripts/aplicar-migrations.sh, pela API de gerenciamento com SUPABASE_ACCESS_TOKEN) ao chegar na main. Migration já aplicada nunca é editada: mudança vira migration nova
 docs/configuracao.md passo a passo dos painéis (GitHub, Resend, Supabase, Vercel)
+docs/seguranca.md    revisão de segurança e LGPD da etapa 7 (o que foi conferido e o que falta nos painéis)
 supabase/tests/      stub-supabase.sql (imitação mínima do Supabase) e rls.sql (um usuário de cada perfil)
 ```
 
@@ -86,4 +88,4 @@ Desvios ou complementos do SPEC aprovados pela Mayara:
 - [ ] Etapa 4: tarefas. Código pronto: quadros de Conteúdos e Demandas (arrastar, seta, filtros), detalhe lateral (?tarefa=id) com campos, agendamento, comentários e histórico, nova tarefa (?nova=1), responsável padrão em Configurações; regras no gatilho `regras_de_etapa` e histórico em `registrar_etapa`. Testada no navegador pela Mayara em 23/10; semana de uso pelo time em andamento (critério do SPEC)
 - [ ] Etapa 5: início. Código pronto: Calendário do mês (dia do prazo ou da publicação, cores por situação, faixa de atraso, filtro por pessoa com contagem, navegação de mês) e Resumo do dia (atrasadas e vencendo hoje, esperando o cliente há N dias, próximas publicações); clicar abre o mesmo detalhe de Tarefas. Falta teste no navegador
 - [ ] Etapa 6: criação e portal. Código pronto: Criação (lista em produção, artes com envio direto ao Storage, ordem e remoção, legenda com contador, ajustes internos e do cliente, prévia do feed), portal (aprovar com carrossel, pedir ajuste com aviso de limite, histórico recente, relatório de entregas por mês) e Ver como cliente (mesmas telas, sem decidir). Falta: testar com um cliente piloto por um mês
-- [ ] Etapa 7: notificações e revisão de segurança
+- [ ] Etapa 7: notificações e revisão de segurança. Código pronto: e-mails (Resend) para aprovar às 17h + "Notificar o cliente agora", lembrete às 10h (1 por dia por cliente, dias configuráveis), avisos do time a cada 5 min (aprovou, ajuste, você recebeu), resumo diário às 8h; sino (/avisos), Minha conta (/conta) com opção de desligar e-mails; rotinas por pg_cron + pg_net + Vault chamando /api/cron/<rotina>; revisão de segurança em docs/seguranca.md; /privacidade e /termos (rascunho); exportar e apagar cliente (LGPD); backup semanal por GitHub Actions. Falta: configurar Resend, CRON_SECRET e Vault (docs/configuracao.md seção 6) e ver os e-mails chegando

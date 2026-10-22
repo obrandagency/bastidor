@@ -5,7 +5,9 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Cliente, Pessoa } from "@/types/banco";
 import { ETAPAS_CONTEUDO } from "@/lib/dominio/tarefas";
-import { AcoesPessoa, FormConvite, FormResponsaveisPadrao } from "./formularios";
+import { dataBR } from "@/lib/datas";
+import { dataHoraSP } from "@/lib/dominio/tarefas";
+import { AcoesPessoa, FormConvite, FormLembrete, FormResponsaveisPadrao } from "./formularios";
 
 export const metadata = { title: "Configurações · Bastidor" };
 
@@ -85,11 +87,13 @@ function Lista({
 export default async function Configuracoes() {
   const eu = await exigirTime(["socio"]);
   const supabase = await criarClienteServidor();
-  const [{ data: pessoas }, { data: clientes }, acessos, { data: padroes }] = await Promise.all([
+  const [{ data: pessoas }, { data: clientes }, acessos, { data: padroes }, { data: config }, { data: envios }] = await Promise.all([
     supabase.from("profiles").select("*").order("nome").returns<Pessoa[]>(),
     supabase.from("clients").select("id, nome, nome_curto, cor, ativo").eq("ativo", true).order("nome").returns<Cliente[]>(),
     primeirosAcessos(),
     supabase.from("stage_defaults").select("etapa, responsavel_id"),
+    supabase.from("app_settings").select("dias_lembrete").eq("id", 1).maybeSingle(),
+    supabase.from("envios_email").select("id, tipo, email, assunto, ok, erro, created_at").order("created_at", { ascending: false }).limit(15),
   ]);
   const time = (pessoas ?? []).filter((p) => p.perfil !== "cliente");
   const deClientes = (pessoas ?? []).filter((p) => p.perfil === "cliente");
@@ -127,8 +131,41 @@ export default async function Configuracoes() {
             />
           </div>
         </section>
+        <section className="rounded-xl border border-line bg-card">
+          <div className="border-b border-line px-4 py-3.5">
+            <h2 className="text-[15px] font-bold">Lembrete de aprovação</h2>
+            <p className="text-[12.5px] text-muted">E-mail para o cliente quando um conteúdo fica parado com ele. No máximo um por dia, às 10h.</p>
+          </div>
+          <div className="px-4 pt-3.5">
+            <FormLembrete dias={config?.dias_lembrete ?? 2} />
+          </div>
+        </section>
         <Lista titulo="Time" pessoas={time} eu={eu.id} acessos={acessos} clientes={nomesClientes} />
         <Lista titulo="Pessoas de clientes" pessoas={deClientes} eu={eu.id} acessos={acessos} clientes={nomesClientes} />
+        <section className="rounded-xl border border-line bg-card">
+          <div className="border-b border-line px-4 py-3.5">
+            <h2 className="text-[15px] font-bold">Últimos e-mails enviados</h2>
+            <p className="text-[12.5px] text-muted">Para conferir se os avisos estão saindo.</p>
+          </div>
+          <ul>
+            {(envios ?? []).map((e) => {
+              const { data, hora } = dataHoraSP(e.created_at);
+              return (
+                <li key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-line px-4 py-2.5 text-[13px] first:border-t-0">
+                  <span className="w-[86px] font-mono text-[11.5px] text-muted">
+                    {dataBR(data).slice(0, 5)} {hora}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{e.assunto}</span>
+                  <span className="truncate text-[12.5px] text-muted">{e.email}</span>
+                  <span className={`text-[12px] font-semibold ${e.ok ? "text-ok" : "text-bad"}`} title={e.erro ?? undefined}>
+                    {e.ok ? "Enviado" : "Falhou"}
+                  </span>
+                </li>
+              );
+            })}
+            {!envios?.length && <li className="px-4 py-[18px] text-[13px] text-muted">Nenhum e-mail enviado ainda.</li>}
+          </ul>
+        </section>
       </div>
     </>
   );

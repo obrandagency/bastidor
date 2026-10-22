@@ -159,3 +159,17 @@ export async function excluirTarefa(_: Estado, form: FormData): Promise<Estado> 
   atualizar();
   redirect(`/tarefas?aba=${texto(form, "tipo")}`);
 }
+
+// "Notificar o cliente agora": manda na hora o e-mail que sairia às 17h, com tudo o que está esperando aprovação
+export async function notificarClienteAgora(_: Estado, form: FormData): Promise<Estado> {
+  if (!(await exigirTimeAcao())) return { erro: "Sem permissão." };
+  const supabase = await criarClienteServidor();
+  const { data: t } = await supabase.from("tasks").select("client_id, etapa").eq("id", texto(form, "id")).maybeSingle();
+  if (!t?.client_id || t.etapa !== "cliente") return { erro: "Este conteúdo não está com o cliente." };
+  const { avisarClientesParaAprovar } = await import("@/lib/notificacoes");
+  const r = await avisarClientesParaAprovar(t.client_id);
+  atualizar();
+  if (r.enviados > 0) return { ok: `E-mail enviado para ${r.enviados} pessoa${r.enviados > 1 ? "s" : ""} do cliente.` };
+  if (r.falhas > 0) return { erro: "O e-mail não saiu. Confira a chave do Resend na Vercel." };
+  return { ok: r.detalhe ?? "O cliente já tinha sido avisado deste conteúdo." };
+}

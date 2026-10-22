@@ -5,7 +5,7 @@ import { dataBR } from "@/lib/datas";
 import { area, dataHoraSP, rotuloEtapa } from "@/lib/dominio/tarefas";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Evento, Nota, Tarefa } from "@/types/banco";
-import { Agendamento, Comentarios, Excluir, FormTarefa, Gaveta } from "./detalhe";
+import { Agendamento, Comentarios, Excluir, FormTarefa, Gaveta, NotificarCliente } from "./detalhe";
 
 // Tarefa sem cliente = demanda interna da agência
 export const INTERNO = { nome: "O.BRAND (interno)", cor: "#0A0C12", nome_curto: "INTERNO" };
@@ -53,6 +53,8 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
           ✕
         </Link>
       </div>
+
+      {t.tipo === "conteudo" && t.etapa === "cliente" && <NotificarCliente tarefa={t} />}
 
       {t.tipo === "conteudo" && (t.etapa === "aprovado" || t.etapa === "agendado") && (
         <Agendamento key={t.updated_at} tarefa={t} data={agenda.data} hora={agenda.hora} />

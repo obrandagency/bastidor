@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BotaoSair } from "@/components/botao-sair";
 import { Marca } from "@/components/marca";
 import { exigirCliente } from "@/lib/sessao";
@@ -24,7 +25,11 @@ export default async function LayoutPortal({ children }: { children: React.React
         </div>
         <AbasPortal />
       </header>
-      <main className="mx-auto max-w-[960px] px-4 pb-14 pt-5 md:px-7 md:pt-7">{children}</main>
+      <main className="mx-auto max-w-[960px] px-4 pb-8 pt-5 md:px-7 md:pt-7">{children}</main>
+      <footer className="mx-auto max-w-[960px] px-4 pb-10 text-[12px] text-muted md:px-7">
+        <Link href="/privacidade" className="hover:underline">Política de privacidade</Link> ·{" "}
+        <Link href="/termos" className="hover:underline">Termos de uso</Link>
+      </footer>
     </div>
   );
 }

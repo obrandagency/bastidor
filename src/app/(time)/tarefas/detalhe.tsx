@@ -14,7 +14,7 @@ import {
 } from "@/lib/dominio/tarefas";
 import type { Estado } from "@/app/entrar/acoes";
 import type { Nota, Tarefa } from "@/types/banco";
-import { agendar, comentar, criarTarefa, desagendar, excluirTarefa, marcarResolvido, salvarTarefa } from "./acoes";
+import { agendar, comentar, criarTarefa, desagendar, excluirTarefa, marcarResolvido, notificarClienteAgora, salvarTarefa } from "./acoes";
 
 type Opcao = { id: string; nome: string };
 
@@ -346,5 +346,27 @@ export function FormNovaTarefa({
         </Botao>
       </div>
     </form>
+  );
+}
+
+// Com o cliente: dispara agora o e-mail "conteúdos para aprovar" em vez de esperar as 17h
+export function NotificarCliente({ tarefa }: { tarefa: Tarefa }) {
+  const [estado, acao, enviando] = useActionState(notificarClienteAgora, undefined);
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-warn-soft bg-warn-soft/50 p-3.5">
+      <div className="text-[13px]">
+        <b>Com o cliente</b>
+        <p className="text-[12.5px] text-muted">
+          {tarefa.aviso_cliente_em ? "O cliente já foi avisado por e-mail." : "O cliente recebe o e-mail às 17h com tudo o que foi enviado hoje."}
+        </p>
+      </div>
+      <form action={acao} className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="id" value={tarefa.id} />
+        <Botao pequeno disabled={enviando}>
+          {enviando ? "Enviando…" : "Notificar o cliente agora"}
+        </Botao>
+        <Retorno estado={estado} />
+      </form>
+    </div>
   );
 }

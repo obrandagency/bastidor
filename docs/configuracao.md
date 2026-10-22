@@ -94,3 +94,29 @@ insert into public.clients (nome, nome_curto) values ('Cliente Teste A', 'TESTE 
 ```
 
 Depois: **Authentication → Users → Add user → Send invitation**, com o mesmo e-mail. A Mayara recebe o convite, cria a senha e, em **Configurações**, convida o resto do time.
+
+## 6. E-mails do sistema e rotinas (etapa 7)
+
+**Resend:** API Keys → Create API Key (Sending access, domínio `obrandagency.com`). Copie a chave `re_...`.
+
+**Segredo das rotinas:** crie uma senha longa (pelo menos 32 caracteres, só letras e números) num gerador de senhas. É o `CRON_SECRET`.
+
+**Vercel** → Settings → Environment Variables, depois Redeploy:
+
+| Name | Value |
+|---|---|
+| `RESEND_API_KEY` | a chave `re_...` |
+| `CRON_SECRET` | o segredo das rotinas |
+
+**Supabase** → SQL Editor, troque o segredo e rode uma vez:
+
+```sql
+select vault.create_secret('https://bastidor-obrand.vercel.app', 'bastidor_url');
+select vault.create_secret('COLE-O-CRON_SECRET-AQUI', 'bastidor_cron_secret');
+```
+
+Horários (São Paulo): avisos do time a cada 5 minutos, resumo diário às 8h, lembrete de aprovação às 10h e "conteúdos para aprovar" às 17h.
+
+**GitHub** (backup semanal): Settings → Secrets and variables → Actions → New repository secret `SUPABASE_SERVICE_ROLE_KEY` com a chave secreta do Supabase.
+
+**Supabase** → Authentication → Sign In / Providers → Email: Minimum password length = 8.

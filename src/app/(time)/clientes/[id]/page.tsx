@@ -9,6 +9,7 @@ import type { Ata, Briefing, ClienteCompleto, Contrato, Pessoa } from "@/types/b
 import { AcoesPessoa } from "../../configuracoes/formularios";
 import {
   BotaoApagarAta,
+  DadosDoCliente,
   EdicaoContrato,
   FormAcessos,
   FormAta,
@@ -241,6 +242,12 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
               {!pessoasCliente?.length && <li className="px-4 py-3.5 text-[13px] text-muted">Ninguém convidado ainda.</li>}
             </ul>
             <FormConviteCliente clientId={id} />
+          </Painel>
+        )}
+
+        {eu.perfil === "socio" && (
+          <Painel titulo="Dados do cliente (LGPD)">
+            <DadosDoCliente clientId={id} nome={cliente.nome} />
           </Painel>
         )}
       </div>

@@ -161,3 +161,35 @@ export async function apagarAta(_: Estado, form: FormData): Promise<Estado> {
   revalidatePath(`/clientes/${texto(form, "client_id")}`);
   return { ok: "Ata apagada." };
 }
+
+// ---------------------------------------------------------------- LGPD: apagar cliente e todos os dados (só Sócio)
+export async function apagarCliente(_: Estado, form: FormData): Promise<Estado> {
+  const eu = await pessoaAtual();
+  if (eu?.perfil !== "socio") return { erro: "Só o Sócio apaga clientes." };
+  const clientId = texto(form, "client_id");
+  const supabase = await criarClienteServidor();
+  const { data: cliente } = await supabase.from("clients").select("nome").eq("id", clientId).maybeSingle();
+  if (!cliente) return { erro: "Cliente não encontrado." };
+  if (texto(form, "confirmacao") !== cliente.nome) return { erro: `Digite exatamente "${cliente.nome}" para confirmar.` };
+
+  const { criarClienteAdmin } = await import("@/lib/supabase/admin");
+  const { BUCKET_ARTES } = await import("@/lib/constantes");
+  const admin = criarClienteAdmin();
+
+  // 1. Artes no Storage (pastas client_id/task_id/arquivo)
+  const { data: pastas } = await admin.storage.from(BUCKET_ARTES).list(clientId, { limit: 1000 });
+  for (const pasta of pastas ?? []) {
+    const { data: arquivos } = await admin.storage.from(BUCKET_ARTES).list(`${clientId}/${pasta.name}`, { limit: 1000 });
+    const caminhos = (arquivos ?? []).map((a) => `${clientId}/${pasta.name}/${a.name}`);
+    if (caminhos.length) await admin.storage.from(BUCKET_ARTES).remove(caminhos);
+  }
+  // 2. Logins das pessoas do cliente (o perfil some junto)
+  const { data: pessoas } = await admin.from("profiles").select("id").eq("client_id", clientId);
+  for (const p of pessoas ?? []) await admin.auth.admin.deleteUser(p.id);
+  // 3. O cliente e, em cascata, contratos, briefing, atas, tarefas, comentários, histórico, convites e avisos
+  const { error } = await admin.from("clients").delete().eq("id", clientId);
+  if (error) return { erro: "Não foi possível apagar o cliente." };
+
+  revalidatePath("/clientes", "layout");
+  redirect("/clientes");
+}

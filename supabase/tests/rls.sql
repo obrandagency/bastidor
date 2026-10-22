@@ -312,5 +312,42 @@ reset role;
 select testes.ok(testes.conta($$select * from public.task_events where task_id = '00000000-0000-0000-0000-0000000000f2' and para_etapa = 'aprovado' and origem = 'cliente' and ator_nome = 'Pessoa B'$$) = 1, 'portal: registra quem aprovou e quando');
 select testes.ok(testes.conta($$select * from public.notifications where tipo = 'cliente_aprovou' and destinatario_id = '00000000-0000-0000-0000-000000000002'$$) = 1, 'portal: Adm recebe aviso da aprovação');
 
+-- ---------------------------------------------------------------- notificações (etapa 7)
+select testes.ok(testes.conta($$select * from public.notifications where tipo = 'responsavel' and destinatario_id = '00000000-0000-0000-0000-000000000003'$$) = 0, 'aviso: quem se atribui não recebe "Você recebeu"');
+select testes.ok(testes.conta($$select * from public.notifications where tipo = 'responsavel' and task_id = '00000000-0000-0000-0000-0000000000f1'$$) = 0, 'aviso: pedido de ajuste do cliente não gera aviso duplicado');
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+update public.tasks set responsavel_id = '00000000-0000-0000-0000-000000000003' where id = '00000000-0000-0000-0000-0000000000e2';
+select testes.recusa($$insert into public.envios_email (tipo, email, assunto, ok) values ('x', 'x@x.com', 'x', true)$$, 'envios: ninguém grava pela API');
+reset role;
+select testes.ok(testes.conta($$select * from public.notifications where tipo = 'responsavel' and task_id = '00000000-0000-0000-0000-0000000000e2' and destinatario_id = '00000000-0000-0000-0000-000000000003' and texto like 'Você recebeu: Notas fiscais%'$$) = 1, 'aviso: novo responsável recebe "Você recebeu"');
+update public.tasks set etapa = 'cliente', aviso_cliente_em = now() where id = '00000000-0000-0000-0000-0000000000e3';
+select testes.ok((select aviso_cliente_em is null from public.tasks where id = '00000000-0000-0000-0000-0000000000e3'), 'aviso: conteúdo que chega ao cliente entra no próximo e-mail');
+insert into public.envios_email (tipo, client_id, email, assunto, ok) values ('lembrete', '00000000-0000-0000-0000-00000000000a', 'ca@teste.com', 'Lembrete', true);
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.envios_email') = 1, 'envios: Adm vê o registro de e-mails');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.envios_email') = 0, 'envios: Criação não vê');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.envios_email') = 0, 'envios: cliente não vê');
+select testes.recusa($$select public.chamar_rotina('avisos')$$, 'rotinas: ninguém dispara pela API');
+reset role;
+
+-- ---------------------------------------------------------------- revisão de segurança
+select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
+select testes.ok(not exists (
+  select 1 from information_schema.role_table_grants where table_schema = 'public' and grantee = 'anon'
+), 'segurança: visitante sem login sem permissão em nenhuma tabela');
+select testes.ok(not exists (
+  select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')
+), 'segurança: visitante sem login não executa nenhuma função');
+select testes.ok(not exists (
+  select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.prosecdef and not exists (select 1 from unnest(p.proconfig) c where c like 'search_path=%')
+), 'segurança: toda função security definer fixa o search_path');
+
 select testes.ok(true, 'TODOS OS TESTES PASSARAM');
 rollback;

@@ -1,0 +1,30 @@
+# Backup semanal do banco (o plano gratuito do Supabase não tem backup diário).
+# Fica como artefato privado do GitHub Actions por 90 dias. Contém dados pessoais: não baixar em máquina compartilhada.
+name: Backup
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # segunda-feira, 6h em São Paulo
+  workflow_dispatch:
+
+jobs:
+  exportar:
+    name: Exportar tabelas em JSON
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://omiibfgkvhndrwogsege.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exportar
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Cadastre SUPABASE_SERVICE_ROLE_KEY em Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          scripts/exportar-banco.sh backup
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bastidor-backup-${{ github.run_number }}
+          path: backup/
+          retention-days: 90

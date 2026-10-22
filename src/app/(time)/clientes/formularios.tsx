@@ -5,7 +5,7 @@ import { Aviso, Botao, Campo, classeEntrada } from "@/components/formulario";
 import type { Estado } from "@/app/entrar/acoes";
 import type { Acesso, Briefing, ClienteCompleto, Contrato } from "@/types/banco";
 import { convidar } from "../configuracoes/acoes";
-import { adicionarAta, apagarAta, apagarContrato, salvarBriefing, salvarCliente, salvarContrato } from "./acoes";
+import { adicionarAta, apagarAta, apagarCliente, apagarContrato, salvarBriefing, salvarCliente, salvarContrato } from "./acoes";
 
 function Retorno({ estado }: { estado: Estado }) {
   if (estado?.erro) return <Aviso tom="erro">{estado.erro}</Aviso>;
@@ -410,5 +410,47 @@ export function FormConviteCliente({ clientId }: { clientId: string }) {
       {estado?.erro && <Aviso tom="erro">{estado.erro}</Aviso>}
       {estado?.ok && <small className="text-[12.5px] text-ok">{estado.ok} A pessoa entra no portal pelo link do e-mail.</small>}
     </form>
+  );
+}
+
+// ---------------------------------------------------------------- LGPD (só Sócio)
+export function DadosDoCliente({ clientId, nome }: { clientId: string; nome: string }) {
+  const [estado, acao, apagando] = useActionState(apagarCliente, undefined);
+  const [aberto, setAberto] = useState(false);
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-[12.5px] text-muted">
+        Ao encerrar um contrato, a pedido do cliente: exporte os dados e depois apague tudo do Bastidor.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <a href={`/api/clientes/${clientId}/exportar`} className="rounded-lg border border-line px-3 py-[5px] text-[12.5px] font-medium hover:border-ink">
+          Exportar dados (JSON)
+        </a>
+        {!aberto && (
+          <Botao pequeno variante="fantasma" className="text-bad" onClick={() => setAberto(true)}>
+            Apagar cliente e dados
+          </Botao>
+        )}
+      </div>
+      {aberto && (
+        <form action={acao} className="flex flex-col gap-2 rounded-lg border border-bad/35 bg-bad-soft p-3">
+          <input type="hidden" name="client_id" value={clientId} />
+          <p className="text-[12.5px] text-bad">
+            Apaga para sempre: tarefas, artes, comentários, histórico, contratos, briefing, atas e os acessos das pessoas do cliente. Não dá
+            para desfazer. Para confirmar, digite <b>{nome}</b>.
+          </p>
+          <input name="confirmacao" aria-label="Nome do cliente para confirmar" autoComplete="off" className={classeEntrada} />
+          <div className="flex flex-wrap items-center gap-2">
+            <Botao pequeno className="border-bad bg-bad text-white" disabled={apagando}>
+              {apagando ? "Apagando…" : "Apagar para sempre"}
+            </Botao>
+            <Botao type="button" pequeno variante="fantasma" onClick={() => setAberto(false)}>
+              Cancelar
+            </Botao>
+          </div>
+          {estado?.erro && <small className="text-[12.5px] text-bad">{estado.erro}</small>}
+        </form>
+      )}
+    </div>
   );
 }

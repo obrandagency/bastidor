@@ -1,8 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Rotas abertas: telas de entrada e o retorno dos links enviados por e-mail
-const ROTAS_PUBLICAS = ["/entrar", "/auth/"];
+// Rotas abertas: telas de entrada, retorno dos links de e-mail, páginas legais
+// e as rotinas agendadas (protegidas pelo CRON_SECRET, não por sessão)
+const ROTAS_PUBLICAS = ["/entrar", "/auth/", "/api/cron/", "/privacidade", "/termos"];
 
 export async function atualizarSessao(request: NextRequest) {
   let resposta = NextResponse.next({ request });
