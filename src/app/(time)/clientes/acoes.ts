@@ -18,6 +18,13 @@ const lista = (f: FormData, k: string): string[] => {
 };
 const HEX = /^#[0-9A-Fa-f]{6}$/;
 
+// "3.500", "3500", "3.500,50" e "3500.50" -> número; vazio -> nulo. Ponto só é milhar se vier com 3 dígitos.
+function lerValor(v: string) {
+  const limpo = v.replace(/[R$\s]/g, "");
+  if (!limpo) return null;
+  return Number(limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo.replace(/\.(?=\d{3}(\D|$))/g, ""));
+}
+
 async function exigirGestao() {
   const eu = await pessoaAtual();
   return eu && (eu.perfil === "socio" || eu.perfil === "adm") ? eu : null;
@@ -110,7 +117,7 @@ export async function salvarContrato(_: Estado, form: FormData): Promise<Estado>
     fim: texto(form, "fim") || null,
     conteudos_mes: Number(texto(form, "conteudos_mes")),
     ajustes_mes: Number(texto(form, "ajustes_mes")),
-    valor_mensal: texto(form, "valor_mensal") ? Number(texto(form, "valor_mensal").replace(/\./g, "").replace(",", ".")) : null,
+    valor_mensal: lerValor(texto(form, "valor_mensal")),
   };
   if (!dados.inicio) return { erro: "Informe o início do contrato." };
   if (dados.fim && dados.fim < dados.inicio) return { erro: "O fim precisa ser depois do início." };
