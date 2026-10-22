@@ -51,7 +51,7 @@ Desvios ou complementos do SPEC aprovados pela Mayara:
 
 ## Andamento
 
-- [x] Etapa 1: base do projeto, visual, menu lateral, telas vazias. Falta publicar na Vercel (depende das contas)
+- [x] Etapa 1: base do projeto, visual, menu lateral, telas vazias. Publicado na Vercel (projeto `bastidor-obrand`, time `obrand-agency`), deploy automático a cada push na `main`
 - [ ] Etapa 2: login e perfis (o layout do time usa uma pessoa fixa, `PESSOA_PROVISORIA`, até aqui)
 - [ ] Etapa 3: clientes, contratos e Central do cliente
 - [ ] Etapa 4: tarefas
