@@ -473,6 +473,42 @@ select testes.ok(testes.conta($$select * from public.onboarding_etapas where nom
 select testes.recusa($$delete from public.onboarding_etapas where ordem = 2$$, 'onboarding: etapa com cliente não pode ser apagada');
 reset role;
 
+-- ---------------------------------------------------------------- tarefas recorrentes
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+insert into public.recorrencias (id, tipo, area, titulo, frequencia, dia_mes, antecedencia, inicio)
+  values ('00000000-0000-0000-0000-0000000000d1', 'demanda', 'financeiro', 'Fechamento de {mês}', 'mensal', 31, 7, '2026-01-01');
+insert into public.recorrencias (id, tipo, client_id, formato, titulo, frequencia, dias_semana, antecedencia, inicio)
+  values ('00000000-0000-0000-0000-0000000000d2', 'conteudo', '00000000-0000-0000-0000-00000000000a', 'estatico', 'Dica da semana {data}', 'semanal', '{1}', 0, '2026-01-01');
+insert into public.recorrencias (id, tipo, area, titulo, frequencia, dias_semana, antecedencia, inicio)
+  values ('00000000-0000-0000-0000-0000000000d3', 'demanda', 'interno', 'Reunião quinzenal', 'quinzenal', '{3}', 0, '2026-02-04');
+select testes.ok(testes.conta('select * from public.recorrencias') = 3, 'recorrentes: Adm cria modelos');
+select testes.recusa($$insert into public.recorrencias (tipo, area, titulo, frequencia, antecedencia) values ('demanda', 'interno', 'Sem regra', 'mensal', 1)$$, 'recorrentes: mensal sem dia é recusado');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.recorrencias') = 0, 'recorrentes: Criação não vê os modelos');
+select testes.recusa($$insert into public.recorrencias (tipo, area, titulo, frequencia, dia_mes) values ('demanda', 'interno', 'x', 'mensal', 1)$$, 'recorrentes: Criação não cria modelo');
+select testes.recusa($$select public.gerar_recorrentes()$$, 'recorrentes: Criação não dispara a geração');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.recorrencias') = 0 and testes.conta('select * from public.recorrencia_geradas') = 0, 'recorrentes: cliente não vê');
+reset role;
+select set_config('request.jwt.claims', '', true);
+update public.recorrencias set created_at = '2026-01-01 12:00-03' where id = '00000000-0000-0000-0000-0000000000d1';
+update public.recorrencias set created_at = '2026-02-20 12:00-03' where id = '00000000-0000-0000-0000-0000000000d2';
+update public.recorrencias set created_at = '2026-02-01 12:00-03' where id = '00000000-0000-0000-0000-0000000000d3';
+select testes.ok(public.gerar_recorrentes(null, '2026-02-24') = 5, 'recorrentes: gera o que entrou na antecedência (2 mensais, 1 semanal, 2 quinzenais)');
+select testes.ok(testes.conta($$select * from public.tasks where recorrencia_id = '00000000-0000-0000-0000-0000000000d1' and prazo = '2026-02-27' and titulo = 'Fechamento de fevereiro' and etapa = 'a_fazer'$$) = 1, 'recorrentes: dia 31 vira último dia do mês e sábado vai para sexta; {mês} preenchido');
+select testes.ok(testes.conta($$select * from public.tasks where recorrencia_id = '00000000-0000-0000-0000-0000000000d1' and prazo = '2026-01-30'$$) = 1, 'recorrentes: recupera ocorrência atrasada se a rotina falhou');
+select testes.ok(testes.conta($$select * from public.tasks where recorrencia_id = '00000000-0000-0000-0000-0000000000d2' and titulo = 'Dica da semana 23/02' and etapa = 'pauta'$$) = 1, 'recorrentes: conteúdo nasce em Pauta, sem datas anteriores à criação do modelo');
+select testes.ok(public.gerar_recorrentes(null, '2026-02-24') = 0, 'recorrentes: rodar de novo não duplica');
+delete from public.tasks where recorrencia_id = '00000000-0000-0000-0000-0000000000d2';
+select testes.ok(public.gerar_recorrentes(null, '2026-02-24') = 0, 'recorrentes: tarefa apagada não volta a nascer');
+update public.recorrencias set ativa = false where id = '00000000-0000-0000-0000-0000000000d2';
+select public.gerar_recorrentes(null, '2026-03-04');
+select testes.ok(
+  (select array_agg(prazo order by prazo) from public.tasks where recorrencia_id = '00000000-0000-0000-0000-0000000000d3') = array['2026-02-04', '2026-02-18', '2026-03-04']::date[],
+  'recorrentes: quinzenal pula uma semana');
+select testes.ok(testes.conta($$select * from public.tasks where recorrencia_id = '00000000-0000-0000-0000-0000000000d2'$$) = 0, 'recorrentes: modelo pausado não gera');
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (

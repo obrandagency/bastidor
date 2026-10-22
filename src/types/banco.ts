@@ -85,6 +85,7 @@ export type Tarefa = {
   enviado_cliente_em: string | null;
   aviso_cliente_em: string | null;
   horas: number | null;
+  recorrencia_id: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -38,6 +38,11 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
         <SeloEtapa etapa={t.etapa} />
         {t.tipo === "demanda" && <span className="text-[11px] font-semibold tracking-[0.03em] text-accent">{area(t.area)?.rotulo}</span>}
         <span className="text-[12.5px] text-muted">{c.nome}</span>
+        {t.recorrencia_id && (
+          <span className="text-[12.5px] text-muted" title="Criada por uma tarefa recorrente">
+            ↻ recorrente
+          </span>
+        )}
         {ajustes > 0 && (
           <span className="text-[12.5px] font-semibold text-bad">
             ↺ {ajustes} ajuste{ajustes > 1 ? "s" : ""} do cliente
@@ -96,6 +101,14 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
               className="rounded-lg border border-line px-3.5 py-2 font-medium hover:border-ink"
             >
               Abrir na Criação
+            </Link>
+          )}
+          {podeExcluir && (
+            <Link
+              href={t.recorrencia_id ? `/tarefas/recorrentes?editar=${t.recorrencia_id}` : `/tarefas/recorrentes?de=${t.id}`}
+              className="rounded-lg border border-line px-3.5 py-2 font-medium hover:border-ink"
+            >
+              {t.recorrencia_id ? "↻ Ver repetição" : "↻ Repetir esta tarefa"}
             </Link>
           )}
           {podeExcluir && <Excluir tarefa={t} />}

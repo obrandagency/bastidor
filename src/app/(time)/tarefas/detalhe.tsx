@@ -51,7 +51,7 @@ function Retorno({ estado }: { estado: Estado }) {
   return null;
 }
 
-function Legenda({ tipo, inicial }: { tipo: TipoTarefa; inicial: string }) {
+export function Legenda({ tipo, inicial }: { tipo: TipoTarefa; inicial: string }) {
   const [valor, setValor] = useState(inicial);
   const conteudo = tipo === "conteudo";
   return (

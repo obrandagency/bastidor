@@ -16,6 +16,7 @@ export type Card = {
   detalhe: string; // formato (conteúdo) ou área (demanda)
   resp: { iniciais: string; nome: string } | null;
   ajustesCliente: number;
+  recorrente: boolean;
   href: string;
 };
 
@@ -119,6 +120,11 @@ export function Quadro({
                         <span className="truncate">
                           {c.clienteNome} · {c.detalhe}
                         </span>
+                        {c.recorrente && (
+                          <span className="ml-auto flex-none" title="Tarefa recorrente" aria-label="Tarefa recorrente">
+                            ↻
+                          </span>
+                        )}
                       </div>
                       <Link
                         href={c.href}

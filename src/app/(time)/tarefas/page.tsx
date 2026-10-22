@@ -17,6 +17,7 @@ type Busca = { aba?: string; cliente?: string; resp?: string; tarefa?: string; n
 export default async function Tarefas({ searchParams }: { searchParams: Promise<Busca> }) {
   const eu = await exigirTime();
   const busca = await searchParams;
+  const gestao = eu.perfil === "socio" || eu.perfil === "adm";
   const tipo: TipoTarefa = busca.aba === "demanda" ? "demanda" : "conteudo";
   const hoje = hojeSP();
   const supabase = await criarClienteServidor();
@@ -64,6 +65,7 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
       detalhe: tipo === "conteudo" ? rotuloFormato(t.formato) : (area(t.area)?.rotulo ?? ""),
       resp: r ? { iniciais: r.iniciais, nome: r.nome } : null,
       ajustesCliente: ajustesPor.get(t.id) ?? 0,
+      recorrente: !!t.recorrencia_id,
       href: link({ tarefa: t.id }),
     };
   });
@@ -83,9 +85,16 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
             : "Arraste os cards entre as etapas ou use a seta para avançar. Cada etapa passa o conteúdo para o responsável certo."
         }
         acoes={
-          <Link href={link({ nova: "1" })} scroll={false} className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:brightness-110">
-            {tipo === "demanda" ? "+ Nova demanda" : "+ Nova pauta"}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {gestao && (
+              <Link href="/tarefas/recorrentes" className="rounded-lg border border-line bg-card px-3.5 py-2 font-medium hover:border-ink">
+                ↻ Recorrentes
+              </Link>
+            )}
+            <Link href={link({ nova: "1" })} scroll={false} className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:brightness-110">
+              {tipo === "demanda" ? "+ Nova demanda" : "+ Nova pauta"}
+            </Link>
+          </div>
         }
       />
 
@@ -143,7 +152,7 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
       )}
 
       {busca.tarefa && (
-        <DetalheTarefa id={busca.tarefa} fechar={link({})} podeExcluir={eu.perfil === "socio" || eu.perfil === "adm"} />
+        <DetalheTarefa id={busca.tarefa} fechar={link({})} podeExcluir={gestao} />
       )}
     </>
   );
