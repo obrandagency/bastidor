@@ -1,30 +1,18 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
-import { Avatar, PontoCliente, SeloEtapa } from "@/components/tarefa";
-import { dataBR, hojeSP } from "@/lib/datas";
-import {
-  area,
-  dataHoraSP,
-  ETAPAS_CONTEUDO,
-  ETAPAS_DEMANDA,
-  FINALIZADAS,
-  rotuloEtapa,
-  rotuloFormato,
-  type TipoTarefa,
-} from "@/lib/dominio/tarefas";
+import { hojeSP } from "@/lib/datas";
+import { area, ETAPAS_CONTEUDO, ETAPAS_DEMANDA, FINALIZADAS, rotuloFormato, type TipoTarefa } from "@/lib/dominio/tarefas";
 import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
-import type { Evento, Nota, Pessoa, Tarefa } from "@/types/banco";
-import { Agendamento, Comentarios, Excluir, FormNovaTarefa, FormTarefa, Gaveta } from "./detalhe";
+import type { Pessoa, Tarefa } from "@/types/banco";
+import { FormNovaTarefa, Gaveta } from "./detalhe";
+import { DetalheTarefa, INTERNO } from "./detalhe-tarefa";
 import { Filtros } from "./filtros";
 import { Quadro, type Card } from "./quadro";
 
 export const metadata = { title: "Tarefas · Bastidor" };
 
 type Busca = { aba?: string; cliente?: string; resp?: string; tarefa?: string; nova?: string };
-
-const INTERNO = { nome: "O.BRAND (interno)", cor: "#0A0C12", nome_curto: "INTERNO" };
 
 export default async function Tarefas({ searchParams }: { searchParams: Promise<Busca> }) {
   const eu = await exigirTime();
@@ -155,112 +143,8 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
       )}
 
       {busca.tarefa && (
-        <Detalhe
-          id={busca.tarefa}
-          fechar={link({})}
-          podeExcluir={eu.perfil === "socio" || eu.perfil === "adm"}
-          clienteDe={clienteDe}
-          opcoesTime={opcoesTime}
-          opcoesClientes={opcoesClientes}
-          ajustes={ajustesPor.get(busca.tarefa) ?? 0}
-        />
+        <DetalheTarefa id={busca.tarefa} fechar={link({})} podeExcluir={eu.perfil === "socio" || eu.perfil === "adm"} />
       )}
     </>
-  );
-}
-
-async function Detalhe({
-  id,
-  fechar,
-  podeExcluir,
-  clienteDe,
-  opcoesTime,
-  opcoesClientes,
-  ajustes,
-}: {
-  id: string;
-  fechar: string;
-  podeExcluir: boolean;
-  clienteDe: (id: string | null) => { nome: string; cor: string };
-  opcoesTime: { id: string; nome: string }[];
-  opcoesClientes: { id: string; nome: string }[];
-  ajustes: number;
-}) {
-  const supabase = await criarClienteServidor();
-  const [{ data: t }, { data: notas }, { data: eventos }, { data: pessoas }] = await Promise.all([
-    supabase.from("tasks").select("*").eq("id", id).maybeSingle<Tarefa>(),
-    supabase.from("task_notes").select("*").eq("task_id", id).order("created_at").returns<Nota[]>(),
-    supabase.from("task_events").select("*").eq("task_id", id).order("created_at", { ascending: false }).returns<Evento[]>(),
-    supabase.from("profiles").select("id, nome, iniciais"),
-  ]);
-  if (!t) notFound();
-  const c = clienteDe(t.client_id);
-  const autores = Object.fromEntries((pessoas ?? []).map((p) => [p.id, p.nome]));
-  const resp = (pessoas ?? []).find((p) => p.id === t.responsavel_id);
-  // Cliente inativo continua aparecendo na tarefa antiga
-  const clientes = t.client_id && !opcoesClientes.some((o) => o.id === t.client_id) ? [{ id: t.client_id, nome: c.nome }, ...opcoesClientes] : opcoesClientes;
-  const agenda = dataHoraSP(t.publicar_em);
-
-  return (
-    <Gaveta fechar={fechar} rotulo={t.tipo === "demanda" ? "Demanda" : "Conteúdo"}>
-      <div className="flex flex-wrap items-center gap-2">
-        <PontoCliente cor={c.cor} />
-        <SeloEtapa etapa={t.etapa} />
-        {t.tipo === "demanda" && <span className="text-[11px] font-semibold tracking-[0.03em] text-accent">{area(t.area)?.rotulo}</span>}
-        <span className="text-[12.5px] text-muted">{c.nome}</span>
-        {ajustes > 0 && (
-          <span className="text-[12.5px] font-semibold text-bad">
-            ↺ {ajustes} ajuste{ajustes > 1 ? "s" : ""} do cliente
-          </span>
-        )}
-        {resp && (
-          <span className="ml-auto flex items-center gap-1.5 text-[12.5px] text-muted">
-            <Avatar iniciais={resp.iniciais} nome={resp.nome} />
-            {resp.nome}
-          </span>
-        )}
-        <Link href={fechar} scroll={false} aria-label="Fechar" className={`${resp ? "" : "ml-auto"} rounded-lg px-3 py-1.5 hover:bg-surface`}>
-          ✕
-        </Link>
-      </div>
-
-      {t.tipo === "conteudo" && (t.etapa === "aprovado" || t.etapa === "agendado") && (
-        <Agendamento key={t.updated_at} tarefa={t} data={agenda.data} hora={agenda.hora} />
-      )}
-
-      <FormTarefa key={t.updated_at} tarefa={t} time={opcoesTime} clientes={clientes} />
-
-      <Comentarios taskId={t.id} notas={notas ?? []} autores={autores} />
-
-      <div>
-        <div className="mb-2 text-[11.5px] uppercase tracking-[0.04em] text-muted">Histórico</div>
-        <ol className="flex flex-col gap-1.5 text-[12.5px]">
-          {(eventos ?? []).map((e) => {
-            const { data, hora } = dataHoraSP(e.created_at);
-            return (
-              <li key={e.id} className="flex gap-2">
-                <span className="w-[86px] flex-none font-mono text-muted">
-                  {dataBR(data).slice(0, 5)} {hora}
-                </span>
-                <span>
-                  {e.de_etapa ? `${rotuloEtapa(e.de_etapa)} → ${rotuloEtapa(e.para_etapa)}` : `Criada em ${rotuloEtapa(e.para_etapa)}`}
-                  <span className="text-muted">
-                    {" · "}
-                    {e.ator_nome ?? "sistema"}
-                    {e.origem === "cliente" ? " (cliente)" : ""}
-                  </span>
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-
-      {podeExcluir && (
-        <div className="mt-auto flex border-t border-line pt-3">
-          <Excluir tarefa={t} />
-        </div>
-      )}
-    </Gaveta>
   );
 }

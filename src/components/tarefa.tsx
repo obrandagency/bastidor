@@ -35,3 +35,19 @@ export function Prazo({ prazo, etapa, hoje }: { prazo: string | null; etapa: Eta
 export function PontoCliente({ cor }: { cor: string }) {
   return <span className="h-2 w-2 flex-none rounded-full" style={{ background: cor }} />;
 }
+
+// Miniatura 4:5 do post na cor do cliente (.tile.sm) ou sigla da área da demanda (.dthumb)
+export function Miniatura({ cor, sigla }: { cor: string; sigla?: string }) {
+  if (sigla)
+    return (
+      <span className="grid aspect-[4/5] w-11 flex-none place-items-center rounded-[5px] bg-accent-soft font-display text-[14px] font-bold tracking-[0.02em] text-accent">
+        {sigla}
+      </span>
+    );
+  return (
+    <span
+      className="aspect-[4/5] w-11 flex-none rounded-[5px]"
+      style={{ background: `linear-gradient(165deg, color-mix(in srgb, ${cor} 85%, white), color-mix(in srgb, ${cor} 45%, black))` }}
+    />
+  );
+}
