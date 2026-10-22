@@ -36,22 +36,15 @@ jobs:
     concurrency: supabase-producao
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_REF: omiibfgkvhndrwogsege
     steps:
       - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-      - name: supabase db push
+      - name: Aplicar migrations pendentes
         run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
-            echo "::warning::Cadastre SUPABASE_ACCESS_TOKEN e SUPABASE_DB_PASSWORD em Settings > Secrets and variables > Actions"
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::warning::Cadastre SUPABASE_ACCESS_TOKEN em Settings > Secrets and variables > Actions"
             exit 0
           fi
           # Em caso de erro, as últimas linhas viram anotações (aparecem no resumo do Actions)
-          falhou() { tail -n 15 saida.txt | sed 's/^/::error::/'; exit 1; }
-          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" > saida.txt 2>&1 || falhou
-          cat saida.txt
-          supabase db push --password "$SUPABASE_DB_PASSWORD" > saida.txt 2>&1 || falhou
+          scripts/aplicar-migrations.sh > saida.txt 2>&1 || { cat saida.txt; tail -n 15 saida.txt | sed 's/^/::error::/'; exit 1; }
           cat saida.txt

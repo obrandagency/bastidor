@@ -35,7 +35,7 @@ src/app/auth/confirmar/  destino dos links de e-mail (token_hash + type)
 src/lib/sessao.ts    pessoaAtual(), exigirTime(perfis?), exigirCliente()
 src/lib/supabase/    clientes do navegador, do servidor, admin (service role, só servidor) e middleware
 src/middleware.ts    renova a sessão e manda quem não está logado para /entrar (precisa ficar dentro de src/)
-supabase/migrations/ banco versionado; aplicado no Supabase pelo GitHub Actions (.github/workflows/banco.yml) ao chegar na main
+supabase/migrations/ banco versionado; aplicado no Supabase pelo GitHub Actions (.github/workflows/banco.yml + scripts/aplicar-migrations.sh, pela API de gerenciamento com SUPABASE_ACCESS_TOKEN) ao chegar na main. Migration já aplicada nunca é editada: mudança vira migration nova
 docs/configuracao.md passo a passo dos painéis (GitHub, Resend, Supabase, Vercel)
 supabase/tests/      stub-supabase.sql (imitação mínima do Supabase) e rls.sql (um usuário de cada perfil)
 ```

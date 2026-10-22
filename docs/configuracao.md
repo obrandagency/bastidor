@@ -4,14 +4,11 @@ Passos feitos uma vez, nos painéis do GitHub, do Supabase, do Resend e da Verce
 
 ## 1. GitHub: chaves para criar as tabelas
 
-O GitHub aplica as migrations no Supabase sozinho. Para isso ele precisa de duas chaves.
+O GitHub aplica as migrations no Supabase sozinho (`scripts/aplicar-migrations.sh`, pela API do Supabase). Para isso ele precisa de uma chave.
 
 1. **Token do Supabase:** supabase.com → clique no seu avatar → **Account preferences → Access Tokens → Generate new token**. Nome: `GitHub Bastidor`. Copie o token (ele só aparece uma vez).
-2. **Senha do banco:** é a senha criada junto com o projeto. Se não lembrar: Supabase → **Project Settings → Database → Reset database password**.
-3. No GitHub: repositório **obrandagency/bastidor → Settings → Secrets and variables → Actions → New repository secret**. Crie dois:
-   - `SUPABASE_ACCESS_TOKEN` com o token do passo 1
-   - `SUPABASE_DB_PASSWORD` com a senha do passo 2
-4. Aba **Actions → Banco → Run workflow → Run workflow**. Em 1 ou 2 minutos as tabelas estão criadas.
+2. No GitHub: repositório **obrandagency/bastidor → Settings → Secrets and variables → Actions → New repository secret**: `SUPABASE_ACCESS_TOKEN` com o token do passo 1.
+3. Aba **Actions → Banco → Run workflow → Run workflow**. Em 1 ou 2 minutos as tabelas estão criadas.
 
 ## 2. Resend: envio dos e-mails
 
