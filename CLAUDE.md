@@ -69,7 +69,7 @@ Desvios ou complementos do SPEC aprovados pela Mayara:
 
 ## Andamento
 
-- [x] Etapa 1: base do projeto, visual, menu lateral, telas vazias. Publicado e testado na Vercel (projeto `bastidor-obrand`, time `obrand-agency`), deploy automático a cada push na `main`. O `vercel.json` fixa o framework Next.js (sem ele o deploy dava 404) e a região `gru1`
+- [x] Etapa 1: base do projeto, visual, menu lateral, telas vazias. Publicado e testado na Vercel (projeto `bastidor-obrand`, time `obrand-agency`), deploy automático a cada push na `main`. O `vercel.json` fixa o framework Next.js (sem ele o deploy dava 404) e a região `iad1` (a mesma do Supabase, us-east-1)
 - [ ] Etapa 2: login e perfis. Código e 59 testes de RLS prontos; falta configurar o Supabase (modelos de e-mail, SMTP, chaves) e testar com usuários reais
 - [ ] Etapa 3: clientes, contratos e Central do cliente
 - [ ] Etapa 4: tarefas
