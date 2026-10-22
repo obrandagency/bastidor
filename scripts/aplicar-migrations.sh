@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 
 sql() { # executa SQL (stdin) e imprime o JSON da resposta; falha mostrando a mensagem do banco
   local resposta codigo
-  resposta=$(jq -Rs '{query: .}' | curl -sS -w '\n%{http_code}' -X POST \
+  resposta=$(jq -Rs '{query: ., read_only: false}' | curl -sS -w '\n%{http_code}' -X POST \
     "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" \
     -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" --data-binary @-)
   codigo=$(tail -n1 <<<"$resposta")
