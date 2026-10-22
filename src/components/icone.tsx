@@ -8,6 +8,7 @@ const CAMINHOS: Record<IconeMenu, string> = {
   clientes: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
   portal: "M4 12l5 5L20 6",
   configuracoes: "M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4",
+  crm: "M3 5h18l-7 8v6l-4 2v-8z",
 };
 
 export function Icone({ nome, className = "" }: { nome: IconeMenu; className?: string }) {

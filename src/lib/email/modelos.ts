@@ -56,13 +56,18 @@ export function emailAvisoTime(tipo: string, texto: string, link: string, site: 
   };
 }
 
-export function emailResumoDiario(nome: string, venceAmanha: string[], atrasadas: string[], site: string) {
+export function emailResumoDiario(nome: string, venceAmanha: string[], atrasadas: string[], site: string, followups: string[] = []) {
   const partes = [
     atrasadas.length ? `<b style="color:#C93838">Atrasadas (${atrasadas.length})</b>${lista(atrasadas)}` : "",
     venceAmanha.length ? `<b>Vencem amanhã (${venceAmanha.length})</b>${lista(venceAmanha)}` : "",
+    followups.length ? `<b>Follow-ups do CRM, hoje e atrasados (${followups.length})</b>${lista(followups)}` : "",
   ].join("");
   return {
-    assunto: atrasadas.length ? `Bom dia! ${atrasadas.length} tarefa${atrasadas.length > 1 ? "s" : ""} atrasada${atrasadas.length > 1 ? "s" : ""}` : "Bom dia! Tarefas que vencem amanhã",
+    assunto: atrasadas.length
+      ? `Bom dia! ${atrasadas.length} tarefa${atrasadas.length > 1 ? "s" : ""} atrasada${atrasadas.length > 1 ? "s" : ""}`
+      : venceAmanha.length
+        ? "Bom dia! Tarefas que vencem amanhã"
+        : "Bom dia! Follow-ups do CRM para hoje",
     html: moldura(`Bom dia, ${esc(nome.split(" ")[0])}`, partes, { texto: "Abrir minhas tarefas", link: `${site}/inicio?aba=resumo` }, rodapeTime(site)),
   };
 }

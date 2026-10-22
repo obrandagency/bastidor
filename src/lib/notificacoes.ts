@@ -158,13 +158,21 @@ export async function enviarResumoDiario(): Promise<Resultado> {
     .not("etapa", "in", `(${PARADAS.join(",")})`)
     .lte("prazo", amanha)
     .neq("prazo", hoje);
+  const { data: leads } = await admin
+    .from("leads")
+    .select("empresa, proximo_passo, proximo_passo_em, responsavel_id")
+    .not("etapa", "in", "(ganho,perdido)")
+    .lte("proximo_passo_em", hoje);
   const resultado: Resultado = { enviados: 0, falhas: 0 };
 
   for (const p of (time ?? []) as Pessoa[]) {
     const minhas = (tarefas ?? []).filter((t) => t.responsavel_id === p.id);
     const atrasadas = minhas.filter((t) => t.prazo! < hoje).map((t) => t.titulo);
     const venceAmanha = minhas.filter((t) => t.prazo === amanha).map((t) => t.titulo);
-    if (!atrasadas.length && !venceAmanha.length) continue;
+    const followups = (leads ?? [])
+      .filter((l) => l.responsavel_id === p.id)
+      .map((l) => `${l.empresa}: ${l.proximo_passo ?? "próximo passo"}${l.proximo_passo_em! < hoje ? " (atrasado)" : ""}`);
+    if (!atrasadas.length && !venceAmanha.length && !followups.length) continue;
     const { count } = await admin
       .from("envios_email")
       .select("id", { count: "exact", head: true })
@@ -172,7 +180,7 @@ export async function enviarResumoDiario(): Promise<Resultado> {
       .eq("destinatario_id", p.id)
       .gte("created_at", inicioDeHojeSP());
     if (count) continue;
-    const { assunto, html } = emailResumoDiario(p.nome, venceAmanha, atrasadas, urlDoSite());
+    const { assunto, html } = emailResumoDiario(p.nome, venceAmanha, atrasadas, urlDoSite(), followups);
     const r = await enviarEmail(p.email, assunto, html);
     await registrar(admin, "resumo", p, assunto, r);
     if (r.ok) resultado.enviados++;

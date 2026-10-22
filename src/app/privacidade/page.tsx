@@ -18,6 +18,10 @@ export default function Privacidade() {
         <li>Registro de cada aprovação e pedido de ajuste: quem fez, o quê e quando.</li>
         <li>Conteúdos, legendas, artes e informações de marca fornecidas pelo cliente para a prestação do serviço.</li>
         <li>Dados técnicos de acesso (data e hora de entrada), usados para segurança.</li>
+        <li>
+          Dados de contato comercial de empresas interessadas nos serviços da O.BRAND (nome do contato, WhatsApp, empresa e cidade),
+          usados só para o atendimento comercial, com base no legítimo interesse, e apagados a pedido.
+        </li>
       </ul>
       <p>Não guardamos senhas de redes sociais nem de outros serviços dos clientes no Bastidor.</p>
       <h2>Para que usamos</h2>

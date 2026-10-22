@@ -106,13 +106,39 @@ async function Calendario({ mes, pessoa, time, hoje, link, clienteDe, pessoaPor 
   const todas = [...new Map([...(porPrazo ?? []), ...(porPublicacao ?? [])].map((t) => [t.id, t])).values()].filter(
     (t) => diaDe(t)?.startsWith(mes),
   );
-  return <VistaCalendario mes={mes} pessoa={pessoa} time={time} todas={todas} diaDe={diaDe} hoje={hoje} link={link} clienteDe={clienteDe} pessoaPor={pessoaPor} />;
+  const { data: leads } = await supabase
+    .from("leads")
+    .select("id, empresa, proximo_passo, proximo_passo_em, responsavel_id")
+    .not("etapa", "in", "(ganho,perdido)")
+    .gte("proximo_passo_em", inicio)
+    .lt("proximo_passo_em", proximo);
+  const followups = (leads ?? []).map((l) => ({
+    id: l.id,
+    empresa: l.empresa,
+    texto: l.proximo_passo,
+    dia: l.proximo_passo_em as string,
+    responsavel_id: l.responsavel_id,
+  }));
+  return (
+    <VistaCalendario
+      mes={mes}
+      pessoa={pessoa}
+      time={time}
+      todas={todas}
+      diaDe={diaDe}
+      hoje={hoje}
+      link={link}
+      clienteDe={clienteDe}
+      pessoaPor={pessoaPor}
+      followups={followups}
+    />
+  );
 }
 
 // ---------------------------------------------------------------- resumo do dia
 async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
   const supabase = await criarClienteServidor();
-  const [{ data: abertas }, { data: proximas }] = await Promise.all([
+  const [{ data: abertas }, { data: proximas }, { data: followups }] = await Promise.all([
     supabase.from("tasks").select("*").not("etapa", "in", `(${FINALIZADAS.join(",")})`).order("prazo").returns<Tarefa[]>(),
     supabase
       .from("tasks")
@@ -122,6 +148,12 @@ async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
       .order("publicar_em")
       .limit(6)
       .returns<Tarefa[]>(),
+    supabase
+      .from("leads")
+      .select("id, empresa, proximo_passo, proximo_passo_em, responsavel_id")
+      .not("etapa", "in", "(ganho,perdido)")
+      .lte("proximo_passo_em", hoje)
+      .order("proximo_passo_em"),
   ]);
   const lista = abertas ?? [];
   const atrasadas = lista.filter((t) => estaAtrasada(t, hoje));
@@ -185,6 +217,27 @@ async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
           })}
           {esperando.length === 0 && vazio("Nenhum conteúdo com o cliente.")}
         </Painel>
+
+        {(followups ?? []).length > 0 && (
+          <Painel titulo="Follow-ups do CRM" semPadding extra={<Link href="/crm" className="text-[12.5px] text-muted hover:text-ink">Abrir CRM</Link>}>
+            {(followups ?? []).map((f) => {
+              const r = f.responsavel_id ? pessoaPor.get(f.responsavel_id) : null;
+              const dias = diasEntre(f.proximo_passo_em!, hoje);
+              return (
+                <Link key={f.id} href={`/crm?lead=${f.id}`} className="flex min-w-0 items-center gap-3 border-t border-line px-4 py-[11px] first:border-t-0 hover:bg-surface">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium [overflow-wrap:anywhere]">{f.empresa}</div>
+                    <div className="text-[12.5px] text-muted">{f.proximo_passo ?? "Próximo passo"}</div>
+                  </div>
+                  {r && <Avatar iniciais={r.iniciais} nome={r.nome} />}
+                  <span className={`text-[12px] ${dias > 0 ? "font-semibold text-bad" : "font-semibold text-warn"}`}>
+                    {dias > 0 ? `Atrasado ${dias}d` : "Hoje"}
+                  </span>
+                </Link>
+              );
+            })}
+          </Painel>
+        )}
 
         <Painel titulo="Próximas publicações" semPadding>
           {(proximas ?? []).map((t) => {

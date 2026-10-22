@@ -335,6 +335,33 @@ select testes.ok(testes.conta('select * from public.envios_email') = 0, 'envios:
 select testes.recusa($$select public.chamar_rotina('avisos')$$, 'rotinas: ninguém dispara pela API');
 reset role;
 
+-- ---------------------------------------------------------------- CRM
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+insert into public.leads (id, empresa, contato, origem, servicos, valor_mensal, responsavel_id, proximo_passo, proximo_passo_em)
+  values ('00000000-0000-0000-0000-0000000000d1', 'Padaria Dona Lu', 'Luciana', 'instagram', '{social_media,identidade_visual}', 1500,
+          '00000000-0000-0000-0000-000000000002', 'Ligar', current_date);
+select testes.ok(testes.conta($$select * from public.lead_eventos where lead_id = '00000000-0000-0000-0000-0000000000d1' and texto = 'Entrou em Novo lead' and autor_nome = 'Adm'$$) = 1, 'crm: Adm cria lead e o histórico registra');
+select testes.recusa($$insert into public.leads (empresa, servicos) values ('X', '{marketing_digital}')$$, 'crm: só serviços da lista');
+select testes.recusa($$update public.leads set etapa = 'perdido' where id = '00000000-0000-0000-0000-0000000000d1'$$, 'crm: Perdido exige o motivo');
+update public.leads set etapa = 'ganho' where id = '00000000-0000-0000-0000-0000000000d1';
+select testes.ok((select fechado_em is not null and proximo_passo is null and proximo_passo_em is null from public.leads where id = '00000000-0000-0000-0000-0000000000d1'), 'crm: Fechado grava a data e encerra o follow-up');
+update public.leads set etapa = 'perdido', motivo_perda = 'Preço' where id = '00000000-0000-0000-0000-0000000000d1';
+select testes.ok(testes.conta($$select * from public.lead_eventos where lead_id = '00000000-0000-0000-0000-0000000000d1' and texto = 'Movido para Perdido: Preço'$$) = 1, 'crm: perda entra no histórico com o motivo');
+update public.leads set etapa = 'negociacao' where id = '00000000-0000-0000-0000-0000000000d1';
+select testes.ok((select fechado_em is null and motivo_perda is null from public.leads where id = '00000000-0000-0000-0000-0000000000d1'), 'crm: reabrir limpa data de fechamento e motivo');
+insert into public.lead_eventos (lead_id, tipo, texto, autor_id) values ('00000000-0000-0000-0000-0000000000d1', 'nota', 'Ligou pedindo proposta', auth.uid());
+select testes.recusa($$insert into public.lead_eventos (lead_id, tipo, texto, autor_id) values ('00000000-0000-0000-0000-0000000000d1', 'etapa', 'Movido para Fechado', auth.uid())$$, 'crm: ninguém forja mudança de etapa no histórico');
+select testes.recusa($$insert into public.lead_eventos (lead_id, tipo, texto, autor_id) values ('00000000-0000-0000-0000-0000000000d1', 'nota', 'x', '00000000-0000-0000-0000-000000000001')$$, 'crm: ninguém anota em nome de outra pessoa');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.leads') = 0 and testes.conta('select * from public.lead_eventos') = 0, 'crm: Criação não vê o CRM');
+select testes.recusa($$insert into public.leads (empresa) values ('X')$$, 'crm: Criação não cria lead');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.leads') = 0, 'crm: cliente não vê o CRM');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.leads') = 1, 'crm: Sócio vê o CRM');
+reset role;
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (

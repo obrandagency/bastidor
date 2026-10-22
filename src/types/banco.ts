@@ -1,3 +1,4 @@
+import type { EtapaLead, OrigemLead, Servico } from "@/lib/dominio/crm";
 import type { Area, Etapa, Formato, TipoTarefa } from "@/lib/dominio/tarefas";
 import type { Perfil } from "@/lib/permissoes";
 
@@ -139,4 +140,34 @@ export type ResumoPortal = {
   entregues: number;
   em_producao: number;
   aguardando: number;
+};
+
+export type Lead = {
+  id: string;
+  empresa: string;
+  contato: string | null;
+  whatsapp: string | null;
+  segmento: string | null;
+  cidade: string | null;
+  origem: OrigemLead | null;
+  servicos: Servico[];
+  valor_mensal: number;
+  etapa: EtapaLead;
+  responsavel_id: string | null;
+  proximo_passo: string | null;
+  proximo_passo_em: string | null;
+  motivo_perda: string | null;
+  fechado_em: string | null;
+  client_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EventoLead = {
+  id: number;
+  lead_id: string;
+  tipo: "nota" | "etapa";
+  texto: string;
+  autor_nome: string | null;
+  created_at: string;
 };

@@ -35,6 +35,7 @@ src/app/auth/confirmar/  destino dos links de e-mail (token_hash + type)
 src/app/verificacao-acesso/  página que lê cada tabela com a sessão de quem está logado e marca o que o perfil não deveria ver (teste de RLS em produção)
 src/app/(time)/clientes/  lista, cadastro (novo, [id]/editar) e Central do cliente ([id]); ações em acoes.ts
 src/app/(time)/tarefas/  quadro (quadro.tsx), detalhe (detalhe-tarefa.tsx, usado também no Início), formulários (detalhe.tsx), filtros e ações
+src/app/(time)/crm/      funil (quadro-leads.tsx), ficha e novo lead (ficha.tsx), lista e origem (page.tsx); regras em src/lib/dominio/crm.ts
 src/app/(time)/inicio/   calendário (calendario.tsx, só desenha) e resumo do dia (page.tsx busca os dados)
 src/app/portal/telas.tsx  telas do portal (TelaAprovar, TelaRelatorio) usadas pelo cliente e por "Ver como cliente"; interativos.tsx tem carrossel e botões de decisão
 src/app/(time)/criacao/  Criação (page.tsx busca, editor.tsx desenha; artes vão do navegador direto ao Storage e depois registrarArte)
@@ -89,3 +90,7 @@ Desvios ou complementos do SPEC aprovados pela Mayara:
 - [ ] Etapa 5: início. Código pronto: Calendário do mês (dia do prazo ou da publicação, cores por situação, faixa de atraso, filtro por pessoa com contagem, navegação de mês) e Resumo do dia (atrasadas e vencendo hoje, esperando o cliente há N dias, próximas publicações); clicar abre o mesmo detalhe de Tarefas. Falta teste no navegador
 - [ ] Etapa 6: criação e portal. Código pronto: Criação (lista em produção, artes com envio direto ao Storage, ordem e remoção, legenda com contador, ajustes internos e do cliente, prévia do feed), portal (aprovar com carrossel, pedir ajuste com aviso de limite, histórico recente, relatório de entregas por mês) e Ver como cliente (mesmas telas, sem decidir). Falta: testar com um cliente piloto por um mês
 - [ ] Etapa 7: notificações e revisão de segurança. Código pronto: e-mails (Resend) para aprovar às 17h + "Notificar o cliente agora", lembrete às 10h (1 por dia por cliente, dias configuráveis), avisos do time a cada 5 min (aprovou, ajuste, você recebeu), resumo diário às 8h; sino (/avisos), Minha conta (/conta) com opção de desligar e-mails; rotinas por pg_cron + pg_net + Vault chamando /api/cron/<rotina>; revisão de segurança em docs/seguranca.md; /privacidade e /termos (rascunho); exportar e apagar cliente (LGPD); backup semanal por GitHub Actions. Falta: configurar Resend, CRON_SECRET e Vault (docs/configuracao.md seção 6) e ver os e-mails chegando
+
+## Depois da Fase 1
+
+- [ ] CRM (26/10): Sócio e Adm editam; Criação e cliente não veem. Funil de 7 etapas (arrastar, seta; Perdido pede motivo), lista, origem dos leads, ficha lateral com histórico automático, "Virar cliente" cria o cliente na Central. Follow-ups no calendário do Início, no Resumo do dia e no resumo das 8h. Serviços: Social media, Tráfego pago, Branding, Identidade visual, Vídeo, Endomarketing, Outros. Sem importação de leads. Falta teste no navegador
