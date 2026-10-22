@@ -1,3 +1,4 @@
+import type { Area, Etapa, Formato, TipoTarefa } from "@/lib/dominio/tarefas";
 import type { Perfil } from "@/lib/permissoes";
 
 export type Pessoa = {
@@ -65,4 +66,42 @@ export type Ata = {
   data: string;
   resumo: string;
   autor_id: string | null;
+};
+
+export type Tarefa = {
+  id: string;
+  tipo: TipoTarefa;
+  client_id: string | null;
+  titulo: string;
+  formato: Formato | null;
+  area: Area | null;
+  etapa: Etapa;
+  responsavel_id: string | null;
+  prazo: string | null;
+  texto: string;
+  publicar_em: string | null;
+  enviado_cliente_em: string | null;
+  horas: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Nota = {
+  id: string;
+  task_id: string;
+  tipo: "interno" | "cliente";
+  texto: string;
+  autor_id: string | null;
+  resolvido: boolean;
+  created_at: string;
+};
+
+export type Evento = {
+  id: number;
+  task_id: string;
+  de_etapa: Etapa | null;
+  para_etapa: Etapa;
+  ator_nome: string | null;
+  origem: "time" | "cliente" | "sistema";
+  created_at: string;
 };

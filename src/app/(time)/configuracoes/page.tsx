@@ -4,7 +4,8 @@ import { exigirTime } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Cliente, Pessoa } from "@/types/banco";
-import { AcoesPessoa, FormConvite } from "./formularios";
+import { ETAPAS_CONTEUDO } from "@/lib/dominio/tarefas";
+import { AcoesPessoa, FormConvite, FormResponsaveisPadrao } from "./formularios";
 
 export const metadata = { title: "Configurações · Bastidor" };
 
@@ -84,10 +85,11 @@ function Lista({
 export default async function Configuracoes() {
   const eu = await exigirTime(["socio"]);
   const supabase = await criarClienteServidor();
-  const [{ data: pessoas }, { data: clientes }, acessos] = await Promise.all([
+  const [{ data: pessoas }, { data: clientes }, acessos, { data: padroes }] = await Promise.all([
     supabase.from("profiles").select("*").order("nome").returns<Pessoa[]>(),
     supabase.from("clients").select("id, nome, nome_curto, cor, ativo").eq("ativo", true).order("nome").returns<Cliente[]>(),
     primeirosAcessos(),
+    supabase.from("stage_defaults").select("etapa, responsavel_id"),
   ]);
   const time = (pessoas ?? []).filter((p) => p.perfil !== "cliente");
   const deClientes = (pessoas ?? []).filter((p) => p.perfil === "cliente");
@@ -110,6 +112,19 @@ export default async function Configuracoes() {
           </div>
           <div className="px-4 py-3.5">
             <FormConvite clientes={(clientes ?? []).map((c) => ({ id: c.id, nome: c.nome }))} />
+          </div>
+        </section>
+        <section className="rounded-xl border border-line bg-card">
+          <div className="border-b border-line px-4 py-3.5">
+            <h2 className="text-[15px] font-bold">Responsável padrão por etapa</h2>
+            <p className="text-[12.5px] text-muted">Quando um conteúdo muda de etapa, ele passa para esta pessoa.</p>
+          </div>
+          <div className="px-4 py-3.5">
+            <FormResponsaveisPadrao
+              etapas={ETAPAS_CONTEUDO}
+              atuais={Object.fromEntries((padroes ?? []).map((p) => [p.etapa, p.responsavel_id]))}
+              time={time.filter((p) => p.ativo).map((p) => ({ id: p.id, nome: p.nome }))}
+            />
           </div>
         </section>
         <Lista titulo="Time" pessoas={time} eu={eu.id} acessos={acessos} clientes={nomesClientes} />

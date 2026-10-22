@@ -34,6 +34,8 @@ src/app/entrar/      entrada do time (senha), do cliente (link mágico) e "esque
 src/app/auth/confirmar/  destino dos links de e-mail (token_hash + type)
 src/app/verificacao-acesso/  página que lê cada tabela com a sessão de quem está logado e marca o que o perfil não deveria ver (teste de RLS em produção)
 src/app/(time)/clientes/  lista, cadastro (novo, [id]/editar) e Central do cliente ([id]); ações em acoes.ts
+src/app/(time)/tarefas/  quadro (quadro.tsx), detalhe e nova tarefa (detalhe.tsx), filtros e ações
+src/lib/dominio/tarefas.ts  etapas, formatos, áreas, próxima etapa, atraso, fuso de publicação (o mesmo que o banco)
 src/lib/datas.ts     hojeSP(), dataBR(), diaMes(), mesPorExtenso() (sempre fuso de São Paulo)
 src/lib/sessao.ts    pessoaAtual(), exigirTime(perfis?), exigirCliente()
 src/lib/supabase/    clientes do navegador, do servidor, admin (service role, só servidor) e middleware
@@ -75,7 +77,7 @@ Desvios ou complementos do SPEC aprovados pela Mayara:
 - [x] Etapa 1: base do projeto, visual, menu lateral, telas vazias. Publicado e testado na Vercel (projeto `bastidor-obrand`, time `obrand-agency`), deploy automático a cada push na `main`. O `vercel.json` fixa o framework Next.js (sem ele o deploy dava 404) e a região `iad1` (a mesma do Supabase, us-east-1)
 - [x] Etapa 2: login e perfis. Aprovada em 22/10: Resend (bastidor@obrandagency.com) ligado ao Supabase, modelos de e-mail em português, Mayara entrou como Sócia, e `/verificacao-acesso` deu tudo ✓ para Sócia, Criação (Lucas) e cliente de teste. Os clientes "Cliente Teste A/B" e as pessoas de teste ficam até o piloto e depois são apagados
 - [x] Etapa 3: clientes, contratos e Central do cliente. Aprovada em 23/10: testada no navegador pela Mayara e clientes reais cadastrados
-- [ ] Etapa 4: tarefas
+- [ ] Etapa 4: tarefas. Código pronto: quadros de Conteúdos e Demandas (arrastar, seta, filtros), detalhe lateral (?tarefa=id) com campos, agendamento, comentários e histórico, nova tarefa (?nova=1), responsável padrão em Configurações; regras no gatilho `regras_de_etapa` e histórico em `registrar_etapa`. Falta: o time usar por uma semana
 - [ ] Etapa 5: início
 - [ ] Etapa 6: criação e portal
 - [ ] Etapa 7: notificações e revisão de segurança

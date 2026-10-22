@@ -114,3 +114,20 @@ export async function reenviarAcesso(_: Estado, form: FormData): Promise<Estado>
   if (error) return { erro: error.status === 429 ? "Limite de e-mails atingido. Tente em alguns minutos." : "O e-mail não saiu." };
   return { ok: `Enviado para ${pessoa.email}.` };
 }
+
+// Responsável padrão de cada etapa de conteúdo (só o Sócio; a RLS de stage_defaults garante o mesmo)
+export async function salvarResponsaveisPadrao(_: Estado, form: FormData): Promise<Estado> {
+  const eu = await pessoaAtual();
+  if (eu?.perfil !== "socio") return { erro: "Só o Sócio muda os responsáveis padrão." };
+  const supabase = await criarClienteServidor();
+  const etapas = ["pauta", "copy", "layout", "revisao", "cliente", "ajuste", "aprovado", "agendado"];
+  for (const etapa of etapas) {
+    const { error } = await supabase
+      .from("stage_defaults")
+      .update({ responsavel_id: texto(form, etapa) || null })
+      .eq("etapa", etapa);
+    if (error) return { erro: "Não foi possível salvar." };
+  }
+  revalidatePath("/configuracoes");
+  return { ok: "Responsáveis padrão salvos." };
+}

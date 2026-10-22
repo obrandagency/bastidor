@@ -200,5 +200,58 @@ select testes.ok(testes.conta('select * from public.stage_defaults where respons
 select testes.recusa($$update public.profiles set perfil = 'adm' where id = auth.uid()$$, 'sócio: não rebaixa o único Sócio ativo');
 reset role;
 
+-- ---------------------------------------------------------------- regras de tarefa (etapa 4)
+-- Responsáveis padrão: pauta = Sócia (definido acima), layout = Criação, cliente = Adm
+update public.stage_defaults set responsavel_id = '00000000-0000-0000-0000-000000000003' where etapa in ('layout', 'ajuste');
+update public.stage_defaults set responsavel_id = '00000000-0000-0000-0000-000000000002' where etapa in ('cliente', 'aprovado', 'agendado');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+insert into public.tasks (id, tipo, client_id, titulo, formato, etapa)
+  values ('00000000-0000-0000-0000-0000000000e1', 'conteudo', '00000000-0000-0000-0000-00000000000a', 'Novo post', 'reels', 'pauta');
+select testes.ok((select responsavel_id from public.tasks where id = '00000000-0000-0000-0000-0000000000e1') = '00000000-0000-0000-0000-000000000001', 'tarefa: conteúdo novo vai para o responsável padrão da etapa');
+select testes.ok((select criado_por from public.tasks where id = '00000000-0000-0000-0000-0000000000e1') = auth.uid(), 'tarefa: registra quem criou');
+select testes.ok(testes.conta($$select * from public.task_events where task_id = '00000000-0000-0000-0000-0000000000e1' and de_etapa is null and para_etapa = 'pauta' and origem = 'time'$$) = 1, 'tarefa: criação entra no histórico');
+
+update public.tasks set etapa = 'layout' where id = '00000000-0000-0000-0000-0000000000e1';
+select testes.ok((select responsavel_id from public.tasks where id = '00000000-0000-0000-0000-0000000000e1') = '00000000-0000-0000-0000-000000000003', 'tarefa: mudar de etapa troca o responsável');
+select testes.ok(testes.conta($$select * from public.task_events where task_id = '00000000-0000-0000-0000-0000000000e1' and de_etapa = 'pauta' and para_etapa = 'layout' and ator_nome = 'Criação'$$) = 1, 'tarefa: movimento registrado com quem moveu');
+
+update public.tasks set etapa = 'cliente' where id = '00000000-0000-0000-0000-0000000000e1';
+select testes.ok((select enviado_cliente_em is not null from public.tasks where id = '00000000-0000-0000-0000-0000000000e1'), 'tarefa: Com o cliente grava a data de envio');
+
+update public.tasks set etapa = 'ajuste' where id = '00000000-0000-0000-0000-0000000000e1';
+select testes.ok(public.ajustes_do_mes('00000000-0000-0000-0000-00000000000a') = 1, 'tarefa: ajuste movido pelo time não conta no limite');
+select testes.recusa($$update public.tasks set etapa = 'aprovado' where id = '00000000-0000-0000-0000-0000000000e1'$$, 'tarefa: Ajuste não vai direto para Aprovado');
+select testes.recusa($$update public.tasks set etapa = 'cliente' where id = '00000000-0000-0000-0000-0000000000e1'$$, 'tarefa: Ajuste não volta direto para o cliente');
+update public.tasks set etapa = 'revisao' where id = '00000000-0000-0000-0000-0000000000e1';
+select testes.ok((select etapa from public.tasks where id = '00000000-0000-0000-0000-0000000000e1') = 'revisao', 'tarefa: Ajuste volta para Revisão interna');
+
+select testes.recusa($$update public.tasks set etapa = 'agendado' where id = '00000000-0000-0000-0000-0000000000e1'$$, 'tarefa: ninguém arrasta para Agendado sem data');
+select testes.recusa($$update public.tasks set publicar_em = now() + interval '2 days' where id = '00000000-0000-0000-0000-0000000000e1'$$, 'tarefa: conteúdo não aprovado não recebe data de publicação');
+update public.tasks set etapa = 'cliente' where id = '00000000-0000-0000-0000-0000000000e1';
+update public.tasks set etapa = 'aprovado' where id = '00000000-0000-0000-0000-0000000000e1';
+update public.tasks set publicar_em = now() + interval '2 days' where id = '00000000-0000-0000-0000-0000000000e1';
+select testes.ok((select etapa from public.tasks where id = '00000000-0000-0000-0000-0000000000e1') = 'agendado', 'tarefa: aprovado com data de publicação vai para Agendado');
+select testes.ok(testes.conta($$select * from public.task_events where task_id = '00000000-0000-0000-0000-0000000000e1' and de_etapa = 'aprovado' and para_etapa = 'agendado'$$) = 1, 'tarefa: ida para Agendado entra no histórico');
+update public.tasks set etapa = 'aprovado' where id = '00000000-0000-0000-0000-0000000000e1';
+select testes.ok((select publicar_em is null and etapa = 'aprovado' from public.tasks where id = '00000000-0000-0000-0000-0000000000e1'), 'tarefa: sair de Agendado apaga a data de publicação');
+
+insert into public.tasks (id, tipo, client_id, titulo, area, etapa, responsavel_id)
+  values ('00000000-0000-0000-0000-0000000000e2', 'demanda', null, 'Notas fiscais', 'financeiro', 'a_fazer', '00000000-0000-0000-0000-000000000002');
+update public.tasks set etapa = 'fazendo' where id = '00000000-0000-0000-0000-0000000000e2';
+select testes.ok((select responsavel_id from public.tasks where id = '00000000-0000-0000-0000-0000000000e2') = '00000000-0000-0000-0000-000000000002', 'tarefa: demanda não troca de responsável sozinha');
+select testes.recusa($$update public.tasks set publicar_em = now() where id = '00000000-0000-0000-0000-0000000000e2'$$, 'tarefa: demanda não recebe data de publicação');
+
+insert into public.task_notes (task_id, tipo, texto, autor_id) values ('00000000-0000-0000-0000-0000000000e1', 'interno', 'Trocar a foto', auth.uid());
+select testes.ok(testes.conta($$select * from public.task_notes where task_id = '00000000-0000-0000-0000-0000000000e1'$$) = 1, 'tarefa: time comenta');
+select testes.recusa($$insert into public.task_notes (task_id, tipo, texto, autor_id) values ('00000000-0000-0000-0000-0000000000e1', 'interno', 'x', '00000000-0000-0000-0000-000000000001')$$, 'tarefa: ninguém comenta em nome de outra pessoa');
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.task_events') = 0, 'tarefa: cliente continua sem ler o histórico');
+reset role;
+
 select testes.ok(true, 'TODOS OS TESTES PASSARAM');
 rollback;

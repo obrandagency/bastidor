@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { Aviso, Botao, Campo, Selecao, classeEntrada } from "@/components/formulario";
 import { ROTULO_PERFIL, type Perfil } from "@/lib/permissoes";
 import type { Estado } from "@/app/entrar/acoes";
-import { alternarAcesso, convidar, mudarPerfil, reenviarAcesso } from "./acoes";
+import { alternarAcesso, convidar, mudarPerfil, reenviarAcesso, salvarResponsaveisPadrao } from "./acoes";
 
 function iniciaisDe(nome: string) {
   const partes = nome.trim().split(/\s+/).filter(Boolean);
@@ -145,5 +145,40 @@ export function AcoesPessoa({
       {retorno?.erro && <small className="text-[12px] text-bad">{retorno.erro}</small>}
       {retorno?.ok && <small className="text-[12px] text-ok">{retorno.ok}</small>}
     </div>
+  );
+}
+
+export function FormResponsaveisPadrao({
+  etapas,
+  atuais,
+  time,
+}: {
+  etapas: { id: string; rotulo: string }[];
+  atuais: Record<string, string | null>;
+  time: { id: string; nome: string }[];
+}) {
+  const [estado, acao, enviando] = useActionState(salvarResponsaveisPadrao, undefined);
+  return (
+    <form action={acao} className="flex flex-col gap-3.5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {etapas.map((e) => (
+          <Selecao key={e.id} rotulo={e.rotulo} id={e.id} defaultValue={atuais[e.id] ?? ""}>
+            <option value="">Ninguém</option>
+            {time.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
+            ))}
+          </Selecao>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Botao variante="principal" pequeno disabled={enviando}>
+          {enviando ? "Salvando…" : "Salvar"}
+        </Botao>
+        {estado?.erro && <small className="text-[12.5px] text-bad">{estado.erro}</small>}
+        {estado?.ok && <small className="text-[12.5px] text-ok">{estado.ok}</small>}
+      </div>
+    </form>
   );
 }
