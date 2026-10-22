@@ -113,6 +113,9 @@ export async function virarCliente(_: Estado, form: FormData): Promise<Estado> {
     const { hojeSP } = await import("@/lib/datas");
     await supabase.from("contracts").insert({ client_id: cliente.id, inicio: hojeSP(), valor_mensal: Number(lead.valor_mensal) || null });
   }
+  // Onboarding começa na primeira etapa, com quem converteu como responsável
+  const { data: primeira } = await supabase.from("onboarding_etapas").select("id").order("ordem").limit(1).maybeSingle();
+  if (primeira) await supabase.from("onboardings").insert({ client_id: cliente.id, etapa_id: primeira.id, responsavel_id: eu.id, criado_por: eu.id });
   await supabase.from("leads").update({ client_id: cliente.id }).eq("id", lead.id);
   await supabase.from("lead_eventos").insert({ lead_id: lead.id, tipo: "nota", texto: "Virou cliente", autor_id: eu.id, autor_nome: eu.nome });
   revalidatePath("/clientes", "layout");

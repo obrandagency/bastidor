@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { ROTULO_PERFIL } from "@/lib/permissoes";
 import { exigirTime } from "@/lib/sessao";
@@ -136,6 +137,15 @@ export default async function Configuracoes() {
             />
           </div>
         </section>
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-card px-4 py-3.5">
+          <div>
+            <h2 className="text-[15px] font-bold">Modelo de onboarding</h2>
+            <p className="text-[12.5px] text-muted">Etapas e tarefas que todo cliente novo recebe.</p>
+          </div>
+          <Link href="/configuracoes/onboarding" className="rounded-lg border border-line px-3 py-[6px] text-[13px] font-medium hover:border-ink">
+            Editar etapas e tarefas
+          </Link>
+        </section>
         <section className="rounded-xl border border-line bg-card">
           <div className="border-b border-line px-4 py-3.5">
             <h2 className="text-[15px] font-bold">Lembrete de aprovação</h2>
@@ -150,7 +160,7 @@ export default async function Configuracoes() {
         <section className="rounded-xl border border-line bg-card">
           <div className="border-b border-line px-4 py-3.5">
             <h2 className="text-[15px] font-bold">Armazenamento</h2>
-            <p className="text-[12.5px] text-muted">Artes e anexos do chat. O plano gratuito do Supabase tem 1 GB.</p>
+            <p className="text-[12.5px] text-muted">Artes, anexos do chat e documentos de onboarding. O plano gratuito do Supabase tem 1 GB.</p>
           </div>
           <div className="flex flex-col gap-2.5 px-4 py-3.5 text-[13px]">
             <div className="h-2 overflow-hidden rounded-full bg-surface" role="progressbar" aria-valuenow={Math.round((totalBytes / LIMITE_PLANO) * 100)} aria-valuemin={0} aria-valuemax={100}>
@@ -166,6 +176,7 @@ export default async function Configuracoes() {
               {[
                 ["artes", "Artes"],
                 ["chat", "Anexos do chat"],
+                ["onboarding", "Onboarding"],
               ].map(([id, rotulo]) => (
                 <span key={id} className="text-muted">
                   {rotulo}: <span className="font-mono">{mb(Number(usoPor.get(id)?.bytes ?? 0))} MB</span> ({usoPor.get(id)?.arquivos ?? 0} arquivos)

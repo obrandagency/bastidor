@@ -440,6 +440,39 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 select testes.ok(not (public.portal_resumo() ? 'valor_mensal') and public.portal_resumo()::text not like '%3500%', 'valor: portal não mostra o valor ao cliente');
 reset role;
 
+-- ---------------------------------------------------------------- onboarding
+select testes.ok(testes.conta('select * from public.onboarding_etapas') = 7 and testes.conta('select * from public.onboarding_modelo') = 15, 'onboarding: modelo inicial com 7 etapas e 15 tarefas');
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+insert into public.onboardings (id, client_id, etapa_id)
+  values ('00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-00000000000a', (select id from public.onboarding_etapas where ordem = 1));
+select testes.ok(testes.conta($$select * from public.onboarding_tarefas where onboarding_id = '00000000-0000-0000-0000-0000000000b1'$$) = 15, 'onboarding: Adm inicia e o cliente recebe a cópia das tarefas');
+update public.onboarding_tarefas set feito_em = now() where onboarding_id = '00000000-0000-0000-0000-0000000000b1' and texto = 'Contrato assinado';
+select testes.ok(testes.conta($$select * from public.onboarding_tarefas where texto = 'Contrato assinado' and feito_por = auth.uid()$$) = 1, 'onboarding: marcar tarefa registra quem marcou');
+select testes.ok(testes.conta($$select * from public.onboarding_eventos where texto = 'Concluiu: Contrato assinado' and autor_nome = 'Adm'$$) = 1, 'onboarding: tarefa concluída entra no histórico');
+update public.onboardings set etapa_id = public.etapa_final_onboarding() where id = '00000000-0000-0000-0000-0000000000b1';
+select testes.ok((select concluido_em is not null from public.onboardings where id = '00000000-0000-0000-0000-0000000000b1'), 'onboarding: última etapa conclui');
+update public.onboardings set etapa_id = (select id from public.onboarding_etapas where ordem = 2) where id = '00000000-0000-0000-0000-0000000000b1';
+select testes.ok((select concluido_em is null from public.onboardings where id = '00000000-0000-0000-0000-0000000000b1'), 'onboarding: voltar de etapa reabre');
+insert into public.onboarding_eventos (onboarding_id, tipo, texto, autor_id) values ('00000000-0000-0000-0000-0000000000b1', 'comentario', 'Cliente pediu reunião na terça', auth.uid());
+select testes.recusa($$insert into public.onboarding_eventos (onboarding_id, tipo, texto, autor_id) values ('00000000-0000-0000-0000-0000000000b1', 'etapa', 'Movido para Operacional', auth.uid())$$, 'onboarding: ninguém forja o histórico');
+select testes.recusa($$update public.onboarding_etapas set nome = 'x'$$, 'onboarding: Adm não edita o modelo');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.onboardings') = 1, 'onboarding: Criação vê');
+select testes.recusa($$update public.onboarding_tarefas set feito_em = now()$$, 'onboarding: Criação não marca');
+select testes.recusa($$insert into storage.objects (bucket_id, name) values ('onboarding', 'x/y.pdf')$$, 'onboarding: Criação não envia documento');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.onboardings') = 0 and testes.conta('select * from public.onboarding_eventos') = 0, 'onboarding: cliente não lê as tabelas');
+select testes.ok((public.portal_onboarding() ->> 'etapa_atual')::int = 2, 'onboarding: cliente vê o progresso no portal');
+select testes.ok(public.portal_onboarding()::text not like '%reunião na terça%', 'onboarding: comentário interno não aparece no portal');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000cb","role":"authenticated"}', true);
+select testes.ok(public.portal_onboarding() is null, 'onboarding: cliente B não vê o onboarding do A');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+update public.onboarding_etapas set nome = 'Boas-vindas' where ordem = 1;
+select testes.ok(testes.conta($$select * from public.onboarding_etapas where nome = 'Boas-vindas'$$) = 1, 'onboarding: Sócio edita o modelo');
+select testes.recusa($$delete from public.onboarding_etapas where ordem = 2$$, 'onboarding: etapa com cliente não pode ser apagada');
+reset role;
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (

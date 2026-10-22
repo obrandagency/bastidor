@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { iniciarDaCentral } from "../../onboarding/acoes";
 import { notFound } from "next/navigation";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { Linha, Painel } from "@/components/painel";
@@ -50,6 +51,11 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
     supabase.from("profiles").select("id, nome").neq("perfil", "cliente"),
     gestao ? dadosDoContrato(id, hoje) : null,
   ]);
+  const { data: onboarding } = await supabase
+    .from("onboardings")
+    .select("id, concluido_em, onboarding_etapas(nome)")
+    .eq("client_id", id)
+    .maybeSingle<{ id: string; concluido_em: string | null; onboarding_etapas: { nome: string } | null }>();
   const autor = new Map((pessoasTime ?? []).map((p) => [p.id, p.nome]));
   const { data: pessoasCliente } = gestao
     ? await supabase.from("profiles").select("*").eq("client_id", id).order("nome").returns<Pessoa[]>()
@@ -92,6 +98,18 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
             <Link href={`/clientes/${id}/metricas`} className="font-medium text-accent hover:underline">
               Relatório de métricas
             </Link>
+          )}
+          {onboarding ? (
+            <Link href={`/onboarding/${onboarding.id}`} className="text-accent hover:underline">
+              Onboarding: {onboarding.concluido_em ? "concluído" : onboarding.onboarding_etapas?.nome}
+            </Link>
+          ) : (
+            gestao && (
+              <form action={iniciarDaCentral}>
+                <input type="hidden" name="client_id" value={id} />
+                <button className="text-accent hover:underline">Iniciar onboarding</button>
+              </form>
+            )
           )}
         </div>
       </div>

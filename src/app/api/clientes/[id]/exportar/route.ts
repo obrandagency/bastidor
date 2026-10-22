@@ -19,7 +19,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const { data: tarefas } = await supabase.from("tasks").select("*").eq("client_id", id);
   const ids = (tarefas ?? []).map((t) => t.id);
   const porTarefa = <T,>(r: { data: T[] | null }) => r.data ?? [];
-  const [contratos, briefing, atas, pessoas, convites, notas, eventos, artes, envios] = await Promise.all([
+  const [contratos, briefing, atas, pessoas, convites, notas, eventos, artes, envios, onboarding] = await Promise.all([
     supabase.from("contracts").select("*").eq("client_id", id),
     supabase.from("client_briefs").select("*").eq("client_id", id),
     supabase.from("meeting_notes").select("*").eq("client_id", id),
@@ -29,6 +29,11 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     ids.length ? supabase.from("task_events").select("*").in("task_id", ids) : Promise.resolve({ data: [] }),
     ids.length ? supabase.from("task_assets").select("*").in("task_id", ids) : Promise.resolve({ data: [] }),
     supabase.from("envios_email").select("tipo, email, assunto, ok, created_at").eq("client_id", id),
+    supabase
+      .from("onboardings")
+      .select("*, onboarding_tarefas(*), onboarding_eventos(*), onboarding_documentos(*)")
+      .eq("client_id", id)
+      .maybeSingle(),
   ]);
   const listaArtes = porTarefa(artes as { data: { caminho: string }[] | null });
   const { data: links } = listaArtes.length
@@ -49,6 +54,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     historico_de_etapas: porTarefa(eventos as { data: unknown[] | null }),
     artes: listaArtes.map((a) => ({ ...a, link_7_dias: links?.find((l) => l.path === a.caminho)?.signedUrl ?? null })),
     emails_enviados: envios.data,
+    onboarding: onboarding.data,
   };
   const nome = `bastidor-${String(cliente.nome_curto).toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${hojeSP()}.json`;
   return new NextResponse(JSON.stringify(exportacao, null, 2), {

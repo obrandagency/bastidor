@@ -69,7 +69,79 @@ export async function TelaAprovar({ clientId, somenteLeitura }: Alvo) {
   const cor = cliente?.cor ?? "#1E4BFF";
 
   const links = await linksDasArtes(conteudos.filter((c) => c.etapa === "cliente").flatMap((c) => c.artes.map((a) => a.caminho)));
-  return <VistaAprovar resumo={resumo} conteudos={conteudos} links={links} cor={cor} somenteLeitura={somenteLeitura} />;
+  const { data: onboarding } = await supabase.rpc("portal_onboarding", clientId ? { p_client_id: clientId } : {});
+  return (
+    <VistaAprovar
+      resumo={resumo}
+      conteudos={conteudos}
+      links={links}
+      cor={cor}
+      somenteLeitura={somenteLeitura}
+      onboarding={onboarding as OnboardingPortal | null}
+    />
+  );
+}
+
+// ---------------------------------------------------------------- primeiros passos (onboarding)
+export type OnboardingPortal = {
+  inicio: string;
+  concluido_em: string | null;
+  etapa_atual: number;
+  etapas: { nome: string; ordem: number; tarefas: { texto: string; feito: boolean }[] }[];
+};
+
+export function PrimeirosPassos({ onboarding }: { onboarding: OnboardingPortal }) {
+  const etapas = onboarding.etapas ?? [];
+  const todas = etapas.flatMap((e) => e.tarefas);
+  const feitas = todas.filter((t) => t.feito).length;
+  const pct = todas.length ? Math.round((feitas / todas.length) * 100) : 0;
+  const atual = etapas.find((e) => e.ordem === onboarding.etapa_atual);
+  return (
+    <section className="mb-5 rounded-xl border border-line bg-card p-4">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-[16px] font-bold">Seus primeiros passos com a O.BRAND</h2>
+        <span className="text-[12.5px] text-muted">
+          <b className="font-mono font-semibold text-ink">{pct}%</b> · {feitas} de {todas.length} itens
+        </span>
+      </div>
+      <div className="mb-3.5 h-1.5 overflow-hidden rounded-full bg-surface">
+        <i className="block h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+      </div>
+      <ol className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
+        {etapas.map((e, i) => {
+          const passou = e.ordem < onboarding.etapa_atual;
+          const agora = e.ordem === onboarding.etapa_atual;
+          return (
+            <li
+              key={e.ordem}
+              aria-current={agora ? "step" : undefined}
+              className={`flex flex-none items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] ${
+                agora ? "bg-accent text-accent-ink" : passou ? "bg-ok-soft text-ok" : "bg-surface text-muted"
+              }`}
+            >
+              <span className="font-mono text-[10.5px]">{passou ? "✓" : i + 1}</span>
+              {e.nome}
+            </li>
+          );
+        })}
+      </ol>
+      {atual && atual.tarefas.length > 0 && (
+        <div>
+          <div className="mb-1.5 text-[11px] uppercase tracking-[0.08em] text-muted">Agora: {atual.nome}</div>
+          <ul className="flex flex-col gap-1 text-[13px]">
+            {atual.tarefas.map((t, i) => (
+              <li key={i} className="flex gap-2">
+                <span className={t.feito ? "text-ok" : "text-muted"} aria-label={t.feito ? "feito" : "a fazer"}>
+                  {t.feito ? "✓" : "○"}
+                </span>
+                <span className={t.feito ? "text-muted line-through" : ""}>{t.texto}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
 }
 
 // Desenho da tela de aprovação (sem consultas)
@@ -79,12 +151,14 @@ export function VistaAprovar({
   links,
   cor,
   somenteLeitura,
+  onboarding,
 }: {
   resumo: ResumoPortal;
   conteudos: ConteudoPortal[];
   links: Map<string, string>;
   cor: string;
   somenteLeitura?: boolean;
+  onboarding?: OnboardingPortal | null;
 }) {
   const paraAprovar = conteudos.filter((c) => c.etapa === "cliente");
   const recentes = conteudos
@@ -105,6 +179,7 @@ export function VistaAprovar({
         </div>
         <BarraAjustes resumo={resumo} />
       </div>
+      {onboarding && !onboarding.concluido_em && <PrimeirosPassos onboarding={onboarding} />}
 
       <div className="flex flex-col gap-4">
         {paraAprovar.map((c) => (
