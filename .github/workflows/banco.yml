@@ -49,5 +49,9 @@ jobs:
             echo "::warning::Cadastre SUPABASE_ACCESS_TOKEN e SUPABASE_DB_PASSWORD em Settings > Secrets and variables > Actions"
             exit 0
           fi
-          supabase link --project-ref "$SUPABASE_PROJECT_REF"
-          supabase db push
+          # Em caso de erro, as últimas linhas viram anotações (aparecem no resumo do Actions)
+          falhou() { tail -n 15 saida.txt | sed 's/^/::error::/'; exit 1; }
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" > saida.txt 2>&1 || falhou
+          cat saida.txt
+          supabase db push --password "$SUPABASE_DB_PASSWORD" > saida.txt 2>&1 || falhou
+          cat saida.txt
