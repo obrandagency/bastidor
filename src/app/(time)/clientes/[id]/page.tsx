@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { Linha, Painel } from "@/components/painel";
 import { dataBR, hojeSP, mesPorExtenso } from "@/lib/datas";
+import { reais } from "@/lib/dominio/crm";
 import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Ata, Briefing, ClienteCompleto, Contrato, Pessoa } from "@/types/banco";
@@ -184,11 +185,16 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
           <Painel titulo="Contrato" semPadding>
             {contrato.vigente ? (
               <div>
-                <Linha rotulo="Conteúdos por mês">{contrato.vigente.conteudos_mes}</Linha>
+                {contrato.vigente.valor_mensal !== null && <Linha rotulo="Valor mensal">{reais(contrato.vigente.valor_mensal)}</Linha>}
+                <Linha rotulo="Conteúdos por mês">{contrato.vigente.conteudos_mes ?? <span className="text-warn">a definir</span>}</Linha>
                 <Linha rotulo={`Ajustes em ${mesPorExtenso(hoje)}`}>
-                  <span className={contrato.ajustes >= contrato.vigente.ajustes_mes ? "text-bad" : ""}>
-                    {contrato.ajustes} de {contrato.vigente.ajustes_mes}
-                  </span>
+                  {contrato.vigente.ajustes_mes === null ? (
+                    <span className="text-warn">{contrato.ajustes} de a definir</span>
+                  ) : (
+                    <span className={contrato.ajustes >= contrato.vigente.ajustes_mes ? "text-bad" : ""}>
+                      {contrato.ajustes} de {contrato.vigente.ajustes_mes}
+                    </span>
+                  )}
                 </Linha>
                 <Linha rotulo="Vigência">
                   {dataBR(contrato.vigente.inicio)} a {contrato.vigente.fim ? dataBR(contrato.vigente.fim) : "sem data de fim"}

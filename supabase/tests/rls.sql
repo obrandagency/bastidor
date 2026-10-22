@@ -427,6 +427,19 @@ select testes.ok(jsonb_array_length(public.portal_metricas() -> 'relatorio' -> '
 select testes.recusa($$select public.portal_metricas('00000000-0000-0000-0000-00000000000a')$$, 'métricas: cliente B não abre o relatório do A');
 reset role;
 
+-- ---------------------------------------------------------------- valor do contrato
+select set_config('request.jwt.claims', '', true);
+update public.contracts set valor_mensal = 3500 where client_id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select testes.ok((select valor_mensal from public.contracts where client_id = '00000000-0000-0000-0000-00000000000a') = 3500, 'valor: Adm vê o valor do contrato');
+select testes.recusa($$update public.contracts set valor_mensal = 1$$, 'valor: Adm não muda o valor');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.ok(testes.conta('select valor_mensal from public.contracts') = 0, 'valor: Criação não vê');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(not (public.portal_resumo() ? 'valor_mensal') and public.portal_resumo()::text not like '%3500%', 'valor: portal não mostra o valor ao cliente');
+reset role;
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (

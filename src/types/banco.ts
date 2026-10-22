@@ -57,8 +57,9 @@ export type Contrato = {
   client_id: string;
   inicio: string;
   fim: string | null;
-  conteudos_mes: number;
-  ajustes_mes: number;
+  conteudos_mes: number | null; // nulo = a definir (contrato criado pelo CRM)
+  ajustes_mes: number | null;
+  valor_mensal: number | null;
 };
 
 export type Ata = {

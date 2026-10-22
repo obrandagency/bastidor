@@ -110,11 +110,13 @@ export async function salvarContrato(_: Estado, form: FormData): Promise<Estado>
     fim: texto(form, "fim") || null,
     conteudos_mes: Number(texto(form, "conteudos_mes")),
     ajustes_mes: Number(texto(form, "ajustes_mes")),
+    valor_mensal: texto(form, "valor_mensal") ? Number(texto(form, "valor_mensal").replace(/\./g, "").replace(",", ".")) : null,
   };
   if (!dados.inicio) return { erro: "Informe o início do contrato." };
   if (dados.fim && dados.fim < dados.inicio) return { erro: "O fim precisa ser depois do início." };
   if (![dados.conteudos_mes, dados.ajustes_mes].every((n) => Number.isInteger(n) && n >= 0))
     return { erro: "Conteúdos e ajustes por mês precisam ser números inteiros." };
+  if (dados.valor_mensal !== null && !(dados.valor_mensal >= 0)) return { erro: "Valor mensal inválido." };
 
   const supabase = await criarClienteServidor();
   const { error } = id

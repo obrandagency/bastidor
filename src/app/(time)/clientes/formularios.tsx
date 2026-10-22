@@ -290,8 +290,19 @@ export function FormContrato({ clientId, contrato, aoFechar }: { clientId: strin
       {contrato && <input type="hidden" name="id" value={contrato.id} />}
       <Campo rotulo="Início" id="inicio" type="date" required defaultValue={contrato?.inicio} />
       <Campo rotulo="Fim" id="fim" type="date" defaultValue={contrato?.fim ?? ""} dica="Vazio = sem data de fim." />
-      <Campo rotulo="Conteúdos por mês" id="conteudos_mes" type="number" min={0} required defaultValue={contrato?.conteudos_mes} />
-      <Campo rotulo="Ajustes por mês" id="ajustes_mes" type="number" min={0} required defaultValue={contrato?.ajustes_mes} />
+      <Campo rotulo="Conteúdos por mês" id="conteudos_mes" type="number" min={0} required defaultValue={contrato?.conteudos_mes ?? ""} />
+      <Campo rotulo="Ajustes por mês" id="ajustes_mes" type="number" min={0} required defaultValue={contrato?.ajustes_mes ?? ""} />
+      <div className="col-span-2">
+        <Campo
+          rotulo="Valor mensal (R$)"
+          id="valor_mensal"
+          inputMode="decimal"
+          defaultValue={contrato?.valor_mensal ?? ""}
+          placeholder="3500"
+          dica="Só Sócio e Administrativo veem. O cliente nunca vê no portal."
+          className={`${classeEntrada} font-mono`}
+        />
+      </div>
       <div className="col-span-2 flex flex-wrap items-center gap-2">
         <Botao variante="principal" pequeno disabled={enviando}>
           {enviando ? "Salvando…" : "Salvar contrato"}

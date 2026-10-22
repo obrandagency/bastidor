@@ -96,7 +96,7 @@ export async function virarCliente(_: Estado, form: FormData): Promise<Estado> {
   const eu = await exigirGestao();
   if (!eu) return { erro: "Sem permissão." };
   const supabase = await criarClienteServidor();
-  const { data: lead } = await supabase.from("leads").select("id, empresa, etapa, client_id").eq("id", texto(form, "id")).maybeSingle();
+  const { data: lead } = await supabase.from("leads").select("id, empresa, etapa, client_id, valor_mensal").eq("id", texto(form, "id")).maybeSingle();
   if (!lead) return { erro: "Lead não encontrado." };
   if (lead.etapa !== "ganho") return { erro: "Só lead fechado vira cliente." };
   if (lead.client_id) redirect(`/clientes/${lead.client_id}`);
@@ -108,6 +108,11 @@ export async function virarCliente(_: Estado, form: FormData): Promise<Estado> {
     .single();
   if (error || !cliente) return { erro: "Não foi possível criar o cliente." };
   await supabase.from("client_briefs").insert({ client_id: cliente.id });
+  // Contrato a partir de hoje com o valor do lead; conteúdos e ajustes por mês ficam "a definir" para o Sócio
+  if (eu.perfil === "socio") {
+    const { hojeSP } = await import("@/lib/datas");
+    await supabase.from("contracts").insert({ client_id: cliente.id, inicio: hojeSP(), valor_mensal: Number(lead.valor_mensal) || null });
+  }
   await supabase.from("leads").update({ client_id: cliente.id }).eq("id", lead.id);
   await supabase.from("lead_eventos").insert({ lead_id: lead.id, tipo: "nota", texto: "Virou cliente", autor_id: eu.id, autor_nome: eu.nome });
   revalidatePath("/clientes", "layout");

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CabecalhoPagina, EstadoVazio } from "@/components/cabecalho-pagina";
 import { dataBR, hojeSP } from "@/lib/datas";
+import { reais } from "@/lib/dominio/crm";
 import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { ClienteCompleto, Contrato } from "@/types/banco";
@@ -21,6 +22,8 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
   ]);
   const vigente = (id: string) =>
     (contratos ?? []).find((k) => k.client_id === id && k.inicio <= hoje && (!k.fim || k.fim >= hoje));
+  // Receita recorrente: soma dos contratos vigentes hoje dos clientes ativos
+  const recorrente = verInativos ? 0 : (clientes ?? []).reduce((a, c) => a + Number(vigente(c.id)?.valor_mensal ?? 0), 0);
 
   return (
     <>
@@ -44,6 +47,12 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
           </div>
         }
       />
+      {gestao && recorrente > 0 && (
+        <div className="mb-4 inline-flex flex-col rounded-xl border border-ink bg-ink px-4 py-3 text-bg">
+          <b className="font-display text-[24px] font-bold leading-[1.1] tabular-nums">{reais(recorrente)}</b>
+          <span className="text-[12.5px] opacity-75">por mês em contratos vigentes</span>
+        </div>
+      )}
       {!clientes?.length ? (
         <EstadoVazio>{verInativos ? "Nenhum cliente inativo." : "Nenhum cliente cadastrado ainda."}</EstadoVazio>
       ) : (
@@ -68,8 +77,13 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
                     <div className="mt-auto pt-1.5 text-[12.5px] text-muted">
                       {k ? (
                         <>
-                          <span className="font-mono">{k.conteudos_mes}</span> conteúdos ·{" "}
-                          <span className="font-mono">{k.ajustes_mes}</span> ajustes/mês
+                          {k.valor_mensal !== null && (
+                            <>
+                              <span className="font-mono text-ink">{reais(k.valor_mensal)}</span>/mês ·{" "}
+                            </>
+                          )}
+                          <span className="font-mono">{k.conteudos_mes ?? "?"}</span> conteúdos ·{" "}
+                          <span className="font-mono">{k.ajustes_mes ?? "?"}</span> ajustes/mês
                           {k.fim && <> · até {dataBR(k.fim)}</>}
                         </>
                       ) : (
