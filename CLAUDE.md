@@ -32,6 +32,7 @@ src/components/      componentes compartilhados
 src/lib/permissoes.ts  o que cada perfil vê no menu (a regra real fica na RLS)
 src/app/entrar/      entrada do time (senha), do cliente (link mágico) e "esqueci a senha"
 src/app/auth/confirmar/  destino dos links de e-mail (token_hash + type)
+src/app/verificacao-acesso/  página que lê cada tabela com a sessão de quem está logado e marca o que o perfil não deveria ver (teste de RLS em produção)
 src/lib/sessao.ts    pessoaAtual(), exigirTime(perfis?), exigirCliente()
 src/lib/supabase/    clientes do navegador, do servidor, admin (service role, só servidor) e middleware
 src/middleware.ts    renova a sessão e manda quem não está logado para /entrar (precisa ficar dentro de src/)
