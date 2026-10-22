@@ -399,6 +399,34 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 select testes.recusa('select * from public.uso_armazenamento()', 'armazenamento: Criação não vê o uso');
 reset role;
 
+-- ---------------------------------------------------------------- relatório de métricas
+select set_config('request.jwt.claims', '', true);
+update public.tasks set etapa = 'agendado', publicar_em = now() - interval '2 days' where id = '00000000-0000-0000-0000-0000000000f2';
+insert into public.relatorios_metricas (client_id, mes, alcance, novos_seguidores, publicado_em) values
+  ('00000000-0000-0000-0000-00000000000b', date_trunc('month', current_date - interval '1 month')::date, 1000, 50, now());
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+insert into public.relatorios_metricas (client_id, mes, alcance, novos_seguidores, alcance_semanas, destaques, leitura) values
+  ('00000000-0000-0000-0000-00000000000b', date_trunc('month', current_date)::date, 1200, 40, '{300,280,310,310}',
+   '{00000000-0000-0000-0000-0000000000f2,00000000-0000-0000-0000-0000000000f1}', 'Alcance cresceu com os Reels.');
+select testes.ok(true, 'métricas: Adm preenche o relatório');
+select testes.recusa($$insert into public.relatorios_metricas (client_id, mes) values ('00000000-0000-0000-0000-00000000000a', '2026-10-15')$$, 'métricas: mês é sempre o dia 1');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.relatorios_metricas') = 2, 'métricas: Criação lê');
+select testes.recusa($$update public.relatorios_metricas set alcance = 1$$, 'métricas: Criação não edita');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000cb","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.relatorios_metricas') = 0, 'métricas: cliente não lê a tabela');
+select testes.ok((public.portal_metricas(null, current_date) -> 'relatorio') = 'null'::jsonb, 'métricas: rascunho não aparece no portal');
+select testes.ok((public.portal_metricas() -> 'relatorio' ->> 'alcance')::int = 1000, 'métricas: portal mostra o último publicado');
+reset role;
+update public.relatorios_metricas set publicado_em = now() where mes = date_trunc('month', current_date)::date;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000cb","role":"authenticated"}', true);
+select testes.ok((public.portal_metricas() -> 'relatorio' ->> 'alcance_anterior')::int = 1000, 'métricas: traz o mês anterior para a variação');
+select testes.ok(jsonb_array_length(public.portal_metricas() -> 'relatorio' -> 'destaques') = 1, 'métricas: destaque de outro cliente não aparece');
+select testes.recusa($$select public.portal_metricas('00000000-0000-0000-0000-00000000000a')$$, 'métricas: cliente B não abre o relatório do A');
+reset role;
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (

@@ -4,6 +4,7 @@ import { diaMes, hojeSP, mesEAno, somarMes } from "@/lib/datas";
 import { area, dataHoraSP, rotuloFormato, type Area, type Formato } from "@/lib/dominio/tarefas";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { ConteudoPortal, ResumoPortal } from "@/types/banco";
+import { Colunas, Numero } from "@/components/graficos";
 import { Carrossel, Decisao } from "./interativos";
 
 // Telas do portal, usadas pelo cliente (/portal) e pela equipe em "Ver como cliente" (somenteLeitura)
@@ -252,5 +253,176 @@ export async function TelaRelatorio({ clientId, mes, base }: Alvo & { mes?: stri
         </section>
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------- métricas do mês (só relatório publicado)
+export type RelatorioPortal = {
+  mes: string;
+  alcance: number | null;
+  novos_seguidores: number | null;
+  engajamento: number | null;
+  visitas_perfil: number | null;
+  cliques_link: number | null;
+  alcance_semanas: number[];
+  investimento: number | null;
+  resultados: number | null;
+  resultado_rotulo: string | null;
+  leitura: string;
+  alcance_anterior: number | null;
+  novos_anterior: number | null;
+  instagram: string | null;
+  destaques: { id: string; titulo: string; formato: Formato; arte: string | null }[];
+};
+
+export async function TelaMetricas({ clientId, mes, base }: Alvo & { mes?: string; base: string }) {
+  const supabase = await criarClienteServidor();
+  const args = { ...(clientId ? { p_client_id: clientId } : {}), ...(/^\d{4}-\d{2}$/.test(mes ?? "") ? { p_mes: `${mes}-01` } : {}) };
+  const { data, error } = await supabase.rpc("portal_metricas", args);
+  if (error || !data) return <p className="text-muted">Não foi possível carregar as métricas.</p>;
+  const { relatorio, meses } = data as { relatorio: RelatorioPortal | null; meses: string[] };
+  const links = await linksDasArtes((relatorio?.destaques ?? []).flatMap((d) => (d.arte ? [d.arte] : [])));
+  return <VistaMetricas relatorio={relatorio} meses={meses} links={links} base={base} />;
+}
+
+const nf = (n: number | null | undefined) => (n === null || n === undefined ? "·" : n.toLocaleString("pt-BR"));
+
+function Variacao({ atual, anterior }: { atual: number | null; anterior: number | null }) {
+  if (atual === null || !anterior) return null;
+  const d = Math.round(((atual - anterior) / anterior) * 100);
+  return (
+    <span className={`ml-1 font-semibold ${d >= 0 ? "text-ok" : "text-bad"}`}>
+      {d >= 0 ? "▲ +" : "▼ "}
+      {d}%
+    </span>
+  );
+}
+
+export function VistaMetricas({
+  relatorio,
+  meses,
+  links,
+  base,
+}: {
+  relatorio: RelatorioPortal | null;
+  meses: string[];
+  links: Map<string, string>;
+  base: string;
+}) {
+  const linkMes = (m: string) => `${base}${base.includes("?") ? "&" : "?"}mes=${m.slice(0, 7)}`;
+  const seletor = meses.length > 1 && (
+    <nav aria-label="Meses" className="flex flex-wrap gap-1.5">
+      {meses.map((m) => (
+        <Link
+          key={m}
+          href={linkMes(m)}
+          aria-current={relatorio?.mes === m ? "page" : undefined}
+          className={`rounded-full border px-3 py-1 text-[12.5px] capitalize ${relatorio?.mes === m ? "border-accent bg-accent-soft font-semibold" : "border-line bg-card hover:border-muted"}`}
+        >
+          {mesEAno(m.slice(0, 7))}
+        </Link>
+      ))}
+    </nav>
+  );
+
+  if (!relatorio)
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="rounded-xl border border-line bg-card px-5 py-10 text-center">
+          <h1 className="text-[20px] font-bold">Relatório do mês em preparação</h1>
+          <p className="mt-1.5 text-muted">A agência está revisando os números. Você recebe um e-mail quando ele estiver disponível.</p>
+        </div>
+        {seletor}
+      </div>
+    );
+
+  const custo = relatorio.investimento && relatorio.resultados ? relatorio.investimento / relatorio.resultados : null;
+  const reais = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const temTrafego = relatorio.investimento !== null || relatorio.resultados !== null;
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.12em] text-muted">Relatório mensal · revisado pela agência</div>
+          <h1 className="mt-1 text-[25px] font-bold capitalize leading-[1.1] md:text-[30px]">{mesEAno(relatorio.mes.slice(0, 7))}</h1>
+        </div>
+        {seletor}
+      </div>
+
+      <div>
+        <div className="mb-2 text-[11.5px] uppercase tracking-[0.04em] text-muted">Instagram{relatorio.instagram ? ` @${relatorio.instagram}` : ""}</div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Numero valor={nf(relatorio.alcance)} rotulo={<>contas alcançadas<Variacao atual={relatorio.alcance} anterior={relatorio.alcance_anterior} /></>} />
+          <Numero
+            valor={relatorio.novos_seguidores === null ? "·" : `${relatorio.novos_seguidores >= 0 ? "+" : ""}${nf(relatorio.novos_seguidores)}`}
+            rotulo={<>novos seguidores<Variacao atual={relatorio.novos_seguidores} anterior={relatorio.novos_anterior} /></>}
+          />
+          <Numero valor={relatorio.engajamento === null ? "·" : `${String(relatorio.engajamento).replace(".", ",")}%`} rotulo="taxa de engajamento" />
+          <Numero valor={nf(relatorio.visitas_perfil)} rotulo={`visitas ao perfil${relatorio.cliques_link !== null ? ` · ${nf(relatorio.cliques_link)} cliques no link` : ""}`} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-4">
+        {relatorio.alcance_semanas.length > 0 && (
+          <section className="rounded-xl border border-line bg-card">
+            <div className="flex items-center justify-between border-b border-line px-4 py-3.5">
+              <h2 className="text-[15px] font-bold">Alcance por semana</h2>
+              <span className="text-[12px] text-muted">contas alcançadas</span>
+            </div>
+            <div className="px-4 py-3.5">
+              <Colunas itens={relatorio.alcance_semanas.map((v, i) => ({ rotulo: `Sem. ${i + 1}`, valor: v }))} />
+            </div>
+          </section>
+        )}
+        {temTrafego && (
+          <section className="rounded-xl border border-line bg-card">
+            <div className="flex items-center justify-between border-b border-line px-4 py-3.5">
+              <h2 className="text-[15px] font-bold">Tráfego pago</h2>
+              <span className="text-[12px] text-muted">Meta Ads</span>
+            </div>
+            {[
+              ["Investimento", relatorio.investimento !== null ? reais(relatorio.investimento) : "·"],
+              [`Resultados${relatorio.resultado_rotulo ? ` (${relatorio.resultado_rotulo})` : ""}`, nf(relatorio.resultados)],
+              ["Custo por resultado", custo !== null ? reais(custo) : "·"],
+            ].map(([r, v]) => (
+              <div key={r} className="flex items-center gap-3 border-t border-line px-4 py-[11px] first:border-t-0">
+                <span className="min-w-0 flex-1">{r}</span>
+                <b className="font-mono font-medium">{v}</b>
+              </div>
+            ))}
+          </section>
+        )}
+      </div>
+
+      {relatorio.destaques.length > 0 && (
+        <div>
+          <div className="mb-2 text-[11.5px] uppercase tracking-[0.04em] text-muted">Destaques do mês</div>
+          <div className="grid grid-cols-3 gap-3 sm:max-w-[520px]">
+            {relatorio.destaques.map((d) => {
+              const url = d.arte ? links.get(d.arte) : null;
+              return (
+                <figure key={d.id} className="min-w-0">
+                  {url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={url} alt={d.titulo} className="aspect-[4/5] w-full rounded-lg border border-line object-cover" />
+                  ) : (
+                    <div className="aspect-[4/5] w-full rounded-lg bg-surface" />
+                  )}
+                  <figcaption className="mt-1.5 line-clamp-2 text-[12px]">{d.titulo}</figcaption>
+                </figure>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {relatorio.leitura && (
+        <div className="rounded-xl bg-accent-soft px-4 py-3.5">
+          <b className="text-[13px] text-accent">Leitura da agência</b>
+          <p className="mt-1 whitespace-pre-line text-[13.5px]">{relatorio.leitura}</p>
+        </div>
+      )}
+    </div>
   );
 }

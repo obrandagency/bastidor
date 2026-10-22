@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
-import { TelaAprovar, TelaRelatorio } from "@/app/portal/telas";
+import { TelaAprovar, TelaMetricas, TelaRelatorio } from "@/app/portal/telas";
 
 export const metadata = { title: "Ver como cliente · Bastidor" };
 
@@ -20,9 +20,11 @@ export default async function PortalDoCliente({
   const { data: cliente } = await supabase.from("clients").select("nome").eq("id", id).maybeSingle();
   if (!cliente) notFound();
   const relatorio = aba === "relatorio";
+  const metricas = aba === "metricas";
   const abas = [
-    ["Aprovar conteúdos", `/ver-como-cliente/${id}`, !relatorio],
+    ["Aprovar conteúdos", `/ver-como-cliente/${id}`, !relatorio && !metricas],
     ["Relatório de entregas", `/ver-como-cliente/${id}?aba=relatorio`, relatorio],
+    ["Métricas", `/ver-como-cliente/${id}?aba=metricas`, metricas],
   ] as const;
 
   return (
@@ -49,7 +51,9 @@ export default async function PortalDoCliente({
           </Link>
         ))}
       </nav>
-      {relatorio ? (
+      {metricas ? (
+        <TelaMetricas clientId={id} mes={mes} base={`/ver-como-cliente/${id}?aba=metricas`} />
+      ) : relatorio ? (
         <TelaRelatorio clientId={id} mes={mes} base={`/ver-como-cliente/${id}?aba=relatorio`} />
       ) : (
         <TelaAprovar clientId={id} somenteLeitura />

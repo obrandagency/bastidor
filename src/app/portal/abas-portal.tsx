@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const ABAS = [
   { href: "/portal", rotulo: "Aprovar conteúdos" },
   { href: "/portal/relatorio", rotulo: "Relatório de entregas" },
+  { href: "/portal/metricas", rotulo: "Métricas" },
 ];
 
 export function AbasPortal() {

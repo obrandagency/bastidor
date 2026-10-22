@@ -2,7 +2,7 @@ import "server-only";
 import { hojeSP, somarDias } from "@/lib/datas";
 import { PARADAS } from "@/lib/dominio/tarefas";
 import { enviarEmail } from "@/lib/email/enviar";
-import { emailAvisoTime, emailLembrete, emailParaAprovar, emailResumoDiario } from "@/lib/email/modelos";
+import { emailAvisoTime, emailLembrete, emailParaAprovar, emailRelatorioPublicado, emailResumoDiario } from "@/lib/email/modelos";
 import { urlDoSite } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 
@@ -183,6 +183,20 @@ export async function enviarResumoDiario(): Promise<Resultado> {
     const { assunto, html } = emailResumoDiario(p.nome, venceAmanha, atrasadas, urlDoSite(), followups);
     const r = await enviarEmail(p.email, assunto, html);
     await registrar(admin, "resumo", p, assunto, r);
+    if (r.ok) resultado.enviados++;
+    else resultado.falhas++;
+  }
+  return resultado;
+}
+
+// ---------------------------------------------------------------- "Seu relatório de outubro está disponível"
+export async function avisarRelatorioPublicado(clientId: string, mes: string, mesExtenso: string): Promise<Resultado> {
+  const admin = criarClienteAdmin();
+  const resultado: Resultado = { enviados: 0, falhas: 0 };
+  for (const p of await pessoasDoCliente(admin, clientId)) {
+    const { assunto, html } = emailRelatorioPublicado(p.nome, mesExtenso, `${urlDoSite()}/portal/metricas?mes=${mes.slice(0, 7)}`);
+    const r = await enviarEmail(p.email, assunto, html);
+    await registrar(admin, "relatorio", p, assunto, r, clientId);
     if (r.ok) resultado.enviados++;
     else resultado.falhas++;
   }

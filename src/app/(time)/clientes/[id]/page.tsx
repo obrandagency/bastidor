@@ -87,6 +87,11 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
               Editar cadastro
             </Link>
           )}
+          {gestao && (
+            <Link href={`/clientes/${id}/metricas`} className="font-medium text-accent hover:underline">
+              Relatório de métricas
+            </Link>
+          )}
         </div>
       </div>
 

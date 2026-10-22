@@ -71,3 +71,14 @@ export function emailResumoDiario(nome: string, venceAmanha: string[], atrasadas
     html: moldura(`Bom dia, ${esc(nome.split(" ")[0])}`, partes, { texto: "Abrir minhas tarefas", link: `${site}/inicio?aba=resumo` }, rodapeTime(site)),
   };
 }
+
+export function emailRelatorioPublicado(nomePessoa: string, mesExtenso: string, linkPortal: string) {
+  return {
+    assunto: `Seu relatório de ${mesExtenso} está disponível`,
+    html: moldura(
+      `Relatório de ${esc(mesExtenso)}`,
+      `Olá, ${esc(nomePessoa.split(" ")[0])}! O relatório de métricas de ${esc(mesExtenso)} foi revisado pela O.BRAND e já está no portal: alcance, seguidores, engajamento, tráfego pago e a nossa leitura do mês.`,
+      { texto: "Ver o relatório", link: linkPortal },
+    ),
+  };
+}
