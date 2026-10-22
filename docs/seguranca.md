@@ -27,6 +27,16 @@
 | Só o time envia ou apaga arte | OK |
 | Tipos aceitos: JPG, PNG, WEBP, GIF, MP4, MOV, até 50 MB | OK |
 
+## Chat interno (adicionado em 27/10)
+
+| Item | Situação |
+|---|---|
+| Cliente não vê canais, mensagens nem anexos | OK (RLS e política do bucket `chat`, testadas) |
+| Ninguém escreve em nome de outra pessoa nem troca o autor | OK |
+| Tempo real respeita a RLS | OK (Supabase Realtime com o token de quem está logado) |
+| Anexos em bucket privado, links temporários de 1 hora, até 25 MB | OK |
+| Apagar cliente (LGPD) leva os canais ligados a ele, as mensagens e os anexos | OK |
+
 ## Chaves e servidor
 
 | Item | Situação |

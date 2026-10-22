@@ -87,14 +87,19 @@ function Lista({
 export default async function Configuracoes() {
   const eu = await exigirTime(["socio"]);
   const supabase = await criarClienteServidor();
-  const [{ data: pessoas }, { data: clientes }, acessos, { data: padroes }, { data: config }, { data: envios }] = await Promise.all([
+  const [{ data: pessoas }, { data: clientes }, acessos, { data: padroes }, { data: config }, { data: envios }, { data: uso }] = await Promise.all([
     supabase.from("profiles").select("*").order("nome").returns<Pessoa[]>(),
     supabase.from("clients").select("id, nome, nome_curto, cor, ativo").eq("ativo", true).order("nome").returns<Cliente[]>(),
     primeirosAcessos(),
     supabase.from("stage_defaults").select("etapa, responsavel_id"),
     supabase.from("app_settings").select("dias_lembrete").eq("id", 1).maybeSingle(),
     supabase.from("envios_email").select("id, tipo, email, assunto, ok, erro, created_at").order("created_at", { ascending: false }).limit(15),
+    supabase.rpc("uso_armazenamento"),
   ]);
+  const usoPor = new Map(((uso ?? []) as { bucket: string; arquivos: number; bytes: number }[]).map((u) => [u.bucket, u]));
+  const totalBytes = [...usoPor.values()].reduce((a, u) => a + Number(u.bytes), 0);
+  const mb = (b: number) => (b / 1024 / 1024).toLocaleString("pt-BR", { maximumFractionDigits: b < 10 * 1024 * 1024 ? 1 : 0 });
+  const LIMITE_PLANO = 1024 * 1024 * 1024; // plano gratuito do Supabase
   const time = (pessoas ?? []).filter((p) => p.perfil !== "cliente");
   const deClientes = (pessoas ?? []).filter((p) => p.perfil === "cliente");
   const nomesClientes = new Map((clientes ?? []).map((c) => [c.id, c.nome]));
@@ -142,6 +147,33 @@ export default async function Configuracoes() {
         </section>
         <Lista titulo="Time" pessoas={time} eu={eu.id} acessos={acessos} clientes={nomesClientes} />
         <Lista titulo="Pessoas de clientes" pessoas={deClientes} eu={eu.id} acessos={acessos} clientes={nomesClientes} />
+        <section className="rounded-xl border border-line bg-card">
+          <div className="border-b border-line px-4 py-3.5">
+            <h2 className="text-[15px] font-bold">Armazenamento</h2>
+            <p className="text-[12.5px] text-muted">Artes e anexos do chat. O plano gratuito do Supabase tem 1 GB.</p>
+          </div>
+          <div className="flex flex-col gap-2.5 px-4 py-3.5 text-[13px]">
+            <div className="h-2 overflow-hidden rounded-full bg-surface" role="progressbar" aria-valuenow={Math.round((totalBytes / LIMITE_PLANO) * 100)} aria-valuemin={0} aria-valuemax={100}>
+              <div
+                className={`h-full rounded-full ${totalBytes > LIMITE_PLANO * 0.8 ? "bg-bad" : "bg-accent"}`}
+                style={{ width: `${Math.min(100, (totalBytes / LIMITE_PLANO) * 100)}%` }}
+              />
+            </div>
+            <div className="flex flex-wrap gap-x-5 gap-y-1">
+              <span>
+                <b className="font-mono">{mb(totalBytes)} MB</b> de 1.024 MB
+              </span>
+              {[
+                ["artes", "Artes"],
+                ["chat", "Anexos do chat"],
+              ].map(([id, rotulo]) => (
+                <span key={id} className="text-muted">
+                  {rotulo}: <span className="font-mono">{mb(Number(usoPor.get(id)?.bytes ?? 0))} MB</span> ({usoPor.get(id)?.arquivos ?? 0} arquivos)
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
         <section className="rounded-xl border border-line bg-card">
           <div className="border-b border-line px-4 py-3.5">
             <h2 className="text-[15px] font-bold">Últimos e-mails enviados</h2>

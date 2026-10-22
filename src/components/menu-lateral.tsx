@@ -10,7 +10,17 @@ import { ROTULO_PERFIL, menuDoPerfil, type PerfilTime } from "@/lib/permissoes";
 
 type Pessoa = { nome: string; iniciais: string; perfil: PerfilTime };
 
-export function MenuLateral({ pessoa, avisos = 0, children }: { pessoa: Pessoa; avisos?: number; children: React.ReactNode }) {
+export function MenuLateral({
+  pessoa,
+  avisos = 0,
+  contagens = {},
+  children,
+}: {
+  pessoa: Pessoa;
+  avisos?: number;
+  contagens?: Record<string, number>; // número ao lado do item do menu (ex.: mensagens não lidas no Chat)
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const [aberto, setAberto] = useState(false);
   const grupos = menuDoPerfil(pessoa.perfil);
@@ -42,6 +52,13 @@ export function MenuLateral({ pessoa, avisos = 0, children }: { pessoa: Pessoa; 
                 >
                   <Icone nome={item.icone} className={ativo ? "" : "opacity-80"} />
                   <span>{item.rotulo}</span>
+                  {!!contagens[item.href] && (
+                    <span
+                      className={`ml-auto rounded-full px-[7px] font-mono text-[11px] ${ativo ? "bg-white/20" : "bg-rail-line text-ink"}`}
+                    >
+                      {contagens[item.href]}
+                    </span>
+                  )}
                 </Link>
               );
             })}

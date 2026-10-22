@@ -9,6 +9,7 @@ const CAMINHOS: Record<IconeMenu, string> = {
   portal: "M4 12l5 5L20 6",
   configuracoes: "M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4",
   crm: "M3 5h18l-7 8v6l-4 2v-8z",
+  chat: "M4 5h16v11H9l-5 4z",
 };
 
 export function Icone({ nome, className = "" }: { nome: IconeMenu; className?: string }) {

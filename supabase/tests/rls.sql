@@ -362,6 +362,43 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 select testes.ok(testes.conta('select * from public.leads') = 1, 'crm: Sócio vê o CRM');
 reset role;
 
+-- ---------------------------------------------------------------- chat
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+insert into public.chat_canais (id, nome, client_id) values ('00000000-0000-0000-0000-0000000000c1', 'cliente-a', '00000000-0000-0000-0000-00000000000a');
+select testes.ok(true, 'chat: Adm cria canal');
+select testes.recusa($$insert into public.chat_canais (nome) values ('Nome Inválido')$$, 'chat: nome de canal só minúsculas, números e hífen');
+select testes.recusa($$update public.chat_canais set arquivado = true where nome = 'geral'$$, 'chat: #geral não é arquivado');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.recusa($$insert into public.chat_canais (nome) values ('criacao')$$, 'chat: Criação não cria canal');
+insert into public.chat_mensagens (id, canal_id, autor_id, texto) values
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000c1', auth.uid(), 'Arte pronta, @adm pode revisar?');
+select testes.ok(testes.conta($$select * from public.chat_mensagens where autor_nome = 'Criação'$$) = 1, 'chat: Criação conversa e o nome do autor é gravado');
+select testes.recusa($$insert into public.chat_mensagens (canal_id, autor_id, texto) values ('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000001', 'x')$$, 'chat: ninguém escreve em nome de outra pessoa');
+select testes.recusa($$insert into public.chat_mensagens (canal_id, autor_id, texto) values ('00000000-0000-0000-0000-0000000000c1', auth.uid(), '   ')$$, 'chat: mensagem vazia não vai');
+update public.chat_mensagens set texto = 'Arte pronta, @adm pode revisar? (v2)', editada_em = now() where id = '00000000-0000-0000-0000-0000000000a1';
+select testes.recusa($$update public.chat_mensagens set autor_id = '00000000-0000-0000-0000-000000000001' where id = '00000000-0000-0000-0000-0000000000a1'$$, 'chat: autor não muda');
+reset role;
+select testes.ok(testes.conta($$select * from public.notifications where tipo = 'mencao' and destinatario_id = '00000000-0000-0000-0000-000000000002' and email_enviado_em is not null$$) = 1, 'chat: @menção avisa no sino, sem e-mail');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select testes.ok((select total from public.chat_nao_lidas() where canal_id = '00000000-0000-0000-0000-0000000000c1') = 1, 'chat: conta não lidas');
+insert into public.chat_leituras (pessoa_id, canal_id) values (auth.uid(), '00000000-0000-0000-0000-0000000000c1');
+select testes.ok(not exists (select 1 from public.chat_nao_lidas() where canal_id = '00000000-0000-0000-0000-0000000000c1'), 'chat: ler zera o contador');
+select testes.recusa($$delete from public.chat_mensagens where id = '00000000-0000-0000-0000-0000000000a1'$$, 'chat: Adm não apaga mensagem de outra pessoa');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.chat_canais') = 0 and testes.conta('select * from public.chat_mensagens') = 0, 'chat: cliente não vê o chat');
+select testes.recusa($$insert into public.chat_mensagens (canal_id, autor_id, texto) values ('00000000-0000-0000-0000-0000000000c1', auth.uid(), 'oi')$$, 'chat: cliente não escreve no chat');
+select testes.recusa($$insert into storage.objects (bucket_id, name) values ('chat', 'x/y.pdf')$$, 'chat: cliente não envia anexo');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+delete from public.chat_mensagens where id = '00000000-0000-0000-0000-0000000000a1';
+select testes.ok(testes.conta($$select * from public.chat_mensagens where id = '00000000-0000-0000-0000-0000000000a1'$$) = 0, 'chat: Sócio apaga qualquer mensagem');
+select testes.ok(testes.conta('select * from public.uso_armazenamento()') >= 1, 'armazenamento: Sócio vê o uso');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.recusa('select * from public.uso_armazenamento()', 'armazenamento: Criação não vê o uso');
+reset role;
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (

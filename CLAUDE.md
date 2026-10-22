@@ -36,6 +36,7 @@ src/app/verificacao-acesso/  página que lê cada tabela com a sessão de quem e
 src/app/(time)/clientes/  lista, cadastro (novo, [id]/editar) e Central do cliente ([id]); ações em acoes.ts
 src/app/(time)/tarefas/  quadro (quadro.tsx), detalhe (detalhe-tarefa.tsx, usado também no Início), formulários (detalhe.tsx), filtros e ações
 src/app/(time)/crm/      funil (quadro-leads.tsx), ficha e novo lead (ficha.tsx), lista e origem (page.tsx); regras em src/lib/dominio/crm.ts
+src/app/(time)/chat/     canais e conversa ao vivo (conversa.tsx: Realtime, anexos, menções)
 src/app/(time)/inicio/   calendário (calendario.tsx, só desenha) e resumo do dia (page.tsx busca os dados)
 src/app/portal/telas.tsx  telas do portal (TelaAprovar, TelaRelatorio) usadas pelo cliente e por "Ver como cliente"; interativos.tsx tem carrossel e botões de decisão
 src/app/(time)/criacao/  Criação (page.tsx busca, editor.tsx desenha; artes vão do navegador direto ao Storage e depois registrarArte)
@@ -94,3 +95,4 @@ Desvios ou complementos do SPEC aprovados pela Mayara:
 ## Depois da Fase 1
 
 - [ ] CRM (26/10): Sócio e Adm editam; Criação e cliente não veem. Funil de 7 etapas (arrastar, seta; Perdido pede motivo), lista, origem dos leads, ficha lateral com histórico automático, "Virar cliente" cria o cliente na Central. Follow-ups no calendário do Início, no Resumo do dia e no resumo das 8h. Serviços: Social media, Tráfego pago, Branding, Identidade visual, Vídeo, Endomarketing, Outros. Sem importação de leads. Falta teste no navegador
+- [ ] Chat interno (27/10): só o time (cliente nunca vê). Começa com #geral; Sócio e Adm criam e arquivam canais (opcionalmente ligados a um cliente). Tempo real pelo Supabase Realtime (tabela chat_mensagens na publicação supabase_realtime), não lidas por canal e no menu, @menção avisa só no sino, editar a própria mensagem, apagar a própria (Sócio apaga qualquer), anexos até 25 MB no bucket privado "chat". Uso do armazenamento em Configurações (plano gratuito: 1 GB). Falta teste no navegador

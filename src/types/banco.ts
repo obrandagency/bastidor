@@ -171,3 +171,18 @@ export type EventoLead = {
   autor_nome: string | null;
   created_at: string;
 };
+
+export type Anexo = { caminho: string; nome: string; tipo: string; tamanho: number };
+
+export type CanalChat = { id: string; nome: string; client_id: string | null; arquivado: boolean };
+
+export type MensagemChat = {
+  id: string;
+  canal_id: string;
+  autor_id: string | null;
+  autor_nome: string | null;
+  texto: string;
+  anexos: Anexo[];
+  editada_em: string | null;
+  created_at: string;
+};

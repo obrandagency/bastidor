@@ -183,6 +183,14 @@ export async function apagarCliente(_: Estado, form: FormData): Promise<Estado> 
     const caminhos = (arquivos ?? []).map((a) => `${clientId}/${pasta.name}/${a.name}`);
     if (caminhos.length) await admin.storage.from(BUCKET_ARTES).remove(caminhos);
   }
+  // 1b. Anexos dos canais de chat ligados ao cliente (os canais e mensagens saem em cascata)
+  const { BUCKET_CHAT } = await import("@/lib/constantes");
+  const { data: canais } = await admin.from("chat_canais").select("id").eq("client_id", clientId);
+  for (const canal of canais ?? []) {
+    const { data: arquivos } = await admin.storage.from(BUCKET_CHAT).list(canal.id, { limit: 1000 });
+    const caminhos = (arquivos ?? []).map((a) => `${canal.id}/${a.name}`);
+    if (caminhos.length) await admin.storage.from(BUCKET_CHAT).remove(caminhos);
+  }
   // 2. Logins das pessoas do cliente (o perfil some junto)
   const { data: pessoas } = await admin.from("profiles").select("id").eq("client_id", clientId);
   for (const p of pessoas ?? []) await admin.auth.admin.deleteUser(p.id);

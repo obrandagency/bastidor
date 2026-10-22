@@ -11,7 +11,7 @@ export const ROTULO_PERFIL: Record<Perfil, string> = {
   cliente: "Cliente",
 };
 
-export type IconeMenu = "inicio" | "tarefas" | "criacao" | "clientes" | "portal" | "configuracoes" | "crm";
+export type IconeMenu = "inicio" | "tarefas" | "criacao" | "clientes" | "portal" | "configuracoes" | "crm" | "chat";
 
 export type ItemMenu = {
   href: string;
@@ -27,6 +27,7 @@ export const MENU: { grupo: string; itens: ItemMenu[] }[] = [
       { href: "/inicio", rotulo: "Início", icone: "inicio", perfis: ["socio", "adm", "criacao"] },
       { href: "/tarefas", rotulo: "Tarefas", icone: "tarefas", perfis: ["socio", "adm", "criacao"] },
       { href: "/criacao", rotulo: "Criação", icone: "criacao", perfis: ["socio", "adm", "criacao"] },
+      { href: "/chat", rotulo: "Chat", icone: "chat", perfis: ["socio", "adm", "criacao"] },
     ],
   },
   {
