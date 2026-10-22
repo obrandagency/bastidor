@@ -36,6 +36,9 @@ src/app/verificacao-acesso/  página que lê cada tabela com a sessão de quem e
 src/app/(time)/clientes/  lista, cadastro (novo, [id]/editar) e Central do cliente ([id]); ações em acoes.ts
 src/app/(time)/tarefas/  quadro (quadro.tsx), detalhe (detalhe-tarefa.tsx, usado também no Início), formulários (detalhe.tsx), filtros e ações
 src/app/(time)/inicio/   calendário (calendario.tsx, só desenha) e resumo do dia (page.tsx busca os dados)
+src/app/portal/telas.tsx  telas do portal (TelaAprovar, TelaRelatorio) usadas pelo cliente e por "Ver como cliente"; interativos.tsx tem carrossel e botões de decisão
+src/app/(time)/criacao/  Criação (page.tsx busca, editor.tsx desenha; artes vão do navegador direto ao Storage e depois registrarArte)
+src/lib/artes.ts     linksDasArtes(): links temporários (1h) gerados com a sessão de quem vê
 src/lib/dominio/tarefas.ts  etapas, formatos, áreas, próxima etapa, atraso, fuso de publicação (o mesmo que o banco)
 src/lib/datas.ts     hojeSP(), dataBR(), diaMes(), mesPorExtenso() (sempre fuso de São Paulo)
 src/lib/sessao.ts    pessoaAtual(), exigirTime(perfis?), exigirCliente()
@@ -54,6 +57,8 @@ supabase/tests/      stub-supabase.sql (imitação mínima do Supabase) e rls.sq
 - Só entra quem tem linha em `convites`: o gatilho em `auth.users` cria o `profiles` a partir do convite e recusa e-mails sem convite
 - Perfil, cliente e ativo só mudam pelo Sócio (Adm só entre pessoas de cliente), garantido pelo gatilho `proteger_perfil`; sempre sobra pelo menos um Sócio ativo
 - Pessoa desativada (`ativo = false`) perde todo o acesso, mesmo com sessão aberta
+- Artes no bucket privado `artes`, caminho `client_id/task_id/arquivo`; o cliente só lê arte de conteúdo dele em Com o cliente, Ajuste, Aprovado ou Agendado (`cliente_ve_arte`)
+- Portal: funções `portal_resumo`, `portal_conteudos`, `portal_relatorio`, `portal_servicos` (leitura; Sócio e Adm passam `p_client_id`) e `portal_aprovar`, `portal_pedir_ajuste` (só perfil cliente). Aprovar avisa os Adm; pedir ajuste avisa o responsável (tabela notifications)
 - Links de e-mail usam os modelos do Supabase com `{{ .SiteURL }}/auth/confirmar?token_hash={{ .TokenHash }}&type=...`
 
 ## Decisões tomadas (21 e 22/10/2026)
@@ -80,5 +85,5 @@ Desvios ou complementos do SPEC aprovados pela Mayara:
 - [x] Etapa 3: clientes, contratos e Central do cliente. Aprovada em 23/10: testada no navegador pela Mayara e clientes reais cadastrados
 - [ ] Etapa 4: tarefas. Código pronto: quadros de Conteúdos e Demandas (arrastar, seta, filtros), detalhe lateral (?tarefa=id) com campos, agendamento, comentários e histórico, nova tarefa (?nova=1), responsável padrão em Configurações; regras no gatilho `regras_de_etapa` e histórico em `registrar_etapa`. Testada no navegador pela Mayara em 23/10; semana de uso pelo time em andamento (critério do SPEC)
 - [ ] Etapa 5: início. Código pronto: Calendário do mês (dia do prazo ou da publicação, cores por situação, faixa de atraso, filtro por pessoa com contagem, navegação de mês) e Resumo do dia (atrasadas e vencendo hoje, esperando o cliente há N dias, próximas publicações); clicar abre o mesmo detalhe de Tarefas. Falta teste no navegador
-- [ ] Etapa 6: criação e portal
+- [ ] Etapa 6: criação e portal. Código pronto: Criação (lista em produção, artes com envio direto ao Storage, ordem e remoção, legenda com contador, ajustes internos e do cliente, prévia do feed), portal (aprovar com carrossel, pedir ajuste com aviso de limite, histórico recente, relatório de entregas por mês) e Ver como cliente (mesmas telas, sem decidir). Falta: testar com um cliente piloto por um mês
 - [ ] Etapa 7: notificações e revisão de segurança

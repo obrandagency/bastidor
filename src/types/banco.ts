@@ -105,3 +105,37 @@ export type Evento = {
   origem: "time" | "cliente" | "sistema";
   created_at: string;
 };
+
+export type Arte = {
+  id: string;
+  task_id: string;
+  caminho: string;
+  tipo_midia: "imagem" | "video";
+  ordem: number;
+};
+
+// Devolvido pelas funções do portal (só campos que o cliente pode ver)
+export type ConteudoPortal = {
+  id: string;
+  titulo: string;
+  formato: Formato;
+  etapa: Etapa;
+  legenda: string;
+  prazo: string | null;
+  publicar_em: string | null;
+  enviado_cliente_em: string | null;
+  atualizado_em: string;
+  artes: { caminho: string; tipo: "imagem" | "video" }[];
+  pedidos_ajuste: { texto: string; em: string }[];
+};
+
+export type ResumoPortal = {
+  cliente: string;
+  mes: string;
+  conteudos_mes: number | null;
+  ajustes_mes: number | null;
+  ajustes_usados: number;
+  entregues: number;
+  em_producao: number;
+  aguardando: number;
+};

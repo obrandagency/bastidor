@@ -253,5 +253,64 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 select testes.ok(testes.conta('select * from public.task_events') = 0, 'tarefa: cliente continua sem ler o histórico');
 reset role;
 
+-- ---------------------------------------------------------------- portal do cliente e artes (etapa 6)
+select set_config('request.jwt.claims', '', true);
+update public.profiles set ativo = true where email = 'cb@teste.com';
+update public.profiles set perfil = 'criacao' where email = 'criacao@teste.com'; -- o Sócio tinha mudado para adm acima
+insert into public.tasks (id, tipo, client_id, titulo, formato, etapa)
+  values ('00000000-0000-0000-0000-0000000000e3', 'conteudo', '00000000-0000-0000-0000-00000000000a', 'Ainda em pauta', 'reels', 'pauta');
+insert into public.tasks (id, tipo, client_id, titulo, area, etapa)
+  values ('00000000-0000-0000-0000-0000000000e4', 'demanda', '00000000-0000-0000-0000-00000000000a', 'Campanha de leads', 'trafego_pago', 'fazendo');
+insert into public.task_notes (task_id, tipo, texto) values ('00000000-0000-0000-0000-0000000000f1', 'interno', 'Segredo interno');
+insert into storage.objects (bucket_id, name) values
+  ('artes', '00000000-0000-0000-0000-00000000000a/00000000-0000-0000-0000-0000000000f1/a.png'),
+  ('artes', '00000000-0000-0000-0000-00000000000a/00000000-0000-0000-0000-0000000000e3/pauta.png'),
+  ('artes', '00000000-0000-0000-0000-00000000000b/00000000-0000-0000-0000-0000000000f2/b.png');
+insert into public.task_assets (task_id, caminho, tipo_midia) values
+  ('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-00000000000a/00000000-0000-0000-0000-0000000000f1/a.png', 'imagem');
+update public.tasks set prazo = (now() at time zone 'America/Sao_Paulo')::date
+  where id in ('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000e3', '00000000-0000-0000-0000-0000000000e4');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.portal_conteudos()') >= 1, 'portal A: vê os conteúdos para aprovar');
+select testes.ok(testes.conta($$select * from public.portal_conteudos() where id = '00000000-0000-0000-0000-0000000000f2'$$) = 0, 'portal A: não vê conteúdo do Cliente B');
+select testes.ok(testes.conta($$select * from public.portal_conteudos() where id = '00000000-0000-0000-0000-0000000000e3'$$) = 0, 'portal A: não vê conteúdo em pauta');
+select testes.ok(testes.conta($$select * from public.portal_conteudos() where pedidos_ajuste::text like '%Segredo%'$$) = 0, 'portal A: comentário interno não aparece');
+select testes.ok(testes.conta($$select * from public.portal_conteudos() where id = '00000000-0000-0000-0000-0000000000f1' and jsonb_array_length(artes) = 1$$) = 1, 'portal A: recebe o caminho da arte');
+select testes.recusa($$select * from public.portal_conteudos('00000000-0000-0000-0000-00000000000b')$$, 'portal A: não abre o portal do Cliente B');
+select testes.ok((public.portal_resumo() ->> 'cliente') = 'Cliente A' and (public.portal_resumo() ->> 'ajustes_mes')::int = 3, 'portal A: resumo com o limite do contrato');
+select testes.ok(testes.conta($$select * from public.portal_relatorio() where situacao = 'Em produção'$$) = 1, 'portal A: relatório mostra o que está em produção');
+select testes.ok(testes.conta($$select * from public.portal_servicos() where titulo = 'Campanha de leads' and situacao = 'Em andamento'$$) = 1, 'portal A: outros serviços do mês');
+select testes.ok(testes.conta($$select * from storage.objects where bucket_id = 'artes'$$) = 1, 'artes A: vê só a arte de conteúdo que chegou ao portal');
+select testes.recusa($$insert into storage.objects (bucket_id, name) values ('artes', '00000000-0000-0000-0000-00000000000a/x/y.png')$$, 'artes A: cliente não envia arquivo');
+select testes.recusa($$select public.portal_aprovar('00000000-0000-0000-0000-0000000000f2')$$, 'portal A: não aprova conteúdo do Cliente B');
+select testes.recusa($$select public.portal_pedir_ajuste('00000000-0000-0000-0000-0000000000f1', '   ')$$, 'portal A: pedido de ajuste precisa de texto');
+select public.portal_pedir_ajuste('00000000-0000-0000-0000-0000000000f1', 'Trocar a cor do fundo');
+select testes.ok(public.ajustes_do_mes('00000000-0000-0000-0000-00000000000a') = 2, 'portal A: pedido de ajuste soma 1 no contador do mês');
+select testes.ok(testes.conta($$select * from public.portal_conteudos() where id = '00000000-0000-0000-0000-0000000000f1' and etapa = 'ajuste' and pedidos_ajuste::text like '%Trocar a cor%'$$) = 1, 'portal A: vê o próprio pedido de ajuste');
+select testes.recusa($$select public.portal_aprovar('00000000-0000-0000-0000-0000000000f1')$$, 'portal A: não aprova conteúdo que já está em ajuste');
+reset role;
+
+select testes.ok((select etapa = 'ajuste' and responsavel_id = '00000000-0000-0000-0000-000000000003' from public.tasks where id = '00000000-0000-0000-0000-0000000000f1'), 'portal: pedido de ajuste vira tarefa para o responsável do Ajuste');
+select testes.ok(testes.conta($$select * from public.task_events where task_id = '00000000-0000-0000-0000-0000000000f1' and para_etapa = 'ajuste' and origem = 'cliente' and ator_nome = 'Pessoa A editada'$$) = 1, 'portal: registra quem pediu o ajuste');
+select testes.ok(testes.conta($$select * from public.notifications where tipo = 'ajuste_pedido' and destinatario_id = '00000000-0000-0000-0000-000000000003'$$) = 1, 'portal: responsável recebe aviso do ajuste');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.recusa($$select public.portal_resumo('00000000-0000-0000-0000-00000000000a')$$, 'portal: Criação não usa "Ver como cliente"');
+select testes.ok(testes.conta($$select * from storage.objects where bucket_id = 'artes'$$) = 3, 'artes: time vê todas');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select testes.ok(testes.conta($$select * from public.portal_conteudos('00000000-0000-0000-0000-00000000000b')$$) = 1, 'portal: Adm vê como o Cliente B');
+select testes.recusa($$select public.portal_aprovar('00000000-0000-0000-0000-0000000000f2')$$, 'portal: "Ver como cliente" não aprova em nome dele');
+select testes.recusa($$select public.portal_pedir_ajuste('00000000-0000-0000-0000-0000000000f2', 'x')$$, 'portal: "Ver como cliente" não pede ajuste em nome dele');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000cb","role":"authenticated"}', true);
+select public.portal_aprovar('00000000-0000-0000-0000-0000000000f2');
+select testes.ok(true, 'portal B: aprova o próprio conteúdo');
+reset role;
+
+select testes.ok(testes.conta($$select * from public.task_events where task_id = '00000000-0000-0000-0000-0000000000f2' and para_etapa = 'aprovado' and origem = 'cliente' and ator_nome = 'Pessoa B'$$) = 1, 'portal: registra quem aprovou e quando');
+select testes.ok(testes.conta($$select * from public.notifications where tipo = 'cliente_aprovou' and destinatario_id = '00000000-0000-0000-0000-000000000002'$$) = 1, 'portal: Adm recebe aviso da aprovação');
+
 select testes.ok(true, 'TODOS OS TESTES PASSARAM');
 rollback;

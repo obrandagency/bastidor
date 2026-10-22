@@ -86,9 +86,17 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
         </ol>
       </div>
 
-      {podeExcluir && (
-        <div className="mt-auto flex border-t border-line pt-3">
-          <Excluir tarefa={t} />
+      {(t.tipo === "conteudo" || podeExcluir) && (
+        <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-line pt-3">
+          {t.tipo === "conteudo" && t.client_id && (
+            <Link
+              href={`/criacao?cliente=${t.client_id}&conteudo=${t.id}`}
+              className="rounded-lg border border-line px-3.5 py-2 font-medium hover:border-ink"
+            >
+              Abrir na Criação
+            </Link>
+          )}
+          {podeExcluir && <Excluir tarefa={t} />}
         </div>
       )}
     </Gaveta>

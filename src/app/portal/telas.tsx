@@ -1,0 +1,256 @@
+import Link from "next/link";
+import { linksDasArtes } from "@/lib/artes";
+import { diaMes, hojeSP, mesEAno, somarMes } from "@/lib/datas";
+import { area, dataHoraSP, rotuloFormato, type Area, type Formato } from "@/lib/dominio/tarefas";
+import { criarClienteServidor } from "@/lib/supabase/server";
+import type { ConteudoPortal, ResumoPortal } from "@/types/banco";
+import { Carrossel, Decisao } from "./interativos";
+
+// Telas do portal, usadas pelo cliente (/portal) e pela equipe em "Ver como cliente" (somenteLeitura)
+type Alvo = { clientId?: string; somenteLeitura?: boolean };
+
+const COR_SITUACAO: Record<string, string> = {
+  "Aguardando você": "bg-warn-soft text-warn",
+  "Em ajuste": "bg-bad-soft text-bad",
+  Aprovado: "bg-ok-soft text-ok",
+  Publicado: "bg-ok-soft text-ok",
+  Agendado: "bg-accent-soft text-accent",
+  "Em produção": "bg-surface text-muted",
+  "Em andamento": "bg-surface text-muted",
+  Concluído: "bg-ok-soft text-ok",
+};
+
+function Selo({ texto }: { texto: string }) {
+  return (
+    <span className={`inline-flex whitespace-nowrap rounded-full px-[9px] py-px text-[11.5px] font-medium ${COR_SITUACAO[texto] ?? "bg-surface text-muted"}`}>
+      {texto}
+    </span>
+  );
+}
+
+function situacaoDe(c: ConteudoPortal) {
+  if (c.etapa === "agendado") return c.publicar_em && c.publicar_em <= new Date().toISOString() ? "Publicado" : "Agendado";
+  if (c.etapa === "aprovado") return "Aprovado";
+  if (c.etapa === "ajuste") return "Em ajuste";
+  return "Aguardando você";
+}
+
+async function dados(clientId?: string) {
+  const supabase = await criarClienteServidor();
+  const args = clientId ? { p_client_id: clientId } : {};
+  const [{ data: resumo, error }, { data: conteudos }] = await Promise.all([
+    supabase.rpc("portal_resumo", args),
+    supabase.rpc("portal_conteudos", args),
+  ]);
+  return { supabase, resumo: resumo as ResumoPortal | null, conteudos: (conteudos ?? []) as ConteudoPortal[], erro: error };
+}
+
+export function BarraAjustes({ resumo }: { resumo: ResumoPortal }) {
+  if (resumo.ajustes_mes === null) return null;
+  const acabou = resumo.ajustes_usados >= resumo.ajustes_mes;
+  return (
+    <div className={`rounded-lg px-3 py-2 text-[13px] ${acabou ? "bg-warn-soft text-warn" : "bg-surface text-muted"}`}>
+      Ajustes do mês:{" "}
+      <b className="font-mono font-semibold">
+        {resumo.ajustes_usados} de {resumo.ajustes_mes}
+      </b>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- aprovar conteúdos
+export async function TelaAprovar({ clientId, somenteLeitura }: Alvo) {
+  const { supabase, resumo, conteudos, erro } = await dados(clientId);
+  if (erro || !resumo) return <p className="text-muted">Não foi possível carregar o portal.</p>;
+  // O cliente só enxerga a própria linha em clients; a equipe pede pelo id
+  const consulta = supabase.from("clients").select("cor");
+  const { data: cliente } = await (clientId ? consulta.eq("id", clientId) : consulta.limit(1)).maybeSingle();
+  const cor = cliente?.cor ?? "#1E4BFF";
+
+  const links = await linksDasArtes(conteudos.filter((c) => c.etapa === "cliente").flatMap((c) => c.artes.map((a) => a.caminho)));
+  return <VistaAprovar resumo={resumo} conteudos={conteudos} links={links} cor={cor} somenteLeitura={somenteLeitura} />;
+}
+
+// Desenho da tela de aprovação (sem consultas)
+export function VistaAprovar({
+  resumo,
+  conteudos,
+  links,
+  cor,
+  somenteLeitura,
+}: {
+  resumo: ResumoPortal;
+  conteudos: ConteudoPortal[];
+  links: Map<string, string>;
+  cor: string;
+  somenteLeitura?: boolean;
+}) {
+  const paraAprovar = conteudos.filter((c) => c.etapa === "cliente");
+  const recentes = conteudos
+    .filter((c) => c.etapa !== "cliente")
+    .sort((a, b) => b.atualizado_em.localeCompare(a.atualizado_em))
+    .slice(0, 12);
+
+  return (
+    <>
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[25px] font-bold leading-[1.1] md:text-[30px]">Aprovar conteúdos</h1>
+          <p className="mt-1.5 text-muted">
+            {paraAprovar.length === 0
+              ? "Nada esperando a sua aprovação agora."
+              : `${paraAprovar.length} conteúdo${paraAprovar.length > 1 ? "s" : ""} esperando a sua aprovação.`}
+          </p>
+        </div>
+        <BarraAjustes resumo={resumo} />
+      </div>
+
+      <div className="flex flex-col gap-4">
+        {paraAprovar.map((c) => (
+          <article key={c.id} className="grid gap-4 rounded-xl border border-line bg-card p-4 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+            <Carrossel cor={cor} midias={c.artes.flatMap((a) => (links.get(a.caminho) ? [{ url: links.get(a.caminho)!, tipo: a.tipo }] : []))} />
+            <div className="flex min-w-0 flex-col gap-3">
+              <div>
+                <div className="text-[12.5px] text-muted">
+                  {rotuloFormato(c.formato)}
+                  {c.prazo && <> · previsto para {diaMes(c.prazo)}</>}
+                </div>
+                <h2 className="mt-0.5 text-[18px] font-bold leading-tight">{c.titulo}</h2>
+              </div>
+              <div>
+                <div className="mb-1 text-[11.5px] uppercase tracking-[0.04em] text-muted">Legenda</div>
+                <p className="max-h-[320px] overflow-y-auto whitespace-pre-wrap text-[13.5px] [overflow-wrap:anywhere]">
+                  {c.legenda || <span className="text-muted">Sem legenda.</span>}
+                </p>
+              </div>
+              <div className="mt-auto">
+                <Decisao id={c.id} usados={resumo.ajustes_usados} limite={resumo.ajustes_mes} somenteLeitura={somenteLeitura} />
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <section className="mt-8">
+        <h2 className="mb-3 text-[15px] font-bold">Histórico recente</h2>
+        <div className="rounded-xl border border-line bg-card">
+          {recentes.map((c) => (
+            <div key={c.id} className="flex flex-col gap-1 border-t border-line px-4 py-[11px] first:border-t-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="min-w-0 flex-1 font-medium [overflow-wrap:anywhere]">{c.titulo}</span>
+                {c.etapa === "agendado" && c.publicar_em && (
+                  <span className="font-mono text-[12px] text-muted">
+                    {diaMes(dataHoraSP(c.publicar_em).data)} {dataHoraSP(c.publicar_em).hora}
+                  </span>
+                )}
+                <Selo texto={situacaoDe(c)} />
+              </div>
+              {c.etapa === "ajuste" && c.pedidos_ajuste.length > 0 && (
+                <p className="text-[12.5px] text-muted">Seu pedido: {c.pedidos_ajuste[c.pedidos_ajuste.length - 1].texto}</p>
+              )}
+            </div>
+          ))}
+          {recentes.length === 0 && <p className="px-4 py-[18px] text-[13px] text-muted">Nada por aqui ainda.</p>}
+        </div>
+      </section>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------- relatório de entregas
+export async function TelaRelatorio({ clientId, mes, base }: Alvo & { mes?: string; base: string }) {
+  const atual = hojeSP().slice(0, 7);
+  const m = /^\d{4}-\d{2}$/.test(mes ?? "") ? mes! : atual;
+  const supabase = await criarClienteServidor();
+  const args = { ...(clientId ? { p_client_id: clientId } : {}), p_mes: `${m}-01` };
+  const [{ data: resumoBruto, error }, { data: lista }, { data: servicos }] = await Promise.all([
+    supabase.rpc("portal_resumo", args),
+    supabase.rpc("portal_relatorio", args),
+    supabase.rpc("portal_servicos", args),
+  ]);
+  if (error || !resumoBruto) return <p className="text-muted">Não foi possível carregar o relatório.</p>;
+  const resumo = resumoBruto as ResumoPortal;
+  const itens = (lista ?? []) as { id: string; titulo: string; formato: Formato; dia: string; situacao: string }[];
+  const outros = (servicos ?? []) as { titulo: string; area: Area; situacao: string }[];
+  const total = resumo.conteudos_mes ?? 0;
+  const pct = total > 0 ? Math.min(100, Math.round((resumo.entregues / total) * 100)) : 0;
+  const linkMes = (alvo: string) => `${base}${base.includes("?") ? "&" : "?"}mes=${alvo}`;
+
+  return (
+    <>
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[25px] font-bold leading-[1.1] md:text-[30px]">Relatório de entregas</h1>
+          <p className="mt-1.5 capitalize text-muted">{mesEAno(m)}</p>
+        </div>
+        <div className="flex gap-1.5">
+          <Link href={linkMes(somarMes(m, -1))} aria-label="Mês anterior" className="rounded-lg border border-line bg-card px-2.5 py-[5px] text-[12.5px] font-medium hover:border-ink">
+            ‹
+          </Link>
+          <Link href={linkMes(atual)} className="rounded-lg border border-line bg-card px-2.5 py-[5px] text-[12.5px] font-medium hover:border-ink">
+            Este mês
+          </Link>
+          {m < atual && (
+            <Link href={linkMes(somarMes(m, 1))} aria-label="Próximo mês" className="rounded-lg border border-line bg-card px-2.5 py-[5px] text-[12.5px] font-medium hover:border-ink">
+              ›
+            </Link>
+          )}
+        </div>
+      </div>
+
+      <div className="mb-[18px] grid grid-cols-[repeat(auto-fit,minmax(min(100%,200px),1fr))] gap-3">
+        <div className="rounded-xl border border-ink bg-ink px-4 py-3.5 text-bg">
+          <b className="block font-display text-[30px] font-bold leading-[1.1] tabular-nums">
+            {resumo.entregues}
+            {total > 0 && <span className="text-[18px] opacity-70"> de {total}</span>}
+          </b>
+          <span className="text-[12.5px] opacity-75">publicados ou agendados</span>
+          {total > 0 && (
+            <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/20" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+              <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+            </div>
+          )}
+        </div>
+        <div className="rounded-xl border border-line bg-card px-4 py-3.5">
+          <b className="block font-display text-[30px] font-bold leading-[1.1] tabular-nums">{resumo.em_producao}</b>
+          <span className="text-[12.5px] text-muted">em produção</span>
+        </div>
+        <div className="rounded-xl border border-line bg-card px-4 py-3.5">
+          <b className="block font-display text-[30px] font-bold leading-[1.1] tabular-nums">
+            {resumo.ajustes_usados}
+            {resumo.ajustes_mes !== null && <span className="text-[18px] text-muted"> de {resumo.ajustes_mes}</span>}
+          </b>
+          <span className="text-[12.5px] text-muted">ajustes usados</span>
+        </div>
+      </div>
+
+      <section className="mb-6 rounded-xl border border-line bg-card">
+        <h2 className="border-b border-line px-4 py-3.5 text-[15px] font-bold">Conteúdos do mês</h2>
+        {itens.map((c) => (
+          <div key={c.id} className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-[11px] first:border-t-0">
+            <span className="w-[46px] font-mono text-[12px] text-muted">{diaMes(c.dia)}</span>
+            <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+              {c.titulo}
+              <span className="text-[12.5px] text-muted"> · {rotuloFormato(c.formato)}</span>
+            </span>
+            <Selo texto={c.situacao} />
+          </div>
+        ))}
+        {itens.length === 0 && <p className="px-4 py-[18px] text-[13px] text-muted">Nenhum conteúdo neste mês.</p>}
+      </section>
+
+      {outros.length > 0 && (
+        <section className="rounded-xl border border-line bg-card">
+          <h2 className="border-b border-line px-4 py-3.5 text-[15px] font-bold">Outros serviços do mês</h2>
+          {outros.map((s, i) => (
+            <div key={i} className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-[11px] first:border-t-0">
+              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{s.titulo}</span>
+              <span className="text-[11px] font-semibold tracking-[0.03em] text-accent">{area(s.area)?.rotulo}</span>
+              <Selo texto={s.situacao} />
+            </div>
+          ))}
+        </section>
+      )}
+    </>
+  );
+}
