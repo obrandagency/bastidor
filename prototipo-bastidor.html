@@ -1,0 +1,1476 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}</style></head><body>
+<title>Bastidor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: trilho preto à esquerda + superfície branca de trabalho; o azul marca ação e estado */
+:root{
+  --bg:#FFFFFF; --surface:#F4F6FB; --card:#FFFFFF; --ink:#0A0C12; --muted:#5A6275; --line:#E2E6EF;
+  --accent:#1E4BFF; --accent-ink:#FFFFFF;
+  --rail:#FFFFFF; --rail-ink:#0A0C12; --rail-muted:#6B7385; --rail-line:#EEF1F6;
+  --ok:#16895D; --ok-soft:#E3F5EC; --warn:#A86400; --warn-soft:#FFF1DA; --bad:#C93838; --bad-soft:#FDE8E8;
+  --shadow:0 12px 40px rgba(10,12,18,.16); color-scheme:light;
+  --display:'Bricolage Grotesque','Helvetica Neue',Arial,sans-serif;
+  --body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --accent-soft:color-mix(in srgb,var(--accent) 11%,var(--bg));
+}
+/* Tema único: sempre fundo branco, a pedido */
+
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.5}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100%}
+/* ---- trilho ---- */
+.rail{background:var(--rail);color:var(--rail-ink);border-right:1px solid var(--line);position:sticky;top:0;height:100vh;overflow-y:auto;
+  padding:20px 14px 24px max(14px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:22px}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 6px}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:17px}
+.brand-name{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:-.02em}
+.brand-sub{font-size:11px;color:var(--rail-muted);letter-spacing:.06em;text-transform:uppercase}
+.navgroup{display:flex;flex-direction:column;gap:2px}
+.navlabel{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--rail-muted);padding:0 10px 6px}
+.navbtn{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;color:var(--rail-ink);padding:8px 10px;border-radius:8px;text-align:left;font-size:13.5px}
+.navbtn svg{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;opacity:.8}
+.navbtn:hover{background:var(--rail-line)}
+.navbtn.on{background:var(--accent);color:var(--accent-ink)}
+.navbtn.on svg{opacity:1}
+.navbtn .count{margin-left:auto;font-family:var(--mono);font-size:11px;background:var(--rail-line);color:var(--rail-ink);border-radius:20px;padding:0 7px}
+.navbtn.on .count{background:rgba(255,255,255,.22)}
+.me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-top:1px solid var(--rail-line)}
+.me small{display:block;color:var(--rail-muted);font-size:11.5px}
+
+/* ---- topo mobile ---- */
+.topbar{display:none}
+.scrim{display:none}
+
+/* ---- área principal ---- */
+.main{min-width:0;padding-block:28px 64px;padding-left:max(28px,env(safe-area-inset-left,0px));padding-right:max(28px,env(safe-area-inset-right,0px))}
+.pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.pagehead h1{font-size:30px;font-weight:700;line-height:1.1}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.lede{color:var(--muted);margin:6px 0 0;max-width:62ch}
+.demo{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);border:1px dashed var(--line);border-radius:20px;padding:2px 10px}
+
+.btn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 14px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--ink)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.dark{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.btn.sm{padding:5px 10px;font-size:12.5px}
+.btn.ghost{background:none;border-color:transparent}
+.btn.ghost:hover{background:var(--surface)}
+
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label,.flabel{font-size:11.5px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.inp{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+textarea.inp{resize:vertical;min-height:120px;line-height:1.55}
+.inp:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px}
+.panel-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.panel-h h3{font-size:15px;font-weight:700}
+.panel-b{padding:14px 16px}
+.muted{color:var(--muted)}
+.empty{color:var(--muted);padding:18px 16px;font-size:13px}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;border-radius:20px;padding:1px 9px;white-space:nowrap;background:var(--surface);color:var(--muted);border:1px solid var(--line)}
+.st-cliente{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.st-ajuste{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.st-aprovado{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.st-agendado{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.late{color:var(--bad);font-weight:600}
+.today{color:var(--warn);font-weight:600}
+
+.av{width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;font-size:10.5px;font-weight:600;background:var(--ink);color:var(--bg);flex:none;letter-spacing:.02em}
+.av.lg{width:44px;height:44px;font-size:15px}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;background:hsl(var(--h) 65% 48%)}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px}
+.list{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid var(--line);min-width:0}
+.row:first-child{border-top:0}
+.row .grow{flex:1;min-width:0}
+.row .t{font-weight:500;overflow-wrap:anywhere}
+.row .s{font-size:12.5px;color:var(--muted)}
+.rowbtn{background:none;border:0;text-align:left;width:100%}
+.rowbtn:hover{background:var(--surface)}
+
+/* ---- números ---- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:12px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat b{display:block;font-family:var(--display);font-size:30px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{font-size:12.5px;color:var(--muted)}
+.stat.alert b{color:var(--bad)}
+.stat.hl{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.stat.hl span{color:color-mix(in srgb,var(--bg) 70%,var(--ink))}
+
+/* ---- miniatura de post (conteúdo, igual nos dois temas) ---- */
+.tile{position:relative;aspect-ratio:4/5;max-width:100%;border-radius:8px;overflow:hidden;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:10px;
+  background:radial-gradient(120% 80% at 90% 0%,hsl(var(--h) 80% 60% / .55),transparent 60%),linear-gradient(165deg,hsl(var(--h) 62% 40%),hsl(var(--h) 70% 16%))}
+.tile-fmt{position:absolute;top:8px;left:8px;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;background:rgba(0,0,0,.35);border-radius:4px;padding:1px 6px}
+.tile-t{font-family:var(--display);font-weight:700;font-size:13px;line-height:1.12;text-wrap:balance;overflow-wrap:anywhere}
+.tile-c{font-size:9.5px;opacity:.75;margin-top:4px;letter-spacing:.04em}
+.tile.sm{width:44px;padding:4px;border-radius:5px;flex:none}
+.tile.sm .tile-t{font-size:5.5px}.tile.sm .tile-fmt,.tile.sm .tile-c{display:none}
+
+/* ---- kanban ---- */
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px}
+.filters .field{width:200px;max-width:100%}
+.board-wrap{overflow-x:auto;padding-bottom:10px;margin-inline:-4px}
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:250px;gap:12px;padding:0 4px;min-height:420px}
+.kcol{background:var(--surface);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;border:1px solid transparent;transition:border-color .15s}
+.kcol.over{border-color:var(--accent);background:var(--accent-soft)}
+.kcol-h{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 4px;font-weight:600;font-size:13px}
+.kcol-h .mono{font-size:11.5px;color:var(--muted)}
+.kcard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;cursor:grab;text-align:left}
+.kcard:hover{border-color:var(--muted)}
+.kcard.dragging{opacity:.4}
+.kcard .ct{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+.kcard .tt{font-weight:600;font-size:12.5px;line-height:1.3;overflow-wrap:anywhere;letter-spacing:.01em}
+.kcard .ft{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
+.kcard .ft .sp{flex:1}
+.adv{border:1px solid var(--line);background:none;border-radius:6px;width:26px;height:24px;display:grid;place-items:center;color:var(--muted)}
+.adv:hover{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.adjmark{color:var(--bad);font-weight:600}
+
+/* ---- criação ---- */
+.cria{display:grid;grid-template-columns:240px minmax(0,1fr) 320px;gap:16px;align-items:start}
+.qlist .rowbtn{display:flex;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line)}
+.qlist .rowbtn.on{background:var(--accent-soft)}
+.phone{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:14px;box-shadow:var(--shadow)}
+.ig-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ig-av{width:44px;height:44px;border-radius:50%;background:linear-gradient(165deg,hsl(var(--h) 62% 45%),hsl(var(--h) 70% 18%));flex:none}
+.ig-h b{display:block;font-size:13px}
+.ig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.ig-grid .tile{border-radius:0;padding:5px}
+.ig-grid .tile-t{font-size:7.5px}.ig-grid .tile-c{display:none}.ig-grid .tile-fmt{font-size:7px;top:4px;left:4px;padding:0 3px}
+.ig-grid .tile.cur{outline:3px solid var(--accent);outline-offset:-3px}
+.ig-grid .tile.ghost{opacity:.35}
+.capprev{font-size:12.5px;margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:150px;overflow:auto;color:var(--ink)}
+.notes{display:flex;flex-direction:column;gap:8px}
+.note{border:1px solid var(--line);border-radius:10px;padding:9px 11px;display:flex;gap:10px;align-items:flex-start}
+.note.cli{border-color:color-mix(in srgb,var(--bad) 35%,var(--line));background:var(--bad-soft)}
+.note.done{opacity:.55}.note.done .nt{text-decoration:line-through}
+.note .nt{flex:1;min-width:0;overflow-wrap:anywhere;font-size:13px}
+.note small{display:block;color:var(--muted);font-size:11.5px}
+.tabs{display:inline-flex;background:var(--surface);border-radius:9px;padding:3px;gap:2px;flex-wrap:wrap}
+.tabs button{border:0;background:none;border-radius:7px;padding:5px 12px;font-size:12.5px;font-weight:500;color:var(--muted)}
+.tabs button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+/* ---- portal do cliente ---- */
+.portal{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--surface)}
+.portal-h{background:var(--ink);color:var(--bg);display:flex;align-items:center;gap:12px;padding:14px 18px;flex-wrap:wrap}
+.portal-h .bm{width:26px;height:26px;border-radius:7px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--display);font-weight:700}
+.portal-h .who{margin-left:auto;font-size:12.5px;opacity:.8}
+.portal-b{padding:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:16px}
+.apcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.apcard .cap{font-size:12.5px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:110px;overflow:auto}
+.apcard .acts{display:flex;gap:8px;flex-wrap:wrap}
+.apcard .acts .btn{flex:1;justify-content:center}
+.sent{font-size:11.5px;color:var(--muted)}
+.notice{display:flex;gap:10px;align-items:flex-start;background:var(--accent-soft);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px}
+.notice b{color:var(--accent)}
+
+/* ---- calendário ---- */
+.cal-wrap{overflow-x:auto}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(90px,1fr));min-width:660px;border-top:1px solid var(--line);border-left:1px solid var(--line)}
+.cal .dh{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface)}
+.cal .dc{min-height:96px;padding:6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.cal .dc.out{background:var(--surface)}
+.cal .dc .n{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.cal .dc.is-today .n{background:var(--accent);color:var(--accent-ink);border-radius:20px;width:24px;text-align:center}
+.chip{display:flex;align-items:center;gap:5px;font-size:11px;border-radius:6px;padding:3px 6px;background:var(--accent-soft);border:0;text-align:left;min-width:0;width:100%}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.chip.past{background:var(--surface);color:var(--muted)}
+.chip .av{width:18px;height:18px;font-size:8px;flex:none}
+.chip.k-prod{background:var(--surface);color:var(--ink)}
+.chip.k-cliente{background:var(--warn-soft)}
+.chip.k-ajuste{background:var(--bad-soft)}
+.chip.k-aprovado{background:var(--ok-soft)}
+.chip.k-agendado{background:var(--accent-soft)}
+.chip.k-late{box-shadow:inset 3px 0 0 var(--bad)}
+.chip:hover{filter:brightness(.96)}
+.ptabs{display:flex;gap:4px;padding:0 18px;background:var(--ink);overflow-x:auto}
+.ptabs button{border:0;background:none;color:color-mix(in srgb,var(--bg) 65%,var(--ink));padding:10px 12px;font-weight:500;font-size:13px;border-bottom:2px solid transparent;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.ptabs button.on{color:var(--bg);border-bottom-color:var(--accent)}
+.badge{background:var(--accent);color:var(--accent-ink);border-radius:20px;font-size:11px;padding:0 7px;font-family:var(--mono)}
+.adjmeter{font-size:12.5px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:3px 12px}
+.adjmeter.over{border-color:var(--bad);color:var(--bad)}
+.warnbox{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 10px;font-size:12.5px}
+.portal-empty{padding:40px 18px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center}
+.portal-pad{padding:14px 18px 18px;display:flex;flex-direction:column;gap:14px}
+.stats.mets{margin-bottom:0}
+.up{color:var(--ok);font-weight:600}.down{color:var(--bad);font-weight:600}
+.vbars{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;height:180px;align-items:end}
+.vb{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.vb i{display:block;width:100%;max-width:56px;background:var(--accent);border-radius:6px 6px 2px 2px;min-height:4px}
+.vb .mono{font-size:11px;color:var(--muted)}.vb small{font-size:11.5px;color:var(--muted)}
+.tops{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,160px),1fr));gap:12px}
+.switch{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer}
+.switch input{width:17px;height:17px;accent-color:var(--accent)}
+.row.off{opacity:.55}
+.mbar{display:flex;align-items:center;gap:8px}
+.mbar i{display:block;height:10px;border-radius:3px;background:var(--ok)}.mbar i.neg{background:var(--bad)}
+.mbar .mono{font-size:12px}
+.tnum{width:72px;text-align:right;padding:4px 8px;display:inline-block}
+.tbl tbody tr.nohover{cursor:default}.tbl tbody tr.nohover:hover{background:none}
+.tbl.perm .c{text-align:center}.tbl.perm input{width:17px;height:17px;accent-color:var(--accent)}
+.hub{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tchip{display:inline-flex;align-items:center;gap:4px;background:var(--accent-soft);color:var(--accent);border-radius:20px;padding:2px 4px 2px 10px;font-size:12.5px;font-weight:500}
+.tchip button{border:0;background:none;color:inherit;font-size:14px;line-height:1;padding:0 4px}
+.palette{display:flex;gap:12px;flex-wrap:wrap}
+.palette div{display:flex;flex-direction:column;gap:6px;font-size:11.5px}
+.palette i{display:block;width:72px;height:52px;border-radius:8px;border:1px solid var(--line)}
+.viewas{display:flex;flex-direction:column;gap:4px;width:100%}
+.viewas label{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--rail-muted)}
+.aibar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn.ai{border-color:var(--accent);color:var(--accent)}
+.clientbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.chip.k-crm{background:var(--card);box-shadow:inset 0 0 0 1px var(--accent);color:var(--accent);font-weight:500}
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;min-width:720px;font-size:13px}
+.tbl th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:10px 16px;border-bottom:1px solid var(--line)}
+.tbl td{padding:10px 16px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tbody tr{cursor:pointer}.tbl tbody tr:hover{background:var(--surface)}
+.tbl .num{text-align:right;font-variant-numeric:tabular-nums}
+.ls-reuniao,.ls-proposta{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.ls-negociacao{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.ls-ganho{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.ls-perdido{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.kcol.won{background:var(--ok-soft)}
+.kcol.lost{background:var(--surface);opacity:.85}
+.chip.k-meet{background:var(--ink);color:var(--bg)}
+.chip.k-meet .mono{color:color-mix(in srgb,var(--bg) 75%,var(--ink))}
+.dthumb{width:44px;aspect-ratio:4/5;border-radius:5px;flex:none;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.02em}
+.dthumb.lg{width:120px;font-size:30px;border-radius:8px}
+.cat{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--accent);letter-spacing:.03em}
+.cal.big .dc{min-height:118px}
+.whof{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.whof button{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);border-radius:20px;padding:4px 12px 4px 4px;font-size:12.5px}
+.whof button.all{padding-left:12px}
+.whof button.on{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.whof .av{width:22px;height:22px;font-size:9px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:12px 16px;border-top:1px solid var(--line)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.chip .mono{font-size:10.5px;flex:none}
+.sched-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:11px 16px;border-top:1px solid var(--line)}
+.sched-row:first-child{border-top:0}
+.sched-row .grow{flex:1;min-width:160px}
+.sched-row input{width:auto}
+
+/* ---- chat ---- */
+.chat{display:grid;grid-template-columns:220px minmax(0,1fr);height:min(640px,calc(100vh - 170px));min-height:420px}
+.chs{border-right:1px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.chs button{display:flex;align-items:center;gap:8px;border:0;background:none;padding:7px 10px;border-radius:8px;text-align:left;font-size:13px;color:var(--muted)}
+.chs button.on{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.chs button .hash{font-family:var(--mono);color:var(--muted)}
+.msgs{display:flex;flex-direction:column;min-width:0}
+.msgs-l{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.msg{display:flex;gap:10px;align-items:flex-start}
+.msg .b{min-width:0}
+.msg .b b{font-size:13px}.msg .b .mono{font-size:11px;color:var(--muted);margin-left:6px}
+.msg .b p{margin:2px 0 0;overflow-wrap:anywhere}
+.composer{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+
+/* ---- onboarding / academy ---- */
+.prog{height:8px;background:var(--surface);border-radius:20px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent);border-radius:20px}
+.week{padding:12px 16px;border-top:1px solid var(--line)}
+.week h4{margin:0 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.chk{display:flex;align-items:center;gap:10px;padding:5px 0;cursor:pointer}
+.chk input{width:17px;height:17px;accent-color:var(--accent);flex:none}
+.chk.done span{color:var(--muted);text-decoration:line-through}
+.daybadge{font-family:var(--display);font-weight:700;font-size:26px;line-height:1}
+.daybadge small{font-family:var(--body);font-weight:400;font-size:12px;color:var(--muted)}
+
+/* ---- equipe ---- */
+.team{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:14px}
+.member{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.member .top{display:flex;gap:12px;align-items:center}
+.member .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.member .kv div{background:var(--surface);border-radius:8px;padding:8px 4px}
+.member .kv b{display:block;font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}
+.member .kv span{font-size:11px;color:var(--muted)}
+
+/* ---- barras ---- */
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar{display:grid;grid-template-columns:150px minmax(0,1fr) 34px;gap:10px;align-items:center;font-size:12.5px}
+.bar .lb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .tr{height:12px;background:var(--surface);border-radius:4px;overflow:hidden}
+.bar .tr i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.bar .tr i.bad{background:var(--bad)}
+.bar .v{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---- marca ---- */
+.swatches{display:flex;gap:10px;flex-wrap:wrap}
+.sw{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px 6px 6px;font-size:12.5px}
+.sw i{width:24px;height:24px;border-radius:6px;display:block}
+.sw.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.login{background:var(--surface);border-radius:14px;padding:28px;display:grid;place-items:center}
+.login-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;width:min(100%,300px);display:flex;flex-direction:column;gap:12px}
+
+/* ---- modal ---- */
+.ov{position:fixed;inset:0;background:rgba(5,7,11,.45);z-index:40;display:flex;justify-content:flex-end}
+.drawer{background:var(--bg);width:min(560px,100%);height:100%;overflow-y:auto;box-shadow:var(--shadow);
+  padding:calc(20px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(28px + env(safe-area-inset-bottom,0px)) 20px;display:flex;flex-direction:column;gap:16px}
+.drawer-h{display:flex;gap:10px;align-items:flex-start}
+.drawer-h .inp{font-family:var(--display);font-weight:700;font-size:18px}
+.fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:1180px){.cria{grid-template-columns:minmax(0,1fr) 300px}.cria .qlist{grid-column:1/-1}}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--rail)}
+  .topbar{display:flex;align-items:center;gap:12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--rail);color:var(--rail-ink);border-bottom:1px solid var(--line);
+    padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+  .topbar button{background:none;border:1px solid var(--rail-line);color:var(--rail-ink);border-radius:8px;padding:6px 10px}
+  .rail{position:fixed;left:0;top:0;bottom:0;width:260px;height:auto;z-index:30;transform:translateX(-100%);transition:transform .25s;padding-top:calc(20px + env(safe-area-inset-top,0px))}
+  .app.nav-open .rail{transform:none}
+  .app.nav-open .scrim{display:block;position:fixed;inset:0;background:rgba(5,7,11,.45);z-index:25}
+  .main{padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .pagehead h1{font-size:25px}
+  .cria{grid-template-columns:minmax(0,1fr)}
+  .chat{grid-template-columns:minmax(0,1fr);height:auto}
+  .chs{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}
+  .chs button{white-space:nowrap}
+  .msgs-l{max-height:420px}
+  .bar{grid-template-columns:100px minmax(0,1fr) 30px}
+  .fgrid{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app" id="app">
+  <aside class="rail" id="rail"></aside>
+  <div class="scrim" data-act="closenav"></div>
+  <div style="min-width:0">
+    <div class="topbar">
+      <button data-act="opennav" aria-label="Abrir menu">Menu</button>
+      <span class="brand-name" id="topname">Bastidor</span>
+    </div>
+    <main class="main" id="main"></main>
+  </div>
+</div>
+<div id="modal"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ================= dados de exemplo ================= */
+const TODAY = new Date(2026, 9, 21);
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const DIAS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const DIAS_LONGO = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+const iso = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const addDays = n => { const d = new Date(TODAY); d.setDate(d.getDate()+n); return iso(d); };
+const parse = s => { const [y,m,d] = s.slice(0,10).split('-').map(Number); return new Date(y,m-1,d); };
+const diff = s => Math.round((parse(s) - TODAY) / 864e5);
+const ddmm = s => s.slice(8,10)+'/'+s.slice(5,7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const STAGES = [
+  {id:'pauta', label:'Pauta', owner:'ma'},
+  {id:'copy', label:'Copy', owner:'re'},
+  {id:'layout', label:'Layout', owner:'lu'},
+  {id:'revisao', label:'Revisão interna', owner:'ma'},
+  {id:'cliente', label:'Com o cliente', owner:'ga'},
+  {id:'ajuste', label:'Ajuste', owner:'lu'},
+  {id:'aprovado', label:'Aprovado', owner:'ga'},
+  {id:'agendado', label:'Agendado', owner:'ga'},
+];
+const DSTAGES = [
+  {id:'afazer', label:'A fazer'},
+  {id:'fazendo', label:'Fazendo'},
+  {id:'validar', label:'Em validação'},
+  {id:'feito', label:'Concluído'},
+];
+const ALLST = [...STAGES, ...DSTAGES];
+const stage = id => ALLST.find(s => s.id === id);
+const stagesOf = p => p.kind === 'demanda' ? DSTAGES : STAGES;
+const DONE = ['aprovado','agendado','feito'];
+const CATS = [['Tráfego pago','TP'],['Atendimento','AT'],['Comercial','CO'],['Branding','BR'],['Financeiro','FI'],['Administrativo','AD'],['Interno','IN']];
+const catCode = c => (CATS.find(x => x[0] === c) || ['','··'])[1];
+const INTERNO = {id:'int', name:'O.BRAND (interno)', handle:'obrand', hue:226, short:'INTERNO'};
+const FORMATS = ['Carrossel','Reels','Estático','Stories'];
+
+const S = {
+  me:'ma',
+  brand:{ name:'Bastidor', accent:null, domain:'app.obrand.com.br' },
+  clients:[
+    {id:'c1', name:'Ótica Barbosa', handle:'oticabarbosa', hue:212, short:'ÓTICA BARBOSA'},
+    {id:'c2', name:'Alyssum Cabeleireiros', handle:'alyssumcabeleireiros', hue:328, short:'ALYSSUM'},
+    {id:'c3', name:'Tedesco Motors', handle:'tedescomotors', hue:18, short:'TEDESCO'},
+    {id:'c4', name:'Velida Contabilidade', handle:'velidacontabil', hue:162, short:'VELIDA'},
+    {id:'c5', name:'Sparn Advogados', handle:'sparnadvogados', hue:250, short:'SPARN'},
+    {id:'c6', name:'Abrace Clínica Integrada', handle:'abraceclinica', hue:42, short:'ABRACE'},
+  ],
+  team:[
+    {id:'ma', name:'Mayara', role:'Estratégia e tráfego', ini:'MA'},
+    {id:'re', name:'Renan', role:'Sócio · conteúdo e copy', ini:'RE'},
+    {id:'ga', name:'Gabi', role:'Adm · aprovação e agenda', ini:'GA'},
+    {id:'lu', name:'Lucas', role:'Layout', ini:'LU'},
+  ],
+  posts:[], msgs:[], onboarding:[], academy:[], meetings:[],
+  ui:{ view:'inicio', ltab:'funil', lead:null, lfo:'all', ptab:'conteudo', itab:'cal', ical:{y:2026,m:9}, ifo:'all', fc:'all', fo:'all', cc:'c1', cp:null, ctab:'legenda', pc:'c1', cal:{y:2026,m:9}, ch:'geral', open:null, adj:null },
+};
+const client = id => id === 'int' ? INTERNO : S.clients.find(c => c.id === id);
+const person = id => S.team.find(t => t.id === id);
+
+let pid = 0;
+function P(c, title, format, st, due, caption, extra){
+  const p = { id:'p'+(++pid), kind:'conteudo', client:c, title, format, stage:st, owner:stage(st).owner, due:addDays(due),
+    caption:caption||'', sched:null, notes:[], clientAdj:0, sentAt:null, ...extra };
+  S.posts.push(p); return p;
+}
+P('c1','LENTES PARA QUEM PASSA O DIA NO COMPUTADOR','Carrossel','copy',2);
+P('c1','ANTES E DEPOIS: A ARMAÇÃO CERTA PRO SEU ROSTO','Reels','layout',3,'Formato do rosto muda tudo. Mostramos 3 clientes antes e depois da armação certa.\n\nAgende sua consultoria de armação na loja.');
+P('c1','EXAME DE VISTA: QUANDO REFAZER','Estático','cliente',1,'Faz mais de um ano do seu último exame? A recomendação é refazer todo ano, mesmo sem sintomas.\n\nAgende o seu com a gente. Link na bio.',{sentAt:addDays(-2)});
+P('c1','COLEÇÃO DE ÓCULOS DE SOL VERÃO','Carrossel','agendado',2,'A coleção de verão chegou. Arraste para ver os modelos e venha provar.',{sched:addDays(2)+'T18:00'});
+P('c1','OUTUBRO ROSA NA ÓTICA','Estático','agendado',-16,'Outubro Rosa: cuidar de si é rotina.',{sched:addDays(-16)+'T12:00'});
+P('c1','BLACK FRIDAY ÓTICA BARBOSA','Estático','pauta',10);
+P('c2','COLORAÇÃO SEM DANIFICAR O FIO','Reels','revisao',1,'Dá pra mudar a cor sem detonar o cabelo. A Ju explica o passo a passo que a gente usa no salão.');
+P('c2','BASTIDORES DO SALÃO NUM SÁBADO','Stories','cliente',2,'Sequência de stories: chegada, primeiras clientes, pausa do café, finalização.',{sentAt:addDays(-1)});
+P('c2','AGENDA DE NOVEMBRO ABERTA','Estático','ajuste',0,'Agenda de novembro aberta! Garanta seu horário pelo WhatsApp.',{clientAdj:1,notes:[{type:'cli',who:'Alyssum Cabeleireiros',text:'Trocar a foto pela da fachada nova e colocar o número do WhatsApp na arte.',done:false}]});
+P('c2','CRONOGRAMA CAPILAR EM 4 SEMANAS','Carrossel','aprovado',4,'Hidratação, nutrição e reconstrução: como montar o seu cronograma.');
+P('c2','NOVA PROFISSIONAL NO TIME','Estático','agendado',-13,'Boas-vindas à Carol!',{sched:addDays(-13)+'T10:00'});
+P('c3','CUSTOM DO MÊS: BOBBER 1200','Reels','layout',0,'');
+P('c3','REVISÃO ANTES DA VIAGEM','Carrossel','copy',3);
+P('c3','NOVOS PRODUTOS NO E-COMMERCE','Estático','cliente',2,'Chegaram novidades na loja online: banco solo, guidão ape e kit de alforjes.\n\nCompre pelo site, link na bio.',{sentAt:addDays(-3)});
+P('c3','ROLÊ DE DOMINGO COM CLIENTES','Reels','agendado',4,'Domingo tem rolê. Saída às 8h da oficina.',{sched:addDays(4)+'T10:00'});
+P('c3','TROCA DE ÓLEO: DE QUANTO EM QUANTO','Carrossel','agendado',-4,'',{sched:addDays(-4)+'T18:30'});
+P('c4','MEI: O QUE MUDA EM 2027','Carrossel','revisao',2,'As regras do MEI mudam no ano que vem. Separamos o que você precisa saber antes de janeiro.');
+P('c4','DECLARAÇÃO ANUAL DO SIMPLES SEM SUSTO','Carrossel','pauta',8);
+P('c4','ABRIR EMPRESA OU CONTINUAR NO CPF?','Reels','aprovado',3,'A dúvida mais comum de quem está começando. A resposta depende de três números.',{clientAdj:1,notes:[{type:'cli',who:'Velida Contabilidade',text:'Incluir o selo do CRC no final do vídeo.',done:true}]});
+P('c4','CONHEÇA A EQUIPE VELIDA','Estático','agendado',1,'Quem cuida dos números da sua empresa.',{sched:addDays(1)+'T12:00'});
+P('c4','PRAZO DO IR DE EMPRESAS','Estático','agendado',-7,'',{sched:addDays(-7)+'T09:00'});
+P('c5','DIREITOS DO CONSUMIDOR NA BLACK FRIDAY','Carrossel','copy',-1);
+P('c5','HERANÇA SEM INVENTÁRIO JUDICIAL','Carrossel','cliente',3,'Em alguns casos o inventário pode ser feito em cartório, mais rápido e mais barato. Veja quando é possível.',{sentAt:addDays(0)});
+P('c5','MITOS SOBRE PENSÃO ALIMENTÍCIA','Reels','ajuste',-1,'',{clientAdj:2,notes:[{type:'cli',who:'Sparn Advogados',text:'O mito 3 precisa citar o artigo do Código Civil.',done:false},{type:'int',who:'Renan',text:'Pedi pro Dr. Renato confirmar o artigo.',done:false}]});
+P('c6','SINAIS DE ATRASO NA FALA','Carrossel','layout',0,'Cada criança tem seu tempo, mas alguns sinais merecem atenção.');
+P('c6','COMO É A PRIMEIRA CONSULTA','Reels','aprovado',2,'Mostramos a sala, a equipe e como a gente recebe a família.');
+P('c6','NOVEMBRO AZUL TAMBÉM É SOBRE OS PAIS','Estático','pauta',9);
+P('c6','DIA DAS CRIANÇAS NA ABRACE','Estático','agendado',-9,'',{sched:addDays(-9)+'T11:00'});
+
+function D(c, title, cat, st, owner, due, desc){
+  const p = { id:'p'+(++pid), kind:'demanda', client:c, title, cat, format:'', stage:st, owner, due:addDays(due),
+    caption:desc||'', sched:null, notes:[], clientAdj:0, sentAt:null };
+  S.posts.push(p); return p;
+}
+D('c1','RELATÓRIO MENSAL DE TRÁFEGO','Tráfego pago','afazer','ma',5,'Resultados de outubro: alcance, cliques e custo por agendamento de exame.');
+D('c4','OTIMIZAR CAMPANHA DE LEADS','Tráfego pago','fazendo','ma',0,'Custo por lead subiu 30% na semana. Testar novos criativos e público semelhante.');
+D('int','PROPOSTA COMERCIAL INTELECT','Comercial','validar','re',1,'Estruturação de onboarding de cliente e de funcionário.');
+D('c1','RENOVAÇÃO DE CONTRATO ÓTICA BARBOSA','Comercial','afazer','re',4,'');
+D('c2','COBRAR ACESSOS DO META BUSINESS','Atendimento','fazendo','ga',-1,'Sem o acesso não dá pra subir campanha de novembro.');
+D('int','EMITIR NOTAS FISCAIS DE OUTUBRO','Financeiro','afazer','ga',9,'');
+D('int','PAGAMENTO DE FORNECEDORES','Financeiro','feito','ga',-2,'');
+D('c3','BRANDBOOK TEDESCO MOTORS','Branding','fazendo','lu',6,'Aplicações da marca na oficina, uniforme e embalagem do e-commerce.');
+D('int','ATUALIZAR MANUAL DE PROCESSOS','Interno','afazer','ma',14,'Incluir o fluxo novo de aprovação.');
+D('c5','REUNIÃO DE PAUTA COM DR. RENATO','Atendimento','afazer','re',2,'');
+
+S.msgs = [
+  {ch:'geral', who:'ma', time:'08:47', text:'Bom dia, time! Foco de hoje: destravar a Sparn, que está com dois conteúdos atrasados.'},
+  {ch:'geral', who:'re', time:'08:52', text:'Copy de Direitos do Consumidor sai até o almoço.'},
+  {ch:'geral', who:'ga', time:'09:10', text:'Ótica e Tedesco estão com conteúdo esperando aprovação. Vou cobrar no WhatsApp.'},
+  {ch:'c2', who:'lu', time:'09:31', text:'A Alyssum pediu pra trocar a foto da agenda de novembro. Já estou ajustando.'},
+  {ch:'c5', who:'re', time:'Ontem', text:'Aguardando o Dr. Renato confirmar o artigo do mito 3.'},
+];
+
+const ONB = [
+  ['Semana 1',['Reunião de kickoff','Contrato assinado','Acessos: Instagram, Meta Business e Drive','Briefing de marca preenchido']],
+  ['Semana 2',['Auditoria do perfil','Pesquisa de concorrentes','Pilares e linha editorial definidos']],
+  ['Semana 3',['Primeiro calendário de pautas aprovado','Identidade visual dos posts','Cliente com acesso ao portal de aprovação']],
+  ['Semana 4',['Primeiras publicações no ar','Reunião de alinhamento dos 30 dias','Relatório inicial enviado']],
+];
+function onb(name, hue, start, doneCount){
+  let i = 0;
+  S.onboarding.push({ name, hue, start:addDays(start), weeks: ONB.map(([w, items]) => ({ w, items: items.map(t => ({ t, done: (i++) < doneCount })) })) });
+}
+onb('Intelect', 195, -3, 2);
+onb('Alyssum Cabeleireiros', 328, -19, 9);
+
+S.academy = [
+  {t:'Fluxo de produção', items:[['Da pauta à publicação: as 8 etapas','7 min',true],['Título da pauta sempre em CAIXA ALTA','3 min',true],['Checklist de revisão antes de enviar ao cliente','6 min',false]]},
+  {t:'Atendimento ao cliente', items:[['Como enviar conteúdo para aprovação','5 min',true],['Pedidos de ajuste: limites por contrato','8 min',false],['Reunião mensal de resultados','10 min',false]]},
+  {t:'Tráfego pago', items:[['Estrutura de campanhas no Meta Ads','12 min',false],['Métricas que entram no relatório','9 min',false]]},
+  {t:'Ferramentas e arquivos', items:[['Padrão de nomes no Drive','4 min',true],['Exportar layouts para o feed em 4:5','5 min',false]]},
+].map(tr => ({ t:tr.t, items: tr.items.map(([t,d,done]) => ({t,d,done})) }));
+
+S.meetings = [
+  {client:'Ótica Barbosa', title:'Alinhamento de novembro', date:addDays(1), time:'10:00', who:'Mayara, Gabi'},
+  {client:'Intelect', title:'Kickoff do onboarding', date:addDays(2), time:'14:30', who:'Mayara, Renan'},
+  {client:'Tedesco Motors', title:'Resultados de outubro', date:addDays(7), time:'16:00', who:'Mayara'},
+];
+
+/* ================= CRM ================= */
+const LSTAGES = [
+  {id:'novo', label:'Novo lead'},
+  {id:'contato', label:'Primeiro contato'},
+  {id:'reuniao', label:'Reunião marcada'},
+  {id:'proposta', label:'Proposta enviada'},
+  {id:'negociacao', label:'Negociação'},
+  {id:'ganho', label:'Fechado'},
+  {id:'perdido', label:'Perdido'},
+];
+const lstage = id => LSTAGES.find(s => s.id === id);
+const ORIGENS = ['Indicação','Instagram','Tráfego pago','Site','Evento','Prospecção ativa'];
+const SERVICOS = ['Social media','Tráfego pago','Branding','Vídeo','Endomarketing'];
+const brl = v => 'R$ ' + Number(v||0).toLocaleString('pt-BR');
+let lid = 0;
+function L(empresa, contato, segmento, cidade, origem, servicos, valor, owner, st, nextText, nextDue, hist, extra){
+  S.leads.push({ id:'l'+(++lid), empresa, contato, fone:'', segmento, cidade, origem, servicos, valor, owner, stage:st,
+    next: nextText ? {text:nextText, date:addDays(nextDue)} : null, hist:(hist||[]).map(([d,t,w]) => ({date:addDays(d), text:t, who:w})), motivo:'', converted:false, criado:addDays((hist&&hist[0])?hist[0][0]:0), ...extra });
+}
+S.leads = [];
+L('Studio Pilates Ritmo','Carla','Saúde e bem-estar','Americana','Instagram',['Social media'],1800,'re','contato','Ligar para entender a demanda',0,[[-3,'Chamou no direct pedindo orçamento','Gabi']]);
+L('Construtora Vale Verde','Paulo','Construção','Santa Bárbara d\'Oeste','Indicação',['Social media','Tráfego pago'],4200,'re','proposta','Follow-up da proposta',-2,[[-15,'Indicação de cliente da carteira','Renan'],[-10,'Reunião de diagnóstico na obra','Renan'],[-6,'Proposta enviada por e-mail','Renan']]);
+L('Padaria Dona Lu','Luciana','Alimentação','Nova Odessa','Tráfego pago',['Social media'],1500,'ma','novo','Primeiro contato no WhatsApp',0,[[0,'Lead do formulário da campanha','Sistema']]);
+L('Clínica Odonto Sorriso','Dr. Fábio','Saúde','Campinas','Site',['Tráfego pago'],2500,'ma','reuniao','Reunião de diagnóstico',2,[[-5,'Preencheu o formulário do site','Sistema'],[-4,'Ligação de qualificação, quer mais pacientes de implante','Mayara']]);
+L('Imobiliária Central','Marcos','Imobiliário','Americana','Indicação',['Branding','Social media'],6500,'re','negociacao','Ajustar escopo e valor',1,[[-20,'Indicação da Velida','Renan'],[-14,'Reunião presencial','Renan'],[-9,'Proposta enviada','Renan'],[-2,'Pediu para incluir vídeo no pacote','Renan']]);
+L('Pet Shop Patas & Cia','Juliana','Pet','Sumaré','Instagram',['Social media'],1600,'re','novo','Enviar apresentação da agência',1,[[-1,'Comentou no post pedindo contato','Gabi']]);
+L('Ateliê Linha Fina','Bruna','Moda','Americana','Evento',['Branding'],2800,'ma','contato','Mandar portfólio de branding',3,[[-6,'Conheceu a O.BRAND num evento da ACIA','Mayara']]);
+L('Escola de Idiomas Fluent','Renata','Educação','Limeira','Prospecção ativa',['Social media','Vídeo'],3200,'ma','ganho',null,0,[[-25,'Abordagem por e-mail','Mayara'],[-18,'Reunião','Mayara'],[-12,'Proposta enviada','Mayara'],[-5,'Contrato assinado','Mayara']],{closed:addDays(-5)});
+L('Restaurante Brasa Viva','Rodrigo','Alimentação','Campinas','Tráfego pago',['Tráfego pago'],2000,'re','perdido',null,0,[[-17,'Lead da campanha','Sistema'],[-12,'Proposta enviada','Renan'],[-8,'Respondeu que não vai fechar agora','Renan']],{motivo:'Achou o valor alto', closed:addDays(-8)});
+
+/* ================= ícones ================= */
+const IC = {
+  inicio:'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z',
+  pauta:'M4 4h4v16H4zM10 4h4v11h-4zM16 4h4v7h-4z',
+  criacao:'M4 20l4-1 11-11-3-3L5 16zM14 6l3 3',
+  chat:'M4 5h16v11H9l-5 4z',
+  equipe:'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3 3-5 6-5s6 2 6 5M16 5a3 3 0 0 1 0 6M18 15c2 .5 3 2.5 3 5',
+  academy:'M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM5 18a2 2 0 0 1 2-2h11',
+  dashboards:'M4 20V11M10 20V5M16 20v-6M2 20h20',
+  onboarding:'M5 21V4M5 4h12l-2 4 2 4H5',
+  crm:'M3 5h18l-7 8v6l-4 2v-8z',
+  clientes:'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  financeiro:'M12 3v18M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6',
+  permissoes:'M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4',
+  aprovacao:'M4 12l5 5L20 6',
+  agendamento:'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+  reunioes:'M3 7h12v10H3zM15 10l6-3v10l-6-3',
+  marca:'M12 3a9 9 0 1 0 0 18c1 0 1.5-.7 1.5-1.5 0-1.2-1-1.5-1-2.5s.8-1.5 2-1.5H17a4 4 0 0 0 4-4c0-4.5-4-8.5-9-8.5z',
+};
+const icon = k => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
+
+const NAV = [
+  ['Operação', [['inicio','Início'],['pauta','Tarefas'],['criacao','Criação'],['chat','Chat'],['equipe','Equipe'],['academy','Academy'],['dashboards','Dashboards']]],
+  ['Clientes', [['crm','CRM'],['clientes','Central do cliente'],['onboarding','Onboarding'],['aprovacao','Portal do cliente'],['agendamento','Agendamento'],['reunioes','Reuniões']]],
+  ['Gestão', [['financeiro','Financeiro']]],
+  ['Conta', [['permissoes','Permissões'],['marca','Sua marca']]],
+];
+
+/* ================= helpers de UI ================= */
+const dueLabel = p => {
+  if (DONE.includes(p.stage)) return `<span class="mono">${ddmm(p.due)}</span>`;
+  const d = diff(p.due);
+  if (d < 0) return `<span class="late">Atrasado ${-d}d</span>`;
+  if (d === 0) return `<span class="today">Hoje</span>`;
+  return `<span class="mono">${ddmm(p.due)}</span>`;
+};
+const pill = st => `<span class="pill st-${st}">${stage(st).label}</span>`;
+const av = id => { const t = person(id); return `<span class="av" title="${esc(t.name)}">${t.ini}</span>`; };
+const tile = (p, cls='') => { const c = client(p.client); return `<div class="tile ${cls}" style="--h:${c.hue}"><span class="tile-fmt">${p.format}</span><span class="tile-t">${esc(p.title)}</span><span class="tile-c">${c.short}</span></div>`; };
+const thumb = p => p.kind === 'demanda' ? `<span class="dthumb" title="${esc(p.cat)}">${catCode(p.cat)}</span>` : tile(p,'sm');
+const sub = p => p.kind === 'demanda' ? `${esc(p.cat)} · ${esc(client(p.client).name)}` : `${esc(client(p.client).name)} · ${p.format}`;
+const cdot = c => `<span class="dot" style="--h:${client(c).hue}"></span>`;
+const clientOpts = (sel, all) => (all ? `<option value="all"${sel==='all'?' selected':''}>Todos os clientes</option>` : '') + S.clients.map(c => `<option value="${c.id}"${c.id===sel?' selected':''}>${esc(c.name)}</option>`).join('');
+const isLate = p => !DONE.includes(p.stage) && p.stage !== 'cliente' && diff(p.due) < 0;
+const head = (eyebrow, title, lede, right='') => `<div class="pagehead"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${lede?`<p class="lede">${lede}</p>`:''}</div>${right}</div>`;
+
+let toastT;
+function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200); }
+
+function setStage(p, st){
+  p.stage = st; if (p.kind !== 'demanda') p.owner = stage(st).owner;
+  if (st === 'cliente') p.sentAt = iso(TODAY);
+  if (st !== 'agendado') p.sched = null;
+}
+
+/* ================= views ================= */
+function vInicio(){
+  const late = S.posts.filter(isLate);
+  const todayP = S.posts.filter(p => !DONE.includes(p.stage) && p.stage !== 'cliente' && diff(p.due) === 0);
+  const waiting = S.posts.filter(p => p.stage === 'cliente').sort((a,b) => a.sentAt.localeCompare(b.sentAt));
+  const next = S.posts.filter(p => p.stage === 'agendado' && p.sched && diff(p.sched) >= 0).sort((a,b) => a.sched.localeCompare(b.sched)).slice(0,5);
+  const adj = S.posts.filter(p => p.stage === 'ajuste').length;
+  const d = TODAY;
+  const row = p => `<button class="row rowbtn" data-act="open" data-id="${p.id}">${thumb(p)}<div class="grow"><div class="t">${esc(p.title)}</div><div class="s">${sub(p)} · ${stage(p.stage).label}</div></div>${av(p.owner)}${dueLabel(p)}</button>`;
+  const tabs = `<div class="tabs" role="tablist" style="margin-bottom:18px"><button class="${S.ui.itab==='cal'?'on':''}" data-act="itab" data-t="cal">Calendário do mês</button><button class="${S.ui.itab==='resumo'?'on':''}" data-act="itab" data-t="resumo">Resumo do dia</button></div>`;
+  const top = head(`${DIAS_LONGO[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]}`, `Bom dia, ${esc(person(S.me).name)}`, S.ui.itab==='cal' ? 'Todas as demandas do mês e quem está com cada uma.' : 'Resumo da operação da agência hoje.', `<span class="demo">Dados de exemplo</span>`) + tabs;
+  if (S.ui.itab === 'cal') return top + vMes();
+  return top +
+  `<div class="stats">
+    <div class="stat hl"><b>${S.posts.filter(p=>!DONE.includes(p.stage)).length}</b><span>tarefas em aberto</span></div>
+    <div class="stat ${late.length?'alert':''}"><b>${late.length}</b><span>atrasados</span></div>
+    <div class="stat"><b>${waiting.length}</b><span>esperando o cliente</span></div>
+    <div class="stat"><b>${adj}</b><span>ajustes pedidos</span></div>
+  </div>
+  <div class="grid2">
+    <section class="panel"><div class="panel-h"><h3>Precisa de atenção hoje</h3><button class="btn sm ghost" data-act="go" data-v="pauta">Abrir pauta</button></div>
+      <div class="list">${[...late, ...todayP].map(row).join('') || '<div class="empty">Nada atrasado nem vencendo hoje.</div>'}</div></section>
+    <section class="panel"><div class="panel-h"><h3>Esperando o cliente</h3><button class="btn sm ghost" data-act="go" data-v="aprovacao">Ver portal</button></div>
+      <div class="list">${waiting.map(p => { const w = -diff(p.sentAt); return `<button class="row rowbtn" data-act="open" data-id="${p.id}">${tile(p,'sm')}<div class="grow"><div class="t">${esc(p.title)}</div><div class="s">${esc(client(p.client).name)}</div></div><span class="${w>=2?'late':'muted'}" style="font-size:12px">${w===0?'enviado hoje':`há ${w} dia${w>1?'s':''}`}</span></button>`; }).join('') || '<div class="empty">Nenhum conteúdo com o cliente.</div>'}</div></section>
+    <section class="panel"><div class="panel-h"><h3>Próximas publicações</h3><button class="btn sm ghost" data-act="go" data-v="agendamento">Calendário</button></div>
+      <div class="list">${next.map(p => `<button class="row rowbtn" data-act="open" data-id="${p.id}">${tile(p,'sm')}<div class="grow"><div class="t">${esc(p.title)}</div><div class="s">${esc(client(p.client).name)}</div></div><span class="mono" style="font-size:12px">${ddmm(p.sched)} ${p.sched.slice(11)}</span></button>`).join('') || '<div class="empty">Nada agendado.</div>'}</div></section>
+    <section class="panel"><div class="panel-h"><h3>Reuniões</h3><button class="btn sm ghost" data-act="go" data-v="reunioes">Agenda</button></div>
+      <div class="list">${S.meetings.slice().sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).slice(0,4).map(m => `<div class="row"><div class="grow"><div class="t">${esc(m.title)}</div><div class="s">${esc(m.client)} · ${esc(m.who)}</div></div><span class="mono" style="font-size:12px">${ddmm(m.date)} ${m.time}</span></div>`).join('')}</div></section>
+  </div>`;
+}
+
+function vMes(){
+  const { y, m } = S.ui.ical, fo = S.ui.ifo;
+  const key = p => p.sched ? p.sched.slice(0,10) : p.due;
+  const ym = y+'-'+String(m+1).padStart(2,'0');
+  const monthAll = S.posts.filter(p => key(p).startsWith(ym));
+  const month = monthAll.filter(p => fo === 'all' || p.owner === fo);
+  const first = new Date(y, m, 1), startDow = first.getDay();
+  const cells = [];
+  for (let i = 0; i < 42; i++){ const d = new Date(y, m, 1 - startDow + i); if (i >= 35 && d.getMonth() !== m) break; cells.push(d); }
+  const kind = p => p.stage === 'feito' ? 'aprovado' : (p.stage === 'cliente' || p.stage === 'ajuste' || DONE.includes(p.stage) ? p.stage : 'prod');
+  const lateN = month.filter(isLate).length;
+  const meets = S.meetings.filter(mt => mt.date.startsWith(ym) && (fo === 'all' || mt.who.includes(person(fo).name)));
+  const fups = S.leads.filter(l => leadOpen(l) && l.next && l.next.date.startsWith(ym) && (fo === 'all' || l.owner === fo));
+  return `<div class="whof">
+      <button class="all ${fo==='all'?'on':''}" data-act="ifo" data-o="all">Todo o time · ${monthAll.length}</button>
+      ${S.team.map(t => `<button class="${fo===t.id?'on':''}" data-act="ifo" data-o="${t.id}">${av(t.id)}${t.name} · ${monthAll.filter(p=>p.owner===t.id).length}</button>`).join('')}
+    </div>
+    <section class="panel">
+      <div class="panel-h"><div><h3 style="text-transform:capitalize">${MESES[m]} ${y}</h3><div class="muted" style="font-size:12.5px;margin-top:2px">${month.length} demanda${month.length===1?'':'s'} e ${meets.length} ${meets.length===1?'reunião':'reuniões'}${fo!=='all'?` com ${person(fo).name}`:''}${lateN?` · <span class="late">${lateN} atrasada${lateN>1?'s':''}</span>`:''}</div></div>
+        <div style="display:flex;gap:6px"><button class="btn sm" data-act="iprev" aria-label="Mês anterior">‹</button><button class="btn sm" data-act="itoday">Hoje</button><button class="btn sm" data-act="inext" aria-label="Próximo mês">›</button></div></div>
+      <div class="cal-wrap"><div class="cal big">${DIAS.map(d => `<div class="dh">${d}</div>`).join('')}
+        ${cells.map(d => { const k = iso(d); const ps = month.filter(p => key(p) === k);
+          const ms = meets.filter(mt => mt.date === k).sort((a,b)=>a.time.localeCompare(b.time));
+          const fs = fups.filter(l => l.next.date === k);
+          return `<div class="dc ${d.getMonth()!==m?'out':''} ${k===iso(TODAY)?'is-today':''}"><span class="n">${d.getDate()}</span>${ms.map(mt => `<button class="chip k-meet" data-act="go" data-v="reunioes" title="Reunião · ${esc(mt.client)} · ${esc(mt.title)} · ${mt.time} · ${esc(mt.who)}"><span class="mono">${mt.time}</span><span>${esc(mt.client)} · ${esc(mt.title)}</span></button>`).join('')}${fs.map(l => `<button class="chip k-crm ${diff(k)<0?'k-late':''}" data-act="openlead" data-id="${l.id}" title="CRM · ${esc(l.empresa)} · ${esc(l.next.text)} · com ${person(l.owner).name}">${av(l.owner)}<span>CRM · ${esc(l.empresa)}</span></button>`).join('')}${ps.map(p => `<button class="chip k-${kind(p)} ${isLate(p)?'k-late':''}" data-act="open" data-id="${p.id}" title="${esc(client(p.client).name)} · ${esc(p.title)} · ${stage(p.stage).label} · com ${person(p.owner).name}">${av(p.owner)}<span>${esc(client(p.client).short)} · ${esc(p.title)}</span></button>`).join('')}</div>`; }).join('')}
+      </div></div>
+      <div class="legend"><span><i style="background:var(--surface);border:1px solid var(--line)"></i>Em produção</span><span><i style="background:var(--warn-soft)"></i>Com o cliente</span><span><i style="background:var(--bad-soft)"></i>Ajuste</span><span><i style="background:var(--ok-soft)"></i>Aprovado</span><span><i style="background:var(--accent-soft)"></i>Agendado</span><span><i style="background:var(--bad)"></i>Atrasado</span><span><i style="background:var(--ink)"></i>Reunião</span><span><i style="background:var(--card);box-shadow:inset 0 0 0 1px var(--accent)"></i>Follow-up do CRM</span><span>As iniciais mostram quem está com a demanda</span></div>
+    </section>`;
+}
+
+function vPauta(){
+  const { fc, fo, ptab } = S.ui;
+  const isD = ptab === 'demanda', SL = isD ? DSTAGES : STAGES, kindKey = isD ? 'demanda' : 'conteudo';
+  const list = S.posts.filter(p => p.kind === kindKey && (fc === 'all' || p.client === fc) && (fo === 'all' || p.owner === fo));
+  const nC = S.posts.filter(p => p.kind === 'conteudo' && !DONE.includes(p.stage)).length, nD = S.posts.filter(p => p.kind === 'demanda' && !DONE.includes(p.stage)).length;
+  return head('Operação', 'Tarefas', isD ? 'Tudo o que a agência precisa fazer além do conteúdo: tráfego, comercial, financeiro, branding, atendimento.' : 'Arraste os cards entre as etapas ou use a seta para avançar. Cada etapa passa o conteúdo para o responsável certo.',
+    `<button class="btn pri" data-act="newpost">${isD ? '+ Nova demanda' : '+ Nova pauta'}</button>`) +
+  `<div class="tabs" role="tablist" style="margin-bottom:16px"><button class="${ptab==='conteudo'?'on':''}" data-act="ptab" data-t="conteudo">Conteúdos · ${nC}</button><button class="${isD?'on':''}" data-act="ptab" data-t="demanda">Demandas da agência · ${nD}</button><button class="${ptab==='recorrentes'?'on':''}" data-act="ptab" data-t="recorrentes">Recorrentes · ${S.recur.filter(r=>r.on).length}</button></div>
+  ${ptab === 'recorrentes' ? recurPanel() : `<div class="filters">
+    <div class="field"><label for="fc">Cliente</label><select class="inp" id="fc" data-bind="fc">${clientOpts(fc,true)}${isD?`<option value="int"${fc==='int'?' selected':''}>O.BRAND (interno)</option>`:''}</select></div>
+    <div class="field"><label for="fo">Responsável</label><select class="inp" id="fo" data-bind="fo"><option value="all">Todo o time</option>${S.team.map(t=>`<option value="${t.id}"${t.id===fo?' selected':''}>${t.name}</option>`).join('')}</select></div>
+    <span class="demo" style="margin-left:auto">${list.length} ${isD?'demandas':'conteúdos'}</span>
+  </div>
+  <div class="board-wrap"><div class="board">${SL.map((s,i) => {
+    const items = list.filter(p => p.stage === s.id);
+    return `<div class="kcol" data-drop="${s.id}"><div class="kcol-h"><span>${s.label}</span><span class="mono">${items.length}</span></div>
+      ${items.map(p => `<div class="kcard" draggable="true" data-drag="${p.id}" data-act="open" data-id="${p.id}" tabindex="0" role="button" aria-label="${esc(p.title)}">
+        ${isD ? `<div class="ct"><span class="cat">${esc(p.cat)}</span></div><div class="ct">${cdot(p.client)}${esc(client(p.client).name)}</div>` : `<div class="ct">${cdot(p.client)}${esc(client(p.client).name)} · ${p.format}</div>`}
+        <div class="tt">${esc(p.title)}</div>
+        <div class="ft">${av(p.owner)}${dueLabel(p)}${p.clientAdj?`<span class="adjmark" title="Ajustes pedidos pelo cliente">↺${p.clientAdj}</span>`:''}<span class="sp"></span>${i < SL.length-1 ? (lbl => `<button class="adv" data-act="adv" data-id="${p.id}" title="Mover para ${lbl}" aria-label="Mover para ${lbl}">›</button>`)(s.id === 'ajuste' ? 'Revisão interna' : SL[i+1].label) : ''}</div>
+      </div>`).join('')}
+    </div>`; }).join('')}</div></div>`}`;
+}
+
+function vCriacao(){
+  const cc = S.ui.cc, c = client(cc);
+  const prod = S.posts.filter(p => p.kind === 'conteudo' && p.client === cc && !DONE.includes(p.stage));
+  if (!prod.find(p => p.id === S.ui.cp)) S.ui.cp = prod[0]?.id || null;
+  const p = S.posts.find(x => x.id === S.ui.cp);
+  const feed = S.posts.filter(x => x.kind === 'conteudo' && x.client === cc && DONE.includes(x.stage)).sort((a,b) => (b.sched||b.due).localeCompare(a.sched||a.due));
+  const tab = S.ui.ctab;
+  const internal = p ? p.notes.filter(n => n.type === 'int') : [], ext = p ? p.notes.filter(n => n.type === 'cli') : [];
+  const notesHtml = arr => arr.length ? arr.map(n => { const i = p.notes.indexOf(n); return `<div class="note ${n.type==='cli'?'cli':''} ${n.done?'done':''}"><input type="checkbox" id="nd-${p.id}-${i}" data-act="notedone" data-id="${p.id}" data-i="${i}" ${n.done?'checked':''} aria-label="Marcar como resolvido"><div class="nt">${esc(n.text)}<small>${esc(n.who)}</small></div></div>`; }).join('') : '<div class="muted" style="font-size:13px">Nenhum por aqui.</div>';
+  return head('Operação', 'Criação', 'Escreva a legenda e veja como o post fica no feed do cliente enquanto produz.') +
+  `<div class="filters"><div class="field"><label for="cc">Cliente</label><select class="inp" id="cc" data-bind="cc">${clientOpts(cc)}</select></div></div>
+  <div class="cria">
+    <section class="panel qlist"><div class="panel-h"><h3>Em produção</h3><span class="mono muted">${prod.length}</span></div>
+      ${prod.map(x => `<button class="rowbtn ${x.id===S.ui.cp?'on':''}" data-act="pick" data-id="${x.id}">${tile(x,'sm')}<div style="min-width:0"><div style="font-size:12.5px;font-weight:600;overflow-wrap:anywhere">${esc(x.title)}</div>${pill(x.stage)}</div></button>`).join('') || '<div class="empty">Nada em produção para este cliente.</div>'}
+    </section>
+    <section class="panel">${p ? `
+      <div class="panel-h"><div style="min-width:0"><h3 style="overflow-wrap:anywhere">${esc(p.title)}</h3><div class="muted" style="font-size:12.5px;margin-top:2px">${p.format} · ${stage(p.stage).label} · ${person(p.owner).name}</div></div>
+        <button class="btn sm" data-act="adv" data-id="${p.id}">Avançar etapa ›</button></div>
+      <div class="panel-b" style="display:flex;flex-direction:column;gap:14px">
+        <div class="tabs" role="tablist">
+          <button class="${tab==='legenda'?'on':''}" data-act="ctab" data-t="legenda">Legenda</button>
+          <button class="${tab==='int'?'on':''}" data-act="ctab" data-t="int">Ajustes internos (${internal.filter(n=>!n.done).length})</button>
+          <button class="${tab==='cli'?'on':''}" data-act="ctab" data-t="cli">Ajustes do cliente (${ext.filter(n=>!n.done).length})</button>
+        </div>
+        ${tab==='legenda' ? `<div class="field"><label for="cap">Legenda</label><textarea class="inp" id="cap" data-live="caption" data-id="${p.id}" rows="9" placeholder="Escreva a legenda aqui">${esc(p.caption)}</textarea><span class="muted mono" style="font-size:11.5px" id="capcount">${p.caption.length} / 2.200 caracteres</span></div>
+          <div class="aibar"><button class="btn sm ai" data-act="aicap" data-id="${p.id}">✦ Sugerir legenda com IA</button><span class="muted" style="font-size:12px" id="aistatus">Usa o briefing e o tom de voz de ${esc(c.name)}.</span></div>`
+        : tab==='int' ? `<div class="notes">${notesHtml(internal)}</div><div style="display:flex;gap:8px"><input class="inp" id="newnote" placeholder="Ex.: aumentar o contraste do título"><button class="btn dark" data-act="addnote" data-id="${p.id}">Adicionar</button></div>`
+        : `<div class="notes">${notesHtml(ext)}</div><p class="muted" style="font-size:12.5px;margin:0">Os pedidos do cliente chegam aqui pelo portal de aprovação.</p>`}
+      </div>` : '<div class="empty">Selecione um conteúdo.</div>'}
+    </section>
+    <section class="phone" style="--h:${c.hue}">
+      <div class="ig-h"><div class="ig-av"></div><div><b>@${c.handle}</b><span class="muted" style="font-size:12px">Prévia do feed</span></div></div>
+      <div class="ig-grid">${p ? tile(p,'cur') : ''}${feed.slice(0, p ? 8 : 9).map(x => tile(x)).join('')}${Array.from({length: Math.max(0, (p?8:9) - feed.length)}, () => `<div class="tile ghost" style="--h:${c.hue}"></div>`).join('')}</div>
+      ${p ? `<div class="capprev" id="capprev"><b>${c.handle}</b> ${esc(p.caption) || '<span class="muted">A legenda aparece aqui.</span>'}</div>` : ''}
+    </section>
+  </div>`;
+}
+
+function vAgendamento(){
+  const { y, m } = S.ui.cal;
+  const ready = S.posts.filter(p => p.stage === 'aprovado');
+  const first = new Date(y, m, 1), startDow = first.getDay(), days = new Date(y, m+1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < 42; i++){
+    const d = new Date(y, m, 1 - startDow + i);
+    if (i >= 35 && d.getMonth() !== m) break;
+    cells.push(d);
+  }
+  const tomorrow = addDays(1);
+  return head('Clientes', 'Agendamento', 'Conteúdos aprovados entram aqui para ganhar data e hora.') +
+  `<div class="notice"><b>Fase 3</b><span>No protótipo o agendamento só organiza o calendário. Na versão final, o post é publicado sozinho no Instagram e Facebook pela API da Meta.</span></div>
+  <section class="panel" style="margin-bottom:16px"><div class="panel-h"><h3>Aprovados, prontos para agendar</h3><span class="mono muted">${ready.length}</span></div>
+    <div>${ready.map(p => `<div class="sched-row">${tile(p,'sm')}<div class="grow"><div style="font-weight:500;overflow-wrap:anywhere">${esc(p.title)}</div><div class="muted" style="font-size:12.5px">${esc(client(p.client).name)} · ${p.format}</div></div>
+      <input class="inp" type="date" id="sd-${p.id}" value="${p.due < tomorrow ? tomorrow : p.due}" aria-label="Data"><input class="inp" type="time" id="st-${p.id}" value="18:00" aria-label="Hora"><button class="btn pri sm" data-act="schedule" data-id="${p.id}">Agendar</button></div>`).join('') || '<div class="empty">Nenhum conteúdo aprovado esperando data.</div>'}</div>
+  </section>
+  <section class="panel">
+    <div class="panel-h"><h3 style="text-transform:capitalize">${MESES[m]} ${y}</h3><div style="display:flex;gap:6px"><button class="btn sm" data-act="calprev" aria-label="Mês anterior">‹</button><button class="btn sm" data-act="caltoday">Hoje</button><button class="btn sm" data-act="calnext" aria-label="Próximo mês">›</button></div></div>
+    <div class="cal-wrap"><div class="cal">${DIAS.map(d => `<div class="dh">${d}</div>`).join('')}
+      ${cells.map(d => { const k = iso(d); const ps = S.posts.filter(p => p.sched && p.sched.startsWith(k)).sort((a,b)=>a.sched.localeCompare(b.sched));
+        return `<div class="dc ${d.getMonth()!==m?'out':''} ${k===iso(TODAY)?'is-today':''}"><span class="n">${d.getDate()}</span>${ps.map(p => `<button class="chip ${diff(k)<0?'past':''}" data-act="open" data-id="${p.id}" title="${esc(client(p.client).name)}: ${esc(p.title)}">${cdot(p.client)}<span class="mono">${p.sched.slice(11)}</span><span>${esc(p.title)}</span></button>`).join('')}</div>`; }).join('')}
+    </div></div>
+  </section>`;
+}
+
+function vChat(){
+  const ch = S.ui.ch;
+  const chans = [{id:'geral', name:'geral'}, ...S.clients.map(c => ({id:c.id, name:c.name}))];
+  const msgs = S.msgs.filter(x => x.ch === ch);
+  const title = ch === 'geral' ? '#geral' : client(ch).name;
+  return head('Operação', 'Chat', 'Um canal geral e um canal por cliente, para a conversa ficar junto do trabalho.') +
+  `<section class="panel chat">
+    <div class="chs">${chans.map(x => `<button class="${x.id===ch?'on':''}" data-act="ch" data-ch="${x.id}">${x.id==='geral'?'<span class="hash">#</span>':cdot(x.id)}${esc(x.name)}</button>`).join('')}</div>
+    <div class="msgs">
+      <div class="panel-h"><h3>${esc(title)}</h3><span class="muted" style="font-size:12.5px">${S.team.length} pessoas</span></div>
+      <div class="msgs-l" id="msgs">${msgs.map(x => `<div class="msg">${av(x.who)}<div class="b"><b>${person(x.who).name}</b><span class="mono">${x.time}</span><p>${esc(x.text)}</p></div></div>`).join('') || '<div class="muted">Nenhuma mensagem ainda. Comece a conversa.</div>'}</div>
+      <form class="composer" data-form="msg"><input class="inp" id="msgin" placeholder="Mensagem para ${esc(title)}" autocomplete="off"><button class="btn pri" type="submit">Enviar</button></form>
+    </div>
+  </section>`;
+}
+
+function vEquipe(){
+  return head('Operação', 'Equipe', 'Carga de trabalho de cada pessoa, calculada a partir da pauta.') +
+  `<div class="team">${S.team.map(t => {
+    const mine = S.posts.filter(p => p.owner === t.id && !DONE.includes(p.stage));
+    const late = mine.filter(isLate).length;
+    const next = mine.filter(p => p.stage !== 'cliente').sort((a,b) => a.due.localeCompare(b.due))[0];
+    return `<article class="member"><div class="top"><span class="av lg">${t.ini}</span><div><b style="font-size:15px">${t.name}</b><div class="muted" style="font-size:12.5px">${t.role}</div></div></div>
+      <div class="kv"><div><b>${mine.length}</b><span>abertas</span></div><div><b style="${late?'color:var(--bad)':''}">${late}</b><span>atrasadas</span></div><div><b>${S.posts.filter(p=>p.owner===t.id && p.stage==='ajuste').length}</b><span>ajustes</span></div></div>
+      <div style="font-size:12.5px"><span class="muted">Próxima entrega: </span>${next ? `${esc(next.title)} · ${dueLabel(next)}` : 'nenhuma'}</div>
+      <button class="btn sm" data-act="byowner" data-o="${t.id}">Ver tarefas na pauta</button></article>`; }).join('')}</div>`;
+}
+
+function vAcademy(){
+  const all = S.academy.flatMap(t => t.items), done = all.filter(i => i.done).length;
+  return head('Operação', 'Academy', 'Processos e treinamentos da agência num lugar só, para ninguém depender de perguntar.',
+    `<div style="min-width:200px"><div class="flabel" style="margin-bottom:6px">Seu progresso · ${done}/${all.length}</div><div class="prog"><i style="width:${Math.round(done/all.length*100)}%"></i></div></div>`) +
+  `<div class="grid2">${S.academy.map((tr, ti) => { const d = tr.items.filter(i=>i.done).length; return `<section class="panel">
+    <div class="panel-h"><h3>${esc(tr.t)}</h3><span class="mono muted">${d}/${tr.items.length}</span></div>
+    <div class="panel-b">${tr.items.map((it, ii) => `<label class="chk ${it.done?'done':''}" for="ac-${ti}-${ii}"><input type="checkbox" id="ac-${ti}-${ii}" data-act="acad" data-t="${ti}" data-i="${ii}" ${it.done?'checked':''}><span style="flex:1">${esc(it.t)}</span><span class="mono muted" style="font-size:11.5px">${it.d}</span></label>`).join('')}</div>
+  </section>`; }).join('')}</div>`;
+}
+
+function vDashboards(){
+  const oct = S.posts.filter(p => p.kind === 'conteudo' && (p.sched || p.due).slice(0,7) === iso(TODAY).slice(0,7));
+  const past = S.posts.filter(p => p.kind === 'conteudo' && DONE.includes(p.stage));
+  const byCat = CATS.map(([c]) => ({ l:c, v:S.posts.filter(p => p.kind==='demanda' && p.cat===c && !DONE.includes(p.stage)).length })).filter(x => x.v).sort((a,b)=>b.v-a.v);
+  const first = past.length ? Math.round(past.filter(p => !p.clientAdj).length / past.length * 100) : 0;
+  const late = S.posts.filter(isLate).length;
+  const adjTotal = S.posts.reduce((a,p) => a + p.clientAdj, 0);
+  const byClient = S.clients.map(c => ({ l:c.name, v:S.posts.filter(p=>p.client===c.id).reduce((a,p)=>a+p.clientAdj,0) })).sort((a,b)=>b.v-a.v);
+  const byStage = STAGES.map(s => ({ l:s.label, v:S.posts.filter(p=>p.stage===s.id).length }));
+  const byPerson = S.team.map(t => ({ l:t.name, v:S.posts.filter(p=>p.owner===t.id && !DONE.includes(p.stage)).length }));
+  const bars = (arr, cls='') => { const max = Math.max(1, ...arr.map(a=>a.v)); return `<div class="bars">${arr.map(a => `<div class="bar"><span class="lb" title="${esc(a.l)}">${esc(a.l)}</span><span class="tr"><i class="${cls}" style="width:${a.v/max*100}%"></i></span><span class="v">${a.v}</span></div>`).join('')}</div>`; };
+  return head('Operação', 'Dashboards', 'Indicadores calculados em tempo real a partir da pauta. Mexa nos cards e os números mudam.') +
+  `<div class="stats">
+    <div class="stat hl"><b>${oct.length}</b><span>conteúdos em ${MESES[TODAY.getMonth()]}</span></div>
+    <div class="stat"><b>${first}%</b><span>aprovados de primeira</span></div>
+    <div class="stat ${late?'alert':''}"><b>${late}</b><span>em atraso</span></div>
+    <div class="stat"><b>${adjTotal}</b><span>ajustes pedidos por clientes</span></div>
+  </div>
+  <div class="grid2">
+    <section class="panel"><div class="panel-h"><h3>Funil de produção</h3><span class="muted" style="font-size:12px">conteúdos por etapa</span></div><div class="panel-b">${bars(byStage)}</div></section>
+    <section class="panel"><div class="panel-h"><h3>Ajustes por cliente</h3><span class="muted" style="font-size:12px">pedidos de ajuste</span></div><div class="panel-b">${bars(byClient,'bad')}</div></section>
+    <section class="panel"><div class="panel-h"><h3>Demandas da agência por área</h3><span class="muted" style="font-size:12px">em aberto</span></div><div class="panel-b">${bars(byCat)}</div></section>
+    <section class="panel"><div class="panel-h"><h3>Carga por pessoa</h3><span class="muted" style="font-size:12px">tarefas abertas</span></div><div class="panel-b">${bars(byPerson)}</div></section>
+    <section class="panel"><div class="panel-h"><h3>Por cliente</h3></div><div class="list">${S.clients.map(c => { const ps = S.posts.filter(p=>p.client===c.id); return `<div class="row">${cdot(c.id)}<div class="grow t">${esc(c.name)}</div><span class="mono muted" style="font-size:12px">${ps.filter(p=>DONE.includes(p.stage)).length}/${ps.length} prontos</span>${ps.some(isLate)?'<span class="pill st-ajuste">atraso</span>':''}</div>`; }).join('')}</div></section>
+  </div>`;
+}
+
+function vOnboarding(){
+  return head('Clientes', 'Onboarding', 'Os primeiros 30 dias de cada cliente novo, semana a semana.') +
+  `<div class="grid2">${S.onboarding.map((o, oi) => {
+    const items = o.weeks.flatMap(w => w.items), d = items.filter(i=>i.done).length;
+    const day = Math.min(30, -diff(o.start) + 1);
+    const expected = Math.round(day / 30 * items.length);
+    const behind = d < expected - 1;
+    return `<section class="panel">
+      <div class="panel-h" style="align-items:flex-start"><div style="display:flex;gap:10px;align-items:center"><span class="dot" style="--h:${o.hue};width:12px;height:12px"></span><div><h3>${esc(o.name)}</h3><div class="muted" style="font-size:12.5px">Início em ${ddmm(o.start)}</div></div></div>
+        <div class="daybadge" style="text-align:right">${day}<small> / 30 dias</small></div></div>
+      <div class="panel-b" style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;font-size:12.5px"><span>${d} de ${items.length} etapas</span>${behind?'<span class="late">Atrás do previsto</span>':'<span style="color:var(--ok);font-weight:600">No ritmo</span>'}</div><div class="prog"><i style="width:${Math.round(d/items.length*100)}%"></i></div></div>
+      ${o.weeks.map((w, wi) => `<div class="week"><h4>${w.w}</h4>${w.items.map((it, ii) => `<label class="chk ${it.done?'done':''}" for="ob-${oi}-${wi}-${ii}"><input type="checkbox" id="ob-${oi}-${wi}-${ii}" data-act="onb" data-o="${oi}" data-w="${wi}" data-i="${ii}" ${it.done?'checked':''}><span>${esc(it.t)}</span></label>`).join('')}</div>`).join('')}
+    </section>`; }).join('')}</div>`;
+}
+
+function vReunioes(){
+  const ms = S.meetings.slice().sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  return head('Clientes', 'Reuniões', 'Agenda de reuniões com clientes. Elas também aparecem no calendário do Início.', `<button class="btn" data-act="gcal">${S.gcal ? '✓ Google Agenda conectado' : 'Conectar Google Agenda'}</button>`) +
+  `<div class="notice"><b>Google Agenda</b><span>Na versão final, cada pessoa conecta a própria conta Google: as reuniões entram sozinhas no calendário do Início, e uma reunião marcada aqui cria o evento com link do Meet e envia o convite ao cliente. No protótipo, a conexão é simulada.</span></div>
+  <div class="grid2">
+    <section class="panel"><div class="panel-h"><h3>Próximas</h3><span class="mono muted">${ms.length}</span></div>
+      <div class="list">${ms.map(m => { const d = parse(m.date); return `<div class="row"><div style="text-align:center;min-width:44px"><div class="mono" style="font-size:20px;font-weight:500;line-height:1">${d.getDate()}</div><div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em">${MESES[d.getMonth()].slice(0,3)}</div></div><div class="grow"><div class="t">${esc(m.title)}</div><div class="s">${esc(m.client)} · ${esc(m.who)}</div></div><span class="mono" style="font-size:12.5px">${m.time}</span></div>`; }).join('')}</div></section>
+    <section class="panel"><div class="panel-h"><h3>Marcar reunião</h3></div>
+      <form class="panel-b" data-form="meet" style="display:flex;flex-direction:column;gap:12px">
+        <div class="field"><label for="mc">Cliente</label><select class="inp" id="mc">${S.clients.map(c=>`<option>${esc(c.name)}</option>`).join('')}<option>Intelect</option></select></div>
+        <div class="field"><label for="mt">Assunto</label><input class="inp" id="mt" placeholder="Ex.: Planejamento de dezembro" required></div>
+        <div class="fgrid"><div class="field"><label for="md">Data</label><input class="inp" type="date" id="md" value="${addDays(3)}" required></div><div class="field"><label for="mh">Hora</label><input class="inp" type="time" id="mh" value="10:00" required></div></div>
+        <button class="btn pri" type="submit" style="align-self:flex-start">Marcar reunião</button>
+      </form></section>
+  </div>`;
+}
+
+function vMarca(){
+  const cur = S.brand.accent || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const opts = [['Azul elétrico','#1E4BFF'],['Azul royal','#2541B2'],['Azul petróleo','#0E5E7E'],['Azul céu','#2F8BEA']];
+  return head('Conta', 'Sua marca', 'A plataforma é white label: o nome e a cor aparecem para o time e para os clientes no portal.') +
+  `<div class="grid2">
+    <section class="panel"><div class="panel-h"><h3>Identidade</h3></div><div class="panel-b" style="display:flex;flex-direction:column;gap:16px">
+      <div class="field"><label for="bn">Nome da plataforma</label><input class="inp" id="bn" data-live="bname" value="${esc(S.brand.name)}" maxlength="24"></div>
+      <div class="field"><span class="flabel">Cor de destaque</span><div class="swatches">${opts.map(([n,v]) => `<button class="sw ${S.brand.accent===v?'on':''}" data-act="accent" data-v="${v}"><i style="background:${v}"></i>${n}</button>`).join('')}
+        <label class="sw" for="bc"><input type="color" id="bc" data-live="bcolor" value="${/^#[0-9a-f]{6}$/i.test(cur)?cur:'#1E4BFF'}" style="width:24px;height:24px;border:0;padding:0;background:none">Outra</label></div></div>
+      <div class="field"><label for="bd">Endereço do portal</label><input class="inp" id="bd" data-live="bdomain" value="${esc(S.brand.domain)}"></div>
+      <button class="btn sm" data-act="accentreset" style="align-self:flex-start">Voltar ao padrão</button>
+    </div></section>
+    <section class="panel"><div class="panel-h"><h3>Como o cliente vê</h3><span class="mono muted" style="font-size:12px" id="dprev">${esc(S.brand.domain)}</span></div><div class="panel-b">
+      <div class="login"><div class="login-card"><div style="display:flex;align-items:center;gap:10px"><span class="brand-mark">${esc(S.brand.name[0]||'B')}</span><b class="brand-name" style="font-size:18px">${esc(S.brand.name)}</b></div>
+        <div class="muted" style="font-size:12.5px">Entre para aprovar seus conteúdos.</div>
+        <div class="field"><label for="le">E-mail</label><input class="inp" id="le" value="contato@oticabarbosa.com.br" readonly></div>
+        <button class="btn pri" type="button" style="justify-content:center">Entrar</button></div></div>
+    </div></section>
+  </div>`;
+}
+
+/* ================= contratos, central do cliente, regras ================= */
+S.custoHora = 85;
+S.contracts = {
+  c1:{valor:2800, dia:10, inicio:'2025-03-01', fim:'2027-02-28', postsMes:12, ajustesMes:2, horas:22, pago:true},
+  c2:{valor:1900, dia:25, inicio:'2025-11-10', fim:addDays(20), postsMes:8, ajustesMes:2, horas:18, pago:false},
+  c3:{valor:3500, dia:5, inicio:'2026-02-01', fim:'2027-01-31', postsMes:12, ajustesMes:3, horas:30, pago:true},
+  c4:{valor:3200, dia:10, inicio:'2026-01-15', fim:'2027-01-14', postsMes:12, ajustesMes:2, horas:26, pago:false},
+  c5:{valor:2600, dia:15, inicio:'2025-12-01', fim:addDays(75), postsMes:8, ajustesMes:2, horas:31, pago:true},
+  c6:{valor:2400, dia:28, inicio:'2025-11-01', fim:addDays(10), postsMes:12, ajustesMes:2, horas:16, pago:false},
+};
+const ct = cid => S.contracts[cid];
+const payStatus = cid => { const k = ct(cid); if (!k) return 'pendente'; return k.pago ? 'pago' : (k.dia < TODAY.getDate() ? 'atrasado' : 'pendente'); };
+const PAYLBL = {pago:'Pago', pendente:'A vencer', atrasado:'Em atraso'};
+const hoursOf = cid => (ct(cid)?.horas || 0) + S.posts.filter(p => p.client === cid).reduce((a,p) => a + (Number(p.hours)||0), 0);
+const adjUsed = cid => S.posts.filter(p => p.client === cid).reduce((a,p) => a + p.clientAdj, 0);
+
+function brief(negocio, publico, objetivo, tom, evitar, cores){ return { negocio, publico, objetivo, tom, evitar, cores, acessos:{'Instagram':true,'Meta Business':true,'Google Drive':true,'Site':false}, atas:[] }; }
+S.briefs = {
+  c1: brief('Ótica com exame de vista e consultoria de armação.','Adultos de 30 a 60 anos e famílias da região.','Mais agendamentos de exame e venda de armações.',['Próximo','Confiável','Didático'],'Termos técnicos sem explicar e promessas de saúde.',['#0B3D91','#F2F4F8','#C9A227']),
+  c2: brief('Salão de beleza focado em coloração e tratamento capilar.','Mulheres de 25 a 50 anos de Americana.','Lotar a agenda nos dias de semana.',['Acolhedor','Animado','Feminino'],'Antes e depois sem autorização da cliente.',['#B0306A','#FFF4F8','#2B2B2B']),
+  c3: brief('Oficina premium e e-commerce de motos custom.','Motociclistas de 30 a 55 anos, apaixonados por custom.','Vender peças no e-commerce e agendar revisões.',['Técnico','Apaixonado','Direto'],'Gírias forçadas e tom infantil.',['#141414','#D9631E','#EDE6DA']),
+  c4: brief('Escritório de contabilidade para MEI e pequenas empresas.','Empreendedores e MEIs da região.','Gerar contatos para abertura e troca de contador.',['Claro','Seguro','Sem juridiquês'],'Prometer economia de imposto.',['#0E6B55','#F3F7F5','#1A1A1A']),
+  c5: brief('Escritório de advocacia cível, família e consumidor.','Adultos com dúvidas jurídicas do dia a dia.','Autoridade e contatos qualificados.',['Sóbrio','Didático','Respeitoso'],'Promessa de resultado e linguagem sensacionalista.',['#1F2650','#F5F3EE','#A88B4A']),
+  c6: brief('Clínica infantil multidisciplinar.','Mães e pais de crianças de 0 a 12 anos.','Agendamentos de primeira consulta.',['Acolhedor','Leve','Especialista'],'Termos que assustem os pais e diagnósticos no post.',['#E5A823','#FFF9EC','#2E6F8E']),
+};
+S.briefs.c1.atas.push({date:addDays(-20), t:'Alinhamento de outubro: foco em exame de vista e Outubro Rosa.'});
+S.briefs.c3.atas.push({date:addDays(-12), t:'Lançamento das peças novas no e-commerce em novembro.'});
+S.briefs.c5.atas.push({date:addDays(-9), t:'Dr. Renato valida todos os conteúdos jurídicos antes do envio.'});
+
+S.recur = [
+  {id:'r1', title:'RELATÓRIO MENSAL DE TRÁFEGO', cat:'Tráfego pago', client:'c1', owner:'ma', freq:'Mensal', dia:5, on:true},
+  {id:'r2', title:'EMITIR NOTAS FISCAIS', cat:'Financeiro', client:'int', owner:'ga', freq:'Mensal', dia:28, on:true},
+  {id:'r3', title:'REUNIÃO MENSAL DE RESULTADOS', cat:'Atendimento', client:'c3', owner:'ma', freq:'Mensal', dia:10, on:true},
+  {id:'r4', title:'PLANEJAMENTO DA SEMANA', cat:'Interno', client:'int', owner:'ma', freq:'Semanal', dia:1, on:true},
+  {id:'r5', title:'BACKUP DOS ARQUIVOS NO DRIVE', cat:'Administrativo', client:'int', owner:'ga', freq:'Semanal', dia:5, on:false},
+];
+S.recGen = {};
+S.remind = { on:true, dias:2, canal:'WhatsApp' };
+S.reports = { c1:true, c2:true, c3:true, c4:true, c5:false, c6:true };
+const SEMANA = ['','segunda','terça','quarta','quinta','sexta'];
+
+const VIEWLIST = [['inicio','Início'],['pauta','Tarefas'],['criacao','Criação'],['chat','Chat'],['equipe','Equipe'],['academy','Academy'],['dashboards','Dashboards'],['crm','CRM'],['clientes','Central do cliente'],['onboarding','Onboarding'],['aprovacao','Portal do cliente'],['agendamento','Agendamento'],['reunioes','Reuniões'],['financeiro','Financeiro'],['permissoes','Permissões'],['marca','Sua marca']];
+S.roles = {
+  socio:{label:'Sócio', views:VIEWLIST.map(v => v[0])},
+  adm:{label:'Administrativo', views:VIEWLIST.map(v => v[0]).filter(v => !['permissoes','marca','crm'].includes(v))},
+  criacao:{label:'Criação', views:['inicio','pauta','criacao','chat','equipe','academy','clientes','reunioes']},
+};
+S.team.find(t => t.id === 'ma').perfil = 'socio';
+S.team.find(t => t.id === 're').perfil = 'socio';
+S.team.find(t => t.id === 'ga').perfil = 'adm';
+S.team.find(t => t.id === 'lu').perfil = 'criacao';
+S.asClient = false;
+const canSee = v => S.roles[person(S.me).perfil].views.includes(v);
+
+/* ================= métricas de exemplo ================= */
+function mets(cid){
+  const c = client(cid), s = c.hue + 37;
+  const alcance = 14000 + s * 97;
+  const w = [0.22, 0.24, 0.25, 0.29].map((f, i) => Math.round(alcance * f * (1 + ((s * (i+3)) % 9 - 4) / 60)));
+  const invest = 600 + (s % 5) * 150, res = 38 + (s % 31);
+  return {
+    seguidores: 2100 + s * 19, novos: 70 + (s % 50) * 3, novosAnt: 60 + (s % 40) * 3,
+    alcance, alcanceAnt: Math.round(alcance * (0.86 + (s % 7) / 100)), engaj: (3.2 + (s % 17) / 10).toFixed(1).replace('.', ','),
+    visitas: 850 + s * 5, cliques: 110 + s % 90, semanas: w,
+    invest, res, cpr: (invest / res).toFixed(2).replace('.', ','), resLabel: ['c4','c5','c6'].includes(cid) ? 'conversas no WhatsApp' : cid === 'c3' ? 'compras no site' : 'agendamentos',
+  };
+}
+const nf = n => Number(n).toLocaleString('pt-BR');
+const pct = (a, b) => { const d = Math.round((a - b) / b * 100); return `<span class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '+' : ''}${d}%</span>`; };
+
+/* ================= portal do cliente (3 abas) ================= */
+function portal(cid){
+  const c = client(cid), k = ct(cid), tab = S.ui.ptb || 'aprovar';
+  const items = S.posts.filter(p => p.kind === 'conteudo' && p.client === cid && p.stage === 'cliente');
+  const used = adjUsed(cid), lim = k ? k.ajustesMes : 0;
+  const tabs = `<div class="ptabs" role="tablist">
+    <button class="${tab==='aprovar'?'on':''}" data-act="ptb" data-t="aprovar">Aprovar conteúdos${items.length?` <span class="badge">${items.length}</span>`:''}</button>
+    <button class="${tab==='metricas'?'on':''}" data-act="ptb" data-t="metricas">Relatório de métricas</button>
+    <button class="${tab==='entregas'?'on':''}" data-act="ptb" data-t="entregas">Relatório de entregas</button></div>`;
+  let body = '';
+  if (tab === 'aprovar'){
+    const recent = S.posts.filter(p => p.kind === 'conteudo' && p.client === cid && (p.stage === 'aprovado' || p.stage === 'ajuste'));
+    body = `<div style="padding:18px 18px 0;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center"><h2 style="font-size:20px">${items.length ? `${items.length} conteúdo${items.length>1?'s':''} para você aprovar` : 'Tudo aprovado por aqui'}</h2>
+      ${k ? `<span class="adjmeter ${used>=lim?'over':''}">Ajustes do mês: <b class="mono">${used} de ${lim}</b></span>` : ''}</div>
+    <div class="portal-b">${items.map(p => `<article class="apcard">${tile(p)}
+        <div><b style="font-size:13px">${esc(p.title)}</b><div class="sent">${p.format} · prevista para ${ddmm(p.due)}</div></div>
+        <div class="cap">${esc(p.caption)}</div>
+        ${S.ui.adj === p.id ? `${k && used >= lim ? `<div class="warnbox">Você já usou os ${lim} ajustes do mês previstos no contrato. Este pedido pode ser cobrado à parte.</div>` : ''}<div class="field"><label for="adj-${p.id}">O que precisa mudar?</label><textarea class="inp" id="adj-${p.id}" rows="3" style="min-height:80px" placeholder="Descreva o ajuste"></textarea></div>
+          <div class="acts"><button class="btn" data-act="adjcancel">Cancelar</button><button class="btn dark" data-act="adjsend" data-id="${p.id}">Enviar pedido</button></div>`
+        : `<div class="acts"><button class="btn" data-act="adjopen" data-id="${p.id}">Pedir ajuste</button><button class="btn pri" data-act="approve" data-id="${p.id}">Aprovar</button></div>`}
+      </article>`).join('') || `<div class="muted">Quando a agência enviar novos conteúdos, eles aparecem aqui.</div>`}
+    </div>
+    ${recent.length ? `<div style="padding:0 18px 18px"><div class="flabel" style="margin-bottom:8px">Histórico recente</div><div class="panel list">${recent.map(p => `<div class="row">${tile(p,'sm')}<div class="grow"><div class="t">${esc(p.title)}</div></div>${p.stage==='ajuste'?'<span class="pill st-ajuste">Em ajuste</span>':'<span class="pill st-aprovado">Aprovado</span>'}</div>`).join('')}</div></div>` : ''}`;
+  } else if (tab === 'metricas'){
+    if (!S.reports[cid]) body = `<div class="portal-empty"><h2 style="font-size:20px">Relatório de setembro em preparação</h2><p class="muted">A agência está revisando os números. Você recebe um aviso quando ele estiver disponível.</p></div>`;
+    else {
+      const m = mets(cid), maxW = Math.max(...m.semanas);
+      const top = S.posts.filter(p => p.kind === 'conteudo' && p.client === cid && p.stage === 'agendado' && p.sched && diff(p.sched) < 0).slice(0, 3);
+      body = `<div style="padding:18px 18px 4px"><div class="eyebrow">Relatório mensal · revisado pela agência</div><h2 style="font-size:22px">Setembro de 2026</h2></div>
+      <div class="portal-pad">
+        <div class="flabel">Instagram @${esc(c.handle)}</div>
+        <div class="stats mets">
+          <div class="stat"><b>${nf(m.alcance)}</b><span>contas alcançadas ${pct(m.alcance, m.alcanceAnt)}</span></div>
+          <div class="stat"><b>+${nf(m.novos)}</b><span>novos seguidores ${pct(m.novos, m.novosAnt)}</span></div>
+          <div class="stat"><b>${m.engaj}%</b><span>taxa de engajamento</span></div>
+          <div class="stat"><b>${nf(m.visitas)}</b><span>visitas ao perfil · ${nf(m.cliques)} cliques no link</span></div>
+        </div>
+        <div class="grid2">
+          <section class="panel"><div class="panel-h"><h3>Alcance por semana</h3><span class="muted" style="font-size:12px">contas alcançadas</span></div>
+            <div class="panel-b"><div class="vbars">${m.semanas.map((v,i) => `<div class="vb"><span class="mono">${nf(v)}</span><i style="height:${Math.round(v/maxW*100)}%"></i><small>Sem. ${i+1}</small></div>`).join('')}</div></div></section>
+          <section class="panel"><div class="panel-h"><h3>Tráfego pago</h3><span class="muted" style="font-size:12px">Meta Ads</span></div>
+            <div class="list"><div class="row"><div class="grow">Investimento</div><b class="mono">${brl(m.invest)}</b></div><div class="row"><div class="grow">Resultados (${m.resLabel})</div><b class="mono">${m.res}</b></div><div class="row"><div class="grow">Custo por resultado</div><b class="mono">R$ ${m.cpr}</b></div></div></section>
+        </div>
+        ${top.length ? `<div class="flabel" style="margin-top:6px">Destaques do mês</div><div class="tops">${top.map((p,i) => `<div class="topcard">${tile(p)}<div class="mono" style="font-size:12px;margin-top:6px">${nf(Math.round(m.alcance*(0.18-i*0.04)))} contas alcançadas</div></div>`).join('')}</div>` : ''}
+        <div class="notice" style="margin:4px 0 0"><b>Leitura da agência</b><span>O alcance cresceu na segunda metade do mês, puxado pelos Reels. Para outubro, a recomendação é manter dois Reels por semana e testar um novo público na campanha.</span></div>
+      </div>`;
+    }
+  } else {
+    const ym = iso(TODAY).slice(0,7);
+    const mine = S.posts.filter(p => p.kind === 'conteudo' && p.client === cid && ((p.sched || p.due).startsWith(ym)));
+    const entregues = mine.filter(p => p.stage === 'agendado').length, meta = k ? k.postsMes : mine.length;
+    const st = p => p.stage === 'agendado' ? (diff(p.sched) < 0 ? ['Publicado','st-aprovado'] : ['Agendado','st-agendado']) : p.stage === 'aprovado' ? ['Aprovado','st-aprovado'] : p.stage === 'cliente' ? ['Aguardando você','st-cliente'] : p.stage === 'ajuste' ? ['Em ajuste','st-ajuste'] : ['Em produção',''];
+    const dem = S.posts.filter(p => p.kind === 'demanda' && p.client === cid);
+    const meets = S.meetings.filter(mt => mt.client === c.name);
+    body = `<div style="padding:18px 18px 4px"><div class="eyebrow">Atualizado em tempo real</div><h2 style="font-size:22px">Entregas de ${MESES[TODAY.getMonth()]}</h2></div>
+    <div class="portal-pad">
+      <div class="stats mets">
+        <div class="stat hl"><b>${entregues} de ${meta}</b><span>conteúdos publicados ou agendados</span><div class="prog" style="margin-top:8px;background:rgba(255,255,255,.18)"><i style="width:${Math.min(100, Math.round(entregues/Math.max(1,meta)*100))}%"></i></div></div>
+        <div class="stat"><b>${mine.filter(p => !DONE.includes(p.stage)).length}</b><span>em produção ou aprovação</span></div>
+        <div class="stat"><b>${used} de ${lim}</b><span>ajustes usados no mês</span></div>
+        <div class="stat"><b>${meets.length}</b><span>reuniões no mês</span></div>
+      </div>
+      <section class="panel"><div class="panel-h"><h3>Conteúdos</h3><span class="mono muted">${mine.length}</span></div>
+        <div class="list">${mine.sort((a,b)=>(a.sched||a.due).localeCompare(b.sched||b.due)).map(p => { const [l, cls] = st(p); return `<div class="row">${tile(p,'sm')}<div class="grow"><div class="t">${esc(p.title)}</div><div class="s">${p.format} · ${ddmm(p.sched || p.due)}</div></div><span class="pill ${cls}">${l}</span></div>`; }).join('') || '<div class="empty">Nenhum conteúdo neste mês.</div>'}</div></section>
+      ${dem.length ? `<section class="panel"><div class="panel-h"><h3>Outros serviços</h3></div><div class="list">${dem.map(p => `<div class="row"><span class="dthumb">${catCode(p.cat)}</span><div class="grow"><div class="t">${esc(p.title)}</div><div class="s">${esc(p.cat)}</div></div><span class="pill ${p.stage==='feito'?'st-aprovado':''}">${p.stage==='feito'?'Concluído':'Em andamento'}</span></div>`).join('')}</div></section>` : ''}
+      ${meets.length ? `<section class="panel"><div class="panel-h"><h3>Reuniões</h3></div><div class="list">${meets.map(mt => `<div class="row"><div class="grow"><div class="t">${esc(mt.title)}</div></div><span class="mono" style="font-size:12.5px">${ddmm(mt.date)} ${mt.time}</span></div>`).join('')}</div></section>` : ''}
+    </div>`;
+  }
+  return `<div class="portal">
+    <div class="portal-h"><span class="bm">${esc(S.brand.name[0]||'B')}</span><b>${esc(S.brand.name)}</b><span class="who">${esc(c.name)}</span></div>
+    ${tabs}${body}</div>`;
+}
+
+function vAprovacao(){
+  const pc = S.ui.pc;
+  const waiting = S.posts.filter(p => p.kind === 'conteudo' && p.stage === 'cliente').sort((a,b) => a.sentAt.localeCompare(b.sentAt));
+  const r = S.remind;
+  return head('Clientes', 'Portal do cliente', 'O que o cliente vê pelo link exclusivo: aprova conteúdos, acompanha as métricas e as entregas do mês.') +
+  `<div class="grid2" style="margin-bottom:18px">
+    <section class="panel"><div class="panel-h"><h3>Lembretes automáticos de aprovação</h3><label class="switch" for="ron"><input type="checkbox" id="ron" data-act="ron" ${r.on?'checked':''}><span>${r.on?'Ligado':'Desligado'}</span></label></div>
+      <div class="panel-b" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div class="field" style="width:150px"><label for="rdias">Lembrar após</label><select class="inp" id="rdias" data-rm="dias">${[1,2,3,4,5].map(d=>`<option value="${d}"${d===r.dias?' selected':''}>${d} dia${d>1?'s':''}</option>`).join('')}</select></div>
+        <div class="field" style="width:170px"><label for="rcanal">Enviar por</label><select class="inp" id="rcanal" data-rm="canal">${['WhatsApp','E-mail','WhatsApp e e-mail'].map(o=>`<option${o===r.canal?' selected':''}>${o}</option>`).join('')}</select></div>
+      </div>
+      <div class="list" style="border-top:1px solid var(--line)">${waiting.map(p => { const w = -diff(p.sentAt); const sent = r.on && w >= r.dias; return `<div class="row">${tile(p,'sm')}<div class="grow"><div class="t">${esc(client(p.client).name)}</div><div class="s">${esc(p.title)}</div></div><span style="font-size:12px" class="${sent?'':'muted'}">${!r.on ? 'Lembretes desligados' : sent ? `Lembrete enviado por ${r.canal}` : `Lembrete em ${r.dias - w} dia${r.dias - w > 1 ? 's' : ''}`}</span></div>`; }).join('') || '<div class="empty">Nada esperando aprovação.</div>'}</div>
+    </section>
+    <section class="panel"><div class="panel-h"><h3>Relatório de setembro</h3><span class="muted" style="font-size:12px">publicar no portal</span></div>
+      <div class="list">${S.clients.map(c => `<div class="row">${cdot(c.id)}<div class="grow t">${esc(c.name)}</div><span class="pill ${S.reports[c.id]?'st-aprovado':'st-cliente'}">${S.reports[c.id]?'Publicado':'Em revisão'}</span><button class="btn sm" data-act="repub" data-c="${c.id}">${S.reports[c.id]?'Despublicar':'Publicar'}</button></div>`).join('')}</div>
+    </section>
+  </div>
+  <div class="filters"><div class="field"><label for="pc">Pré-visualizar o portal de</label><select class="inp" id="pc" data-bind="pc">${clientOpts(pc)}</select></div><button class="btn" data-act="asclient" style="align-self:flex-end">Entrar como cliente</button></div>
+  ${portal(pc)}`;
+}
+
+/* ================= financeiro ================= */
+function vFinanceiro(){
+  const tab = S.ui.ftab || 'mensal';
+  const cs = S.clients.filter(c => ct(c.id));
+  const mrr = cs.reduce((a,c) => a + ct(c.id).valor, 0);
+  const rec = cs.filter(c => payStatus(c.id) === 'pago').reduce((a,c) => a + ct(c.id).valor, 0);
+  const late = cs.filter(c => payStatus(c.id) === 'atrasado');
+  const renew = cs.filter(c => diff(ct(c.id).fim) <= 30);
+  const T = (h, rows) => `<section class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr>${h}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  let body = '';
+  if (tab === 'mensal') body = T('<th>Cliente</th><th class="num">Mensalidade</th><th>Vencimento</th><th>Status</th><th></th>',
+    cs.map(c => { const s = payStatus(c.id), k = ct(c.id); return `<tr class="nohover"><td><span style="display:inline-flex;gap:8px;align-items:center">${cdot(c.id)}<b>${esc(c.name)}</b></span></td><td class="num mono">${brl(k.valor)}</td><td class="mono">dia ${k.dia}</td><td><span class="pill ${s==='pago'?'st-aprovado':s==='atrasado'?'st-ajuste':''}">${PAYLBL[s]}</span></td><td style="text-align:right">${k.pago ? `<button class="btn sm ghost" data-act="pay" data-c="${c.id}">Desfazer</button>` : `<button class="btn sm pri" data-act="pay" data-c="${c.id}">Marcar como pago</button>`}</td></tr>`; }).join(''));
+  else if (tab === 'contratos') body = T('<th>Cliente</th><th>Vigência</th><th>Renovação</th><th class="num">Posts/mês</th><th class="num">Ajustes/mês</th>',
+    cs.map(c => { const k = ct(c.id), d = diff(k.fim), u = adjUsed(c.id); return `<tr class="nohover"><td><span style="display:inline-flex;gap:8px;align-items:center">${cdot(c.id)}<b>${esc(c.name)}</b></span></td><td class="mono" style="font-size:12.5px">${k.inicio.split('-').reverse().join('/')} a ${k.fim.split('-').reverse().join('/')}</td><td>${d <= 30 ? `<span class="late">em ${d} dias</span>` : `<span class="muted">em ${Math.round(d/30)} meses</span>`}</td>
+      <td class="num"><input class="inp mono tnum" type="number" min="1" id="cp-${c.id}" data-cf="postsMes" data-c="${c.id}" value="${k.postsMes}" aria-label="Posts por mês"></td>
+      <td class="num"><span class="${u>k.ajustesMes?'late':'muted'} mono" style="font-size:12px;margin-right:6px">${u} usados</span><input class="inp mono tnum" type="number" min="0" id="ca-${c.id}" data-cf="ajustesMes" data-c="${c.id}" value="${k.ajustesMes}" aria-label="Limite de ajustes"></td></tr>`; }).join(''));
+  else {
+    const rows = cs.map(c => { const k = ct(c.id), h = hoursOf(c.id), custo = h * S.custoHora, m = k.valor - custo; return { c, k, h, custo, m, p: Math.round(m / k.valor * 100) }; }).sort((a,b) => a.p - b.p);
+    body = `<div class="filters"><div class="field" style="width:200px"><label for="chora">Custo da hora do time (R$)</label><input class="inp mono" type="number" min="1" id="chora" data-cfg="custoHora" value="${S.custoHora}"></div><span class="muted" style="font-size:12.5px;align-self:center;max-width:52ch">As horas vêm do contrato e do que o time registra em cada tarefa.</span></div>` +
+    T('<th>Cliente</th><th class="num">Mensalidade</th><th class="num">Horas no mês</th><th class="num">Custo</th><th class="num">Margem</th><th style="width:28%">Margem %</th>',
+      rows.map(r => `<tr class="nohover"><td><span style="display:inline-flex;gap:8px;align-items:center">${cdot(r.c.id)}<b>${esc(r.c.name)}</b></span></td><td class="num mono">${brl(r.k.valor)}</td><td class="num mono">${nf(r.h)}h</td><td class="num mono">${brl(r.custo)}</td><td class="num mono ${r.m<0?'late':''}">${r.m<0?'−':''}${brl(Math.abs(r.m))}</td>
+        <td><div class="mbar"><i class="${r.m<0?'neg':''}" style="width:${Math.max(3, Math.min(100, Math.abs(r.p)))}%"></i><span class="mono">${r.p}%</span></div></td></tr>`).join(''));
+  }
+  return head('Gestão', 'Financeiro', 'Mensalidades, contratos e quanto cada cliente realmente deixa de margem.') +
+  `<div class="stats">
+    <div class="stat hl"><b>${brl(mrr)}</b><span>receita mensal recorrente · ${cs.length} contratos</span></div>
+    <div class="stat"><b>${brl(rec)}</b><span>recebido em ${MESES[TODAY.getMonth()]}</span></div>
+    <div class="stat"><b>${brl(mrr - rec)}</b><span>a receber</span></div>
+    <div class="stat ${late.length?'alert':''}"><b>${late.length}</b><span>pagamento${late.length===1?'':'s'} em atraso</span></div>
+  </div>
+  ${renew.length ? `<div class="notice"><b>Renovação</b><span>${renew.map(c => `${esc(c.name)} vence em ${diff(ct(c.id).fim)} dias`).join(' · ')}. Vale marcar a conversa de renovação.</span></div>` : ''}
+  <div class="tabs" role="tablist" style="margin-bottom:16px"><button class="${tab==='mensal'?'on':''}" data-act="ftab" data-t="mensal">Mensalidades</button><button class="${tab==='contratos'?'on':''}" data-act="ftab" data-t="contratos">Contratos</button><button class="${tab==='rent'?'on':''}" data-act="ftab" data-t="rent">Rentabilidade</button></div>
+  ${body}`;
+}
+
+/* ================= central do cliente ================= */
+function vClientes(){
+  const cid = S.ui.hc || 'c1', c = client(cid), b = S.briefs[cid] || brief('','','',[],'',['#1E4BFF','#FFFFFF','#0A0C12']), k = ct(cid);
+  if (!S.briefs[cid]) S.briefs[cid] = b;
+  const ta = (f, label, rows=2) => `<div class="field"><label for="bf-${f}">${label}</label><textarea class="inp" id="bf-${f}" data-bf="${f}" rows="${rows}" style="min-height:0">${esc(b[f])}</textarea></div>`;
+  return head('Clientes', 'Central do cliente', 'Tudo o que alguém precisa saber para pegar a conta sem perguntar nada.') +
+  `<div class="filters"><div class="field"><label for="hc">Cliente</label><select class="inp" id="hc" data-bind="hc">${clientOpts(cid)}</select></div><span class="demo" style="align-self:center">Conteúdo de exemplo</span></div>
+  <div class="hub">
+    <section class="panel"><div class="panel-h"><h3>Briefing</h3></div><div class="panel-b" style="display:flex;flex-direction:column;gap:12px">${ta('negocio','O negócio')}${ta('publico','Público')}${ta('objetivo','Objetivo com o marketing')}</div></section>
+    <section class="panel"><div class="panel-h"><h3>Tom de voz</h3><span class="muted" style="font-size:12px">usado pela IA nas legendas</span></div><div class="panel-b" style="display:flex;flex-direction:column;gap:12px">
+      <div class="field"><span class="flabel">Como a marca soa</span><div class="chips">${b.tom.map((t,i) => `<span class="tchip">${esc(t)}<button data-act="tomdel" data-i="${i}" aria-label="Remover ${esc(t)}">×</button></span>`).join('')}<input class="inp" id="tomnew" placeholder="Adicionar" style="width:110px;padding:4px 8px" data-enter="tomadd"></div></div>
+      ${ta('evitar','O que evitar')}</div></section>
+    <section class="panel"><div class="panel-h"><h3>Identidade visual</h3></div><div class="panel-b"><div class="palette">${b.cores.map(h => `<div><i style="background:${h}"></i><span class="mono">${h}</span></div>`).join('')}</div>
+      <div class="muted" style="font-size:12.5px;margin-top:10px">Logo, fontes e manual de marca ficam na pasta do cliente no Drive.</div></div></section>
+    <section class="panel"><div class="panel-h"><h3>Acessos</h3></div><div class="panel-b">${Object.entries(b.acessos).map(([n,v]) => `<label class="chk ${v?'':''}" for="ac-${n}"><input type="checkbox" id="ac-${n}" data-act="acesso" data-n="${esc(n)}" ${v?'checked':''}><span style="flex:1">${esc(n)}</span><span class="${v?'':'late'}" style="font-size:12px">${v?'Liberado':'Pendente'}</span></label>`).join('')}
+      <p class="muted" style="font-size:12px;margin:8px 0 0">Senhas não ficam aqui. Use um gerenciador de senhas compartilhado.</p></div></section>
+    <section class="panel"><div class="panel-h"><h3>Contrato</h3>${canSee('financeiro')?`<button class="btn sm ghost" data-act="go" data-v="financeiro">Financeiro</button>`:''}</div><div class="list">${k ? `
+      ${canSee('financeiro') ? `<div class="row"><div class="grow">Mensalidade</div><b class="mono">${brl(k.valor)}</b></div>` : ''}
+      <div class="row"><div class="grow">Conteúdos por mês</div><b class="mono">${k.postsMes}</b></div>
+      <div class="row"><div class="grow">Ajustes por mês</div><b class="mono">${adjUsed(cid)} de ${k.ajustesMes}</b></div>
+      <div class="row"><div class="grow">Vigência até</div><b class="mono">${k.fim.split('-').reverse().join('/')}</b></div>` : '<div class="empty">Sem contrato cadastrado.</div>'}</div></section>
+    <section class="panel"><div class="panel-h"><h3>Atas de reunião</h3></div><div class="panel-b"><div class="notes">${b.atas.slice().reverse().map(a => `<div class="note"><div class="nt">${esc(a.t)}<small>${ddmm(a.date)}</small></div></div>`).join('') || '<div class="muted" style="font-size:13px">Nenhuma ata ainda.</div>'}</div>
+      <div style="display:flex;gap:8px;margin-top:8px"><input class="inp" id="atanew" placeholder="Resumo da reunião"><button class="btn dark" data-act="ataadd">Salvar</button></div></div></section>
+  </div>`;
+}
+
+/* ================= permissões ================= */
+function vPermissoes(){
+  const R = Object.entries(S.roles);
+  return head('Conta', 'Permissões', 'Defina o que cada perfil enxerga. O cliente acessa só o próprio portal.') +
+  `<div class="grid2" style="margin-bottom:16px"><section class="panel"><div class="panel-h"><h3>Time</h3></div><div class="list">${S.team.map(t => `<div class="row"><span class="av">${t.ini}</span><div class="grow"><div class="t">${t.name}</div><div class="s">${t.role}</div></div><select class="inp" style="width:170px" id="pf-${t.id}" data-perfil="${t.id}" aria-label="Perfil de ${t.name}">${R.map(([k,r]) => `<option value="${k}"${t.perfil===k?' selected':''}>${r.label}</option>`).join('')}</select></div>`).join('')}</div></section>
+  <section class="panel"><div class="panel-h"><h3>Cliente</h3></div><div class="panel-b" style="font-size:13px;display:flex;flex-direction:column;gap:8px"><p style="margin:0">Cada cliente recebe um link próprio e vê só o portal dele: aprovação de conteúdos, relatório de métricas e relatório de entregas.</p><p class="muted" style="margin:0">Não vê valores internos, horas, outros clientes nem conversas do time.</p><button class="btn" data-act="asclient" style="align-self:flex-start">Ver como cliente</button></div></section></div>
+  <section class="panel"><div class="tbl-wrap"><table class="tbl perm"><thead><tr><th>Área</th>${R.map(([k,r]) => `<th class="c">${r.label}</th>`).join('')}</tr></thead><tbody>
+    ${VIEWLIST.map(([v,l]) => `<tr class="nohover"><td>${l}</td>${R.map(([k,r]) => `<td class="c"><input type="checkbox" id="pm-${k}-${v}" data-act="perm" data-r="${k}" data-v="${v}" ${r.views.includes(v)?'checked':''} ${k==='socio'?'disabled':''} aria-label="${l} para ${r.label}"></td>`).join('')}</tr>`).join('')}
+  </tbody></table></div></section>`;
+}
+
+/* ================= tarefas recorrentes ================= */
+function recurPanel(){
+  const nm = new Date(TODAY.getFullYear(), TODAY.getMonth()+1, 1), key = iso(nm).slice(0,7);
+  const fq = S.ui.rfreq || 'Mensal';
+  return `<div class="grid2">
+    <section class="panel"><div class="panel-h"><h3>Regras ativas</h3>${S.recGen[key] ? `<span class="pill st-aprovado">${MESES[nm.getMonth()]} gerado</span>` : `<button class="btn sm pri" data-act="genrec">Gerar tarefas de ${MESES[nm.getMonth()]}</button>`}</div>
+      <div class="list">${S.recur.map(r => `<div class="row ${r.on?'':'off'}"><span class="dthumb">${catCode(r.cat)}</span><div class="grow"><div class="t">${esc(r.title)}</div><div class="s">${r.freq === 'Mensal' ? `Todo dia ${r.dia}` : `Toda ${SEMANA[r.dia]}`} · ${esc(client(r.client).name)} · ${person(r.owner).name}</div></div><label class="switch" for="ro-${r.id}"><input type="checkbox" id="ro-${r.id}" data-act="recon" data-id="${r.id}" ${r.on?'checked':''}><span>${r.on?'Ativa':'Pausada'}</span></label><button class="btn sm ghost" data-act="recdel" data-id="${r.id}" aria-label="Excluir regra">✕</button></div>`).join('')}</div>
+    </section>
+    <section class="panel"><div class="panel-h"><h3>Nova regra</h3></div>
+      <form class="panel-b" data-form="recur" style="display:flex;flex-direction:column;gap:12px">
+        <div class="field"><label for="rt">Tarefa</label><input class="inp" id="rt" placeholder="Ex.: Relatório mensal de resultados" required></div>
+        <div class="fgrid">
+          <div class="field"><label for="rc">Cliente</label><select class="inp" id="rc"><option value="int">O.BRAND (interno)</option>${clientOpts('')}</select></div>
+          <div class="field"><label for="ra">Área</label><select class="inp" id="ra">${CATS.map(([c])=>`<option>${c}</option>`).join('')}</select></div>
+          <div class="field"><label for="ro">Responsável</label><select class="inp" id="ro">${S.team.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
+          <div class="field"><label for="rfq">Frequência</label><select class="inp" id="rfq" data-bind="rfreq"><option${fq==='Mensal'?' selected':''}>Mensal</option><option${fq==='Semanal'?' selected':''}>Semanal</option></select></div>
+          <div class="field"><label for="rd">${fq==='Mensal'?'Dia do mês':'Dia da semana'}</label><select class="inp" id="rd">${fq==='Mensal' ? Array.from({length:28},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('') : [1,2,3,4,5].map(d=>`<option value="${d}">${SEMANA[d]}</option>`).join('')}</select></div>
+        </div>
+        <button class="btn pri" type="submit" style="align-self:flex-start">Criar regra</button>
+      </form></section>
+  </div>`;
+}
+function genRecur(){
+  const nm = new Date(TODAY.getFullYear(), TODAY.getMonth()+1, 1), y = nm.getFullYear(), m = nm.getMonth(), key = iso(nm).slice(0,7);
+  let n = 0; const last = new Date(y, m+1, 0).getDate();
+  const mk = (r, d) => { const dt = new Date(y, m, d); const p = D(r.client, r.title, r.cat, 'afazer', r.owner, 0, 'Criada pela regra recorrente.'); p.due = iso(dt); n++; };
+  S.recur.filter(r => r.on).forEach(r => {
+    if (r.freq === 'Mensal') mk(r, Math.min(r.dia, last));
+    else for (let d = 1; d <= last; d++) if (new Date(y, m, d).getDay() === r.dia) mk(r, d);
+  });
+  S.recGen[key] = true;
+  return n;
+}
+
+/* ================= IA nas legendas ================= */
+let sampleFn = null;
+try { window.claude?.use?.('sample').then(f => { sampleFn = f; }).catch(() => {}); } catch(_){}
+async function aiCaption(p, btn){
+  const c = client(p.client), b = S.briefs[p.client] || {};
+  const status = document.getElementById('aistatus');
+  const ta = document.getElementById('cap');
+  const prompt = `Você escreve legendas de Instagram para a marca ${c.name}.
+Sobre a marca: ${b.negocio || ''}
+Público: ${b.publico || ''}
+Objetivo: ${b.objetivo || ''}
+Tom de voz: ${(b.tom || []).join(', ')}
+Evitar: ${b.evitar || ''}
+
+Escreva uma legenda em português do Brasil para um post no formato ${p.format} com o tema "${p.title}".
+Regras: até 600 caracteres, frases curtas, uma chamada para ação no final, no máximo 3 hashtags. Não use travessão. Responda só com a legenda.`;
+  const setCap = text => { p.caption = text; if (ta) ta.value = text; const pv = document.getElementById('capprev'); if (pv) pv.innerHTML = `<b>${c.handle}</b> ` + esc(text); const cn = document.getElementById('capcount'); if (cn) cn.textContent = `${text.length} / 2.200 caracteres`; };
+  btn.disabled = true;
+  if (!sampleFn){
+    status.textContent = 'IA indisponível aqui. Mostrando um exemplo.';
+    setCap(`${p.title.charAt(0)}${p.title.slice(1).toLowerCase()}.\n\nSeparamos o que você precisa saber, do jeito ${(b.tom||['simples'])[0].toLowerCase()} que a gente gosta de falar.\n\nSalva este post e chama a gente no WhatsApp.\n\n#${c.handle}`);
+    btn.disabled = false; return;
+  }
+  status.textContent = 'Escrevendo…';
+  try {
+    await sampleFn(prompt, { modelTier:'quick', cache:false, onText: ({text}) => { setCap(text); status.textContent = 'Escrevendo…'; } });
+    status.textContent = 'Sugestão pronta. Edite à vontade.';
+  } catch(e){
+    if (e && e.text) setCap(e.text);
+    status.textContent = e && (e.code === 'not_granted' || e.code === 'sampling_disabled') ? 'A IA não foi liberada nesta página.' : e && e.code === 'rate_limited' ? 'Muitos pedidos agora. Tente de novo em instantes.' : 'Não deu certo agora. Tente de novo.';
+  } finally { btn.disabled = false; }
+}
+
+const leadOpen = l => l.stage !== 'ganho' && l.stage !== 'perdido';
+const leadLate = l => leadOpen(l) && l.next && diff(l.next.date) < 0;
+function nextLabel(l){
+  if (!l.next) return '<span class="muted">Sem próximo passo</span>';
+  const d = diff(l.next.date);
+  const when = d < 0 ? `<span class="late">atrasado ${-d}d</span>` : d === 0 ? '<span class="today">hoje</span>' : `<span class="mono">${ddmm(l.next.date)}</span>`;
+  return `${esc(l.next.text)} · ${when}`;
+}
+function vCRM(){
+  const fo = S.ui.lfo;
+  const leads = S.leads.filter(l => fo === 'all' || l.owner === fo);
+  const open = leads.filter(leadOpen);
+  const ym = iso(TODAY).slice(0,7);
+  const won = leads.filter(l => l.stage === 'ganho'), lost = leads.filter(l => l.stage === 'perdido');
+  const wonMonth = won.filter(l => (l.closed||'').startsWith(ym));
+  const conv = won.length + lost.length ? Math.round(won.length / (won.length + lost.length) * 100) : 0;
+  const late = open.filter(leadLate);
+  const byOrig = ORIGENS.map(o => ({ l:o, v:leads.filter(x => x.origem === o).length })).filter(x => x.v).sort((a,b)=>b.v-a.v);
+  const maxO = Math.max(1, ...byOrig.map(x=>x.v));
+  const tab = S.ui.ltab;
+  const card = l => { const i = LSTAGES.findIndex(s => s.id === l.stage); const nx = LSTAGES[i+1];
+    return `<div class="kcard" draggable="true" data-ldrag="${l.id}" data-act="openlead" data-id="${l.id}" tabindex="0" role="button" aria-label="${esc(l.empresa)}">
+      <div class="ct"><span class="cat">${esc(l.segmento)}</span></div>
+      <div class="tt" style="text-transform:none;font-size:13.5px">${esc(l.empresa)}</div>
+      <div class="ct">${esc(l.contato)} · ${esc(l.cidade)}</div>
+      <div class="ft"><span class="mono" style="color:var(--ink);font-weight:500">${brl(l.valor)}<span class="muted">/mês</span></span></div>
+      ${leadOpen(l) ? `<div class="ct" style="line-height:1.35">${nextLabel(l)}</div>` : l.stage === 'perdido' && l.motivo ? `<div class="ct">${esc(l.motivo)}</div>` : ''}
+      <div class="ft">${av(l.owner)}<span>${esc(l.origem)}</span><span class="sp"></span>${nx && nx.id !== 'perdido' && leadOpen(l) ? `<button class="adv" data-act="ladv" data-id="${l.id}" title="Mover para ${nx.label}" aria-label="Mover para ${nx.label}">›</button>` : ''}</div>
+    </div>`; };
+  return head('Clientes', 'CRM', 'Funil comercial da agência: do primeiro contato ao contrato assinado. Cliente fechado já entra no onboarding.', `<button class="btn pri" data-act="newlead">+ Novo lead</button>`) +
+  `<div class="stats">
+    <div class="stat hl"><b>${brl(open.reduce((a,l)=>a+l.valor,0))}</b><span>por mês em negociação · ${open.length} leads</span></div>
+    <div class="stat"><b>${wonMonth.length}</b><span>fechados em ${MESES[TODAY.getMonth()]} · ${brl(wonMonth.reduce((a,l)=>a+l.valor,0))}/mês</span></div>
+    <div class="stat"><b>${conv}%</b><span>taxa de conversão</span></div>
+    <div class="stat ${late.length?'alert':''}"><b>${late.length}</b><span>follow-ups atrasados</span></div>
+  </div>
+  <div class="filters" style="align-items:center">
+    <div class="tabs" role="tablist"><button class="${tab==='funil'?'on':''}" data-act="ltab" data-t="funil">Funil</button><button class="${tab==='lista'?'on':''}" data-act="ltab" data-t="lista">Lista</button><button class="${tab==='origem'?'on':''}" data-act="ltab" data-t="origem">Origem dos leads</button></div>
+    <div class="field" style="margin-left:auto;width:200px"><label for="lfo">Responsável</label><select class="inp" id="lfo" data-bind="lfo"><option value="all">Todo o time</option>${S.team.map(t=>`<option value="${t.id}"${t.id===fo?' selected':''}>${t.name}</option>`).join('')}</select></div>
+  </div>
+  ${tab === 'funil' ? `<div class="board-wrap"><div class="board">${LSTAGES.map(s => { const items = leads.filter(l => l.stage === s.id); const sum = items.reduce((a,l)=>a+l.valor,0);
+      return `<div class="kcol ${s.id==='ganho'?'won':''} ${s.id==='perdido'?'lost':''}" data-ldrop="${s.id}"><div class="kcol-h"><span>${s.label}</span><span class="mono">${items.length}</span></div>${items.length?`<div class="mono muted" style="font-size:11.5px;padding:0 4px">${brl(sum)}/mês</div>`:''}${items.map(card).join('')}</div>`; }).join('')}</div></div>`
+  : tab === 'lista' ? `<section class="panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Empresa</th><th>Etapa</th><th class="num">Valor/mês</th><th>Origem</th><th>Resp.</th><th>Próximo passo</th></tr></thead><tbody>
+      ${leads.slice().sort((a,b)=>LSTAGES.findIndex(s=>s.id===a.stage)-LSTAGES.findIndex(s=>s.id===b.stage)).map(l => `<tr data-act="openlead" data-id="${l.id}"><td><b>${esc(l.empresa)}</b><div class="muted" style="font-size:12px">${esc(l.contato)} · ${esc(l.cidade)}</div></td><td><span class="pill ls-${l.stage}">${lstage(l.stage).label}</span></td><td class="num mono">${brl(l.valor)}</td><td>${esc(l.origem)}</td><td>${av(l.owner)}</td><td style="font-size:12.5px">${leadOpen(l)?nextLabel(l):'<span class="muted">·</span>'}</td></tr>`).join('')}
+    </tbody></table></div></section>`
+  : `<div class="grid2"><section class="panel"><div class="panel-h"><h3>De onde vêm os leads</h3><span class="muted" style="font-size:12px">quantidade</span></div><div class="panel-b"><div class="bars">${byOrig.map(a => `<div class="bar"><span class="lb">${esc(a.l)}</span><span class="tr"><i style="width:${a.v/maxO*100}%"></i></span><span class="v">${a.v}</span></div>`).join('')}</div></div></section>
+     <section class="panel"><div class="panel-h"><h3>Conversão por origem</h3></div><div class="list">${byOrig.map(o => { const ls = leads.filter(x=>x.origem===o.l); const w = ls.filter(x=>x.stage==='ganho').length; return `<div class="row"><div class="grow t">${esc(o.l)}</div><span class="mono muted" style="font-size:12px">${w} de ${ls.length} fechados</span></div>`; }).join('')}</div></section></div>`}`;
+}
+
+function leadDrawer(l){
+  const sel = (id, f, opts, cur) => `<select class="inp" id="${id}" data-lf="${f}">${opts.map(([v,t]) => `<option value="${esc(v)}"${v===cur?' selected':''}>${esc(t)}</option>`).join('')}</select>`;
+  return `<div class="ov" data-act="closemodal"><div class="drawer" role="dialog" aria-modal="true" aria-label="Lead">
+    <div class="drawer-h"><input class="inp" id="lemp" data-lf="empresa" value="${esc(l.empresa)}" aria-label="Empresa"><button class="btn ghost" data-act="closemodal" aria-label="Fechar">✕</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="pill ls-${l.stage}">${lstage(l.stage).label}</span><span class="mono" style="font-weight:500">${brl(l.valor)}/mês</span><span class="muted" style="font-size:12.5px">entrou em ${ddmm(l.criado)}</span></div>
+    ${l.stage === 'ganho' ? (l.converted ? `<div class="notice" style="margin:0"><b>Cliente</b><span>Já virou cliente e está no onboarding.</span></div>` : `<div class="notice" style="margin:0;align-items:center;flex-wrap:wrap"><b>Fechado!</b><span style="flex:1">Transforme em cliente para liberar pauta, portal de aprovação e onboarding.</span><button class="btn pri sm" data-act="lconvert" data-id="${l.id}">Virar cliente</button></div>`) : ''}
+    <div class="fgrid">
+      <div class="field"><label for="lct">Contato</label><input class="inp" id="lct" data-lf="contato" value="${esc(l.contato)}"></div>
+      <div class="field"><label for="lfn">WhatsApp</label><input class="inp" id="lfn" data-lf="fone" value="${esc(l.fone)}" placeholder="(19) 9 0000-0000"></div>
+      <div class="field"><label for="lsg">Segmento</label><input class="inp" id="lsg" data-lf="segmento" value="${esc(l.segmento)}"></div>
+      <div class="field"><label for="lcd">Cidade</label><input class="inp" id="lcd" data-lf="cidade" value="${esc(l.cidade)}"></div>
+      <div class="field"><label for="lor">Origem</label>${sel('lor','origem',ORIGENS.map(o=>[o,o]),l.origem)}</div>
+      <div class="field"><label for="lvl">Valor mensal (R$)</label><input class="inp mono" type="number" min="0" step="100" id="lvl" data-lf="valor" value="${l.valor}"></div>
+      <div class="field"><label for="lst">Etapa</label>${sel('lst','stage',LSTAGES.map(s=>[s.id,s.label]),l.stage)}</div>
+      <div class="field"><label for="low">Responsável</label>${sel('low','owner',S.team.map(t=>[t.id,t.name]),l.owner)}</div>
+    </div>
+    <div class="field"><span class="flabel">Serviços de interesse</span><div class="swatches">${SERVICOS.map(s => `<button class="sw ${l.servicos.includes(s)?'on':''}" data-act="lserv" data-id="${l.id}" data-s="${esc(s)}" aria-pressed="${l.servicos.includes(s)}">${esc(s)}</button>`).join('')}</div></div>
+    ${l.stage === 'perdido' ? `<div class="field"><label for="lmt">Motivo da perda</label><input class="inp" id="lmt" data-lf="motivo" value="${esc(l.motivo)}" placeholder="Ex.: preço, timing, escolheu outra agência"></div>` : ''}
+    ${leadOpen(l) ? `<div class="fgrid"><div class="field"><label for="lnx">Próximo passo</label><input class="inp" id="lnx" data-lf="nexttext" value="${esc(l.next?.text||'')}" placeholder="Ex.: ligar para fechar"></div><div class="field"><label for="lnd">Quando</label><input class="inp" type="date" id="lnd" data-lf="nextdate" value="${l.next?.date||addDays(1)}"></div></div>` : ''}
+    <div><div class="flabel" style="margin-bottom:8px">Histórico</div>
+      <div class="notes">${l.hist.slice().reverse().map(h => `<div class="note"><div class="nt">${esc(h.text)}<small>${ddmm(h.date)} · ${esc(h.who)}</small></div></div>`).join('') || '<div class="muted" style="font-size:13px">Nenhuma interação registrada.</div>'}</div>
+      <div style="display:flex;gap:8px;margin-top:8px"><input class="inp" id="lhist" placeholder="Registrar ligação, reunião, mensagem"><button class="btn dark" data-act="laddhist" data-id="${l.id}">Registrar</button></div></div>
+    <div style="display:flex;margin-top:auto"><button class="btn ghost" data-act="ldel" data-id="${l.id}" style="color:var(--bad);margin-left:auto">Excluir lead</button></div>
+  </div></div>`;
+}
+
+const VIEWS = { financeiro:vFinanceiro, clientes:vClientes, permissoes:vPermissoes, crm:vCRM, inicio:vInicio, pauta:vPauta, criacao:vCriacao, aprovacao:vAprovacao, agendamento:vAgendamento, chat:vChat, equipe:vEquipe, academy:vAcademy, dashboards:vDashboards, onboarding:vOnboarding, reunioes:vReunioes, marca:vMarca };
+
+/* ================= modal do post ================= */
+function modal(){
+  const el = document.getElementById('modal');
+  const ld = S.ui.lead && S.leads.find(x => x.id === S.ui.lead);
+  if (ld){ el.innerHTML = leadDrawer(ld); return; }
+  const p = S.posts.find(x => x.id === S.ui.open);
+  if (!p){ el.innerHTML = ''; return; }
+  const c = client(p.client), isD = p.kind === 'demanda';
+  el.innerHTML = `<div class="ov" data-act="closemodal"><div class="drawer" role="dialog" aria-modal="true" aria-label="${isD?'Demanda':'Conteúdo'}">
+    <div class="drawer-h"><span class="dot" style="--h:${c.hue};margin-top:14px"></span><input class="inp" id="mtitle" data-pf="title" value="${esc(p.title)}" aria-label="Título"><button class="btn ghost" data-act="closemodal" aria-label="Fechar">✕</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${pill(p.stage)}${isD?`<span class="cat">${esc(p.cat)}</span>`:''}<span class="muted" style="font-size:12.5px">${esc(c.name)}</span>${p.clientAdj?`<span class="adjmark" style="font-size:12.5px">↺ ${p.clientAdj} ajuste${p.clientAdj>1?'s':''} do cliente</span>`:''}</div>
+    <div class="fgrid">
+      <div class="field"><label for="mst">Etapa</label><select class="inp" id="mst" data-pf="stage">${stagesOf(p).map(s=>`<option value="${s.id}"${s.id===p.stage?' selected':''}>${s.label}</option>`).join('')}</select></div>
+      <div class="field"><label for="mow">Responsável</label><select class="inp" id="mow" data-pf="owner">${S.team.map(t=>`<option value="${t.id}"${t.id===p.owner?' selected':''}>${t.name}</option>`).join('')}</select></div>
+      <div class="field"><label for="mcl">Cliente</label><select class="inp" id="mcl" data-pf="client">${clientOpts(p.client)}${isD?`<option value="int"${p.client==='int'?' selected':''}>O.BRAND (interno)</option>`:''}</select></div>
+      ${isD ? `<div class="field"><label for="mct">Área</label><select class="inp" id="mct" data-pf="cat">${CATS.map(([cc])=>`<option${cc===p.cat?' selected':''}>${cc}</option>`).join('')}</select></div>`
+      : `<div class="field"><label for="mfm">Formato</label><select class="inp" id="mfm" data-pf="format">${FORMATS.map(f=>`<option${f===p.format?' selected':''}>${f}</option>`).join('')}</select></div>`}
+      <div class="field"><label for="mdu">Prazo</label><input class="inp" type="date" id="mdu" data-pf="due" value="${p.due}"></div>
+      <div class="field"><label for="mhr">Horas registradas</label><input class="inp mono" type="number" min="0" step="0.5" id="mhr" data-pf="hours" value="${p.hours||0}"></div>
+      ${p.sched ? `<div class="field"><label for="msc">Publicação</label><input class="inp" type="datetime-local" id="msc" data-pf="sched" value="${p.sched}"></div>` : ''}
+    </div>
+    ${isD ? `<div class="field"><label for="mcap">Descrição</label><textarea class="inp" id="mcap" data-pf="caption" rows="5" placeholder="O que precisa ser feito, links, observações">${esc(p.caption)}</textarea></div>`
+    : `<div style="display:grid;grid-template-columns:120px minmax(0,1fr);gap:14px;align-items:start">${tile(p)}
+      <div class="field"><label for="mcap">Legenda</label><textarea class="inp" id="mcap" data-pf="caption" rows="6">${esc(p.caption)}</textarea></div></div>`}
+    <div><div class="flabel" style="margin-bottom:8px">Ajustes e comentários</div><div class="notes">${p.notes.map((n,i)=>`<div class="note ${n.type==='cli'?'cli':''} ${n.done?'done':''}"><input type="checkbox" id="mn-${i}" data-act="notedone" data-id="${p.id}" data-i="${i}" ${n.done?'checked':''} aria-label="Resolvido"><div class="nt">${esc(n.text)}<small>${n.type==='cli'?'Cliente · ':'Interno · '}${esc(n.who)}</small></div></div>`).join('') || '<div class="muted" style="font-size:13px">Sem comentários.</div>'}</div>
+      <div style="display:flex;gap:8px;margin-top:8px"><input class="inp" id="mnote" placeholder="Comentário interno"><button class="btn dark" data-act="addnote" data-id="${p.id}" data-src="modal">Adicionar</button></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto">${isD ? '' : `<button class="btn" data-act="tocria" data-id="${p.id}">Abrir na Criação</button>`}<button class="btn ghost" data-act="del" data-id="${p.id}" style="color:var(--bad);margin-left:auto">Excluir</button></div>
+  </div></div>`;
+}
+
+/* ================= render ================= */
+function rail(){
+  const brandH = `<div class="brand"><span class="brand-mark">${esc(S.brand.name[0]||'B')}</span><div><div class="brand-name">${esc(S.brand.name)}</div><div class="brand-sub">${S.asClient ? 'Portal do cliente' : 'O.BRAND'}</div></div></div>`;
+  const viewas = `<div class="me"><div class="viewas"><label for="viewas">Ver como</label><select class="inp" id="viewas" data-viewas="1" style="background:var(--surface)">${S.team.map(t => `<option value="${t.id}"${!S.asClient && S.me===t.id?' selected':''}>${t.name} · ${S.roles[t.perfil].label}</option>`).join('')}<option value="cliente"${S.asClient?' selected':''}>Cliente (portal)</option></select></div></div>`;
+  if (S.asClient){
+    document.getElementById('rail').innerHTML = brandH + `<nav class="navgroup"><button class="navbtn on">${icon('aprovacao')}<span>Meu portal</span></button></nav>` + viewas;
+    document.getElementById('topname').textContent = S.brand.name; return;
+  }
+  const counts = { crm: S.leads.filter(leadLate).length || '', aprovacao: S.posts.filter(p=>p.stage==='cliente').length, agendamento: S.posts.filter(p=>p.stage==='aprovado').length, pauta: S.posts.filter(isLate).length || '', financeiro: S.clients.filter(c => ct(c.id) && payStatus(c.id)==='atrasado').length || '' };
+  document.getElementById('rail').innerHTML = brandH + `
+    ${NAV.map(([g, items]) => { const its = items.filter(([k]) => canSee(k)); return its.length ? `<nav class="navgroup" aria-label="${g}"><div class="navlabel">${g}</div>${its.map(([k, l]) => `<button class="navbtn ${S.ui.view===k?'on':''}" data-act="go" data-v="${k}">${icon(k)}<span>${l}</span>${counts[k]?`<span class="count">${counts[k]}</span>`:''}</button>`).join('')}</nav>` : ''; }).join('')}
+    ${viewas}`;
+  document.getElementById('topname').textContent = S.brand.name;
+}
+function clientMain(){
+  return `<div class="clientbar"><div class="field" style="width:240px"><label for="pc2">Simulando o acesso de</label><select class="inp" id="pc2" data-bind="pc">${clientOpts(S.ui.pc)}</select></div><button class="btn" data-act="exitclient" style="align-self:flex-end">Voltar para a agência</button></div>${portal(S.ui.pc)}`;
+}
+function render(){
+  rail();
+  if (!S.asClient && !canSee(S.ui.view)) S.ui.view = S.roles[person(S.me).perfil].views[0] || 'inicio';
+  document.getElementById('main').innerHTML = S.asClient ? clientMain() : VIEWS[S.ui.view]();
+  modal();
+  const ml = document.getElementById('msgs'); if (ml) ml.scrollTop = ml.scrollHeight;
+}
+function go(v){
+  S.ui.view = v; document.getElementById('app').classList.remove('nav-open');
+  try { history.replaceState(null, '', '#' + v); } catch(e) { try { location.hash = v; } catch(_){} }
+  render(); window.scrollTo(0,0);
+}
+
+/* ================= eventos ================= */
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-act]'); if (!a) return;
+  const act = a.dataset.act, p = a.dataset.id ? S.posts.find(x => x.id === a.dataset.id) : null;
+  if (act === 'closemodal' && a.classList.contains('ov') && e.target !== a) return;
+  if (['adv','notedone','acad','onb'].includes(act)) e.stopPropagation();
+  switch(act){
+    case 'go': go(a.dataset.v); break;
+    case 'opennav': document.getElementById('app').classList.add('nav-open'); break;
+    case 'closenav': document.getElementById('app').classList.remove('nav-open'); break;
+    case 'open': S.ui.open = p.id; modal(); break;
+    case 'closemodal': S.ui.open = null; S.ui.lead = null; render(); break;
+    case 'openlead': S.ui.lead = a.dataset.id; modal(); break;
+    case 'ltab': S.ui.ltab = a.dataset.t; render(); break;
+    case 'newlead': { L('Nova empresa','','','Americana','Instagram',[],0,S.ui.lfo==='all'?S.me:S.ui.lfo,'novo','Primeiro contato',0,[[0,'Lead cadastrado','Mayara']]); S.ui.lead = S.leads[S.leads.length-1].id; render(); setTimeout(()=>document.getElementById('lemp')?.select(), 30); break; }
+    case 'ladv': { e.stopPropagation(); const l = S.leads.find(x => x.id === a.dataset.id); const i = LSTAGES.findIndex(s => s.id === l.stage); moveLead(l, LSTAGES[i+1].id); break; }
+    case 'lserv': { const l = S.leads.find(x => x.id === a.dataset.id), s = a.dataset.s; l.servicos = l.servicos.includes(s) ? l.servicos.filter(x => x !== s) : [...l.servicos, s]; render(); break; }
+    case 'laddhist': { const l = S.leads.find(x => x.id === a.dataset.id); const inp = document.getElementById('lhist'); const v = inp.value.trim(); if (!v){ inp.focus(); break; } l.hist.push({date:iso(TODAY), text:v, who:person(S.me).name}); render(); toast('Interação registrada'); break; }
+    case 'ldel': S.leads = S.leads.filter(x => x.id !== a.dataset.id); S.ui.lead = null; render(); toast('Lead excluído'); break;
+    case 'lconvert': { const l = S.leads.find(x => x.id === a.dataset.id); const id = 'c' + (S.clients.length + 1 + Math.floor(Math.random()*1000)); const hue = (S.clients.length * 47 + 280) % 360;
+      S.clients.push({id, name:l.empresa, handle:l.empresa.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g,''), hue, short:l.empresa.toUpperCase().split(' ').slice(0,2).join(' ')});
+      onb(l.empresa, hue, 0, 1); l.converted = true;
+      S.contracts[id] = { valor:l.valor, dia:10, inicio:iso(TODAY), fim:addDays(365), postsMes:12, ajustesMes:2, horas:0, pago:false };
+      S.briefs[id] = brief(l.segmento ? `${l.segmento} em ${l.cidade}.` : '', '', '', [], '', ['#1E4BFF','#FFFFFF','#0A0C12']);
+      S.reports[id] = false; l.hist.push({date:iso(TODAY), text:'Virou cliente, onboarding iniciado', who:person(S.me).name});
+      render(); toast(`${l.empresa} virou cliente e entrou no onboarding`); break; }
+    case 'adv': { const SL = stagesOf(p); const i = SL.findIndex(s => s.id === p.stage); if (i < SL.length-1){ const nx = p.stage === 'ajuste' ? stage('revisao') : SL[i+1].id === 'agendado' ? null : SL[i+1]; if (!nx){ toast('Defina data e hora em Agendamento.'); go('agendamento'); break; } setStage(p, nx.id); toast(`Movido para ${nx.label} · com ${person(p.owner).name}`); render(); } break; }
+    case 'ptab': S.ui.ptab = a.dataset.t; if (S.ui.fc === 'int' && a.dataset.t === 'conteudo') S.ui.fc = 'all'; render(); break;
+    case 'gcal': S.gcal = !S.gcal; toast(S.gcal ? 'Simulação: na versão final, aqui abre o login do Google.' : 'Google Agenda desconectado'); render(); break;
+    case 'newpost': { const isD = S.ui.ptab === 'demanda'; const cl = S.ui.fc==='all' ? (isD ? 'int' : 'c1') : S.ui.fc; const np = isD ? D(cl, 'NOVA DEMANDA', 'Interno', 'afazer', S.ui.fo==='all' ? S.me : S.ui.fo, 3, '') : P(cl==='int'?'c1':cl, 'NOVA PAUTA', 'Carrossel', 'pauta', 7); S.ui.open = np.id; render(); setTimeout(()=>{ const t=document.getElementById('mtitle'); t && t.select(); }, 30); break; }
+    case 'pick': S.ui.cp = p.id; render(); break;
+    case 'ctab': S.ui.ctab = a.dataset.t; render(); break;
+    case 'notedone': { const n = p.notes[+a.dataset.i]; n.done = !n.done; render(); break; }
+    case 'addnote': { const inp = document.getElementById(a.dataset.src === 'modal' ? 'mnote' : 'newnote'); const v = inp && inp.value.trim(); if (!v) { inp && inp.focus(); break; } p.notes.push({type:'int', who:person(S.me).name, text:v, done:false}); render(); toast('Comentário adicionado'); break; }
+    case 'tocria': S.ui.cc = p.client; S.ui.cp = p.id; S.ui.open = null; go('criacao'); break;
+    case 'del': S.posts = S.posts.filter(x => x.id !== p.id); S.ui.open = null; render(); toast('Conteúdo excluído'); break;
+    case 'approve': setStage(p, 'aprovado'); toast(`Aprovado. ${person(p.owner).name} vai agendar.`); render(); break;
+    case 'adjopen': S.ui.adj = p.id; render(); setTimeout(()=>document.getElementById('adj-'+p.id)?.focus(), 20); break;
+    case 'adjcancel': S.ui.adj = null; render(); break;
+    case 'adjsend': { const t = document.getElementById('adj-'+p.id); const v = t.value.trim(); if (!v){ t.focus(); toast('Descreva o ajuste antes de enviar.'); break; } p.notes.push({type:'cli', who:client(p.client).name, text:v, done:false}); p.clientAdj++; setStage(p,'ajuste'); S.ui.adj = null; toast(`Ajuste enviado. Virou tarefa para ${person(p.owner).name}.`); render(); break; }
+    case 'schedule': { const d = document.getElementById('sd-'+p.id).value, t = document.getElementById('st-'+p.id).value; if (!d || !t){ toast('Escolha data e hora.'); break; } setStage(p,'agendado'); p.sched = d+'T'+t; const dt = parse(d); S.ui.cal = {y:dt.getFullYear(), m:dt.getMonth()}; toast(`Agendado para ${ddmm(d)} às ${t}`); render(); break; }
+    case 'calprev': { let {y,m} = S.ui.cal; m--; if (m<0){m=11;y--;} S.ui.cal={y,m}; render(); break; }
+    case 'calnext': { let {y,m} = S.ui.cal; m++; if (m>11){m=0;y++;} S.ui.cal={y,m}; render(); break; }
+    case 'caltoday': S.ui.cal = {y:TODAY.getFullYear(), m:TODAY.getMonth()}; render(); break;
+    case 'ch': S.ui.ch = a.dataset.ch; render(); break;
+    case 'itab': S.ui.itab = a.dataset.t; render(); break;
+    case 'ifo': S.ui.ifo = a.dataset.o; render(); break;
+    case 'iprev': { let {y,m} = S.ui.ical; m--; if (m<0){m=11;y--;} S.ui.ical={y,m}; render(); break; }
+    case 'inext': { let {y,m} = S.ui.ical; m++; if (m>11){m=0;y++;} S.ui.ical={y,m}; render(); break; }
+    case 'itoday': S.ui.ical = {y:TODAY.getFullYear(), m:TODAY.getMonth()}; render(); break;
+    case 'byowner': S.ui.fo = a.dataset.o; S.ui.fc = 'all'; go('pauta'); break;
+    case 'acad': { const it = S.academy[+a.dataset.t].items[+a.dataset.i]; it.done = !it.done; render(); break; }
+    case 'onb': { const it = S.onboarding[+a.dataset.o].weeks[+a.dataset.w].items[+a.dataset.i]; it.done = !it.done; render(); break; }
+    case 'accent': S.brand.accent = a.dataset.v; applyBrand(); render(); break;
+    case 'ptb': S.ui.ptb = a.dataset.t; S.ui.adj = null; render(); break;
+    case 'ron': S.remind.on = !S.remind.on; render(); break;
+    case 'repub': S.reports[a.dataset.c] = !S.reports[a.dataset.c]; toast(S.reports[a.dataset.c] ? 'Relatório publicado no portal do cliente' : 'Relatório voltou para revisão'); render(); break;
+    case 'asclient': S.asClient = true; S.ui.ptb = 'aprovar'; S.ui.open = null; S.ui.lead = null; render(); window.scrollTo(0,0); break;
+    case 'exitclient': S.asClient = false; render(); break;
+    case 'ftab': S.ui.ftab = a.dataset.t; render(); break;
+    case 'pay': { const k = ct(a.dataset.c); k.pago = !k.pago; toast(k.pago ? `Pagamento de ${client(a.dataset.c).name} registrado` : 'Pagamento desfeito'); render(); break; }
+    case 'tomdel': { const b = S.briefs[S.ui.hc || 'c1']; b.tom.splice(+a.dataset.i, 1); render(); break; }
+    case 'acesso': { const b = S.briefs[S.ui.hc || 'c1']; b.acessos[a.dataset.n] = !b.acessos[a.dataset.n]; render(); break; }
+    case 'ataadd': { const i = document.getElementById('atanew'); const v = i.value.trim(); if (!v){ i.focus(); break; } S.briefs[S.ui.hc || 'c1'].atas.push({date:iso(TODAY), t:v}); render(); toast('Ata salva'); break; }
+    case 'perm': { const r = S.roles[a.dataset.r], v = a.dataset.v; r.views = r.views.includes(v) ? r.views.filter(x => x !== v) : [...r.views, v]; render(); break; }
+    case 'genrec': { const n = genRecur(); toast(`${n} tarefas criadas para o próximo mês`); render(); break; }
+    case 'recon': { const r = S.recur.find(x => x.id === a.dataset.id); r.on = !r.on; render(); break; }
+    case 'recdel': S.recur = S.recur.filter(x => x.id !== a.dataset.id); render(); toast('Regra excluída'); break;
+    case 'aicap': aiCaption(p, a); break;
+    case 'accentreset': S.brand.accent = null; S.brand.name = 'Bastidor'; applyBrand(); render(); toast('Identidade padrão restaurada'); break;
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && (S.ui.open || S.ui.lead)){ S.ui.open = null; S.ui.lead = null; render(); }
+  if (e.key === 'Enter' && e.target.id === 'tomnew'){ const v = e.target.value.trim(); if (v){ S.briefs[S.ui.hc || 'c1'].tom.push(v); render(); setTimeout(() => document.getElementById('tomnew')?.focus(), 0); } return; }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.kcard')){ e.preventDefault(); if (e.target.dataset.ldrag) S.ui.lead = e.target.dataset.id; else S.ui.open = e.target.dataset.id; modal(); }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.viewas){ if (t.value === 'cliente'){ S.asClient = true; S.ui.ptb = 'aprovar'; } else { S.asClient = false; S.me = t.value; } S.ui.open = null; S.ui.lead = null; render(); toast(S.asClient ? 'Você está vendo o que o cliente vê' : `Vendo como ${person(S.me).name} · ${S.roles[person(S.me).perfil].label}`); return; }
+  if (t.dataset.perfil){ person(t.dataset.perfil).perfil = t.value; render(); return; }
+  if (t.dataset.rm){ S.remind[t.dataset.rm] = t.dataset.rm === 'dias' ? Number(t.value) : t.value; render(); return; }
+  if (t.dataset.cf){ ct(t.dataset.c)[t.dataset.cf] = Math.max(0, Number(t.value) || 0); render(); return; }
+  if (t.dataset.cfg){ S.custoHora = Math.max(1, Number(t.value) || 1); render(); return; }
+  if (t.dataset.bf){ S.briefs[S.ui.hc || 'c1'][t.dataset.bf] = t.value; return; }
+  if (t.dataset.bind){ S.ui[t.dataset.bind] = t.value; if (t.dataset.bind==='cc') S.ui.cp = null; S.ui.adj = null; render(); return; }
+  if (t.dataset.lf){
+    const l = S.leads.find(x => x.id === S.ui.lead); if (!l) return;
+    const f = t.dataset.lf;
+    if (f === 'stage') { moveLead(l, t.value); return; }
+    if (f === 'valor') l.valor = Math.max(0, Number(t.value) || 0);
+    else if (f === 'nexttext') l.next = { text:t.value, date:l.next?.date || addDays(1) };
+    else if (f === 'nextdate') l.next = { text:l.next?.text || 'Follow-up', date:t.value || addDays(1) };
+    else l[f] = t.value;
+    render(); return;
+  }
+  if (t.dataset.pf){
+    const p = S.posts.find(x => x.id === S.ui.open); if (!p) return;
+    const f = t.dataset.pf;
+    if (f === 'stage'){ if (t.value === 'agendado' && !p.sched){ toast('Para agendar, use a tela de Agendamento.'); t.value = p.stage; return; } setStage(p, t.value); }
+    else if (f === 'title') p.title = t.value.toUpperCase().trim() || p.title;
+    else p[f] = t.value;
+    render();
+  }
+});
+document.addEventListener('input', e => {
+  const t = e.target, k = t.dataset.live;
+  if (!k) return;
+  if (k === 'caption'){
+    const p = S.posts.find(x => x.id === t.dataset.id); p.caption = t.value;
+    const pv = document.getElementById('capprev'); if (pv) pv.innerHTML = `<b>${client(p.client).handle}</b> ` + (esc(p.caption) || '<span class="muted">A legenda aparece aqui.</span>');
+    const cn = document.getElementById('capcount'); if (cn) cn.textContent = `${p.caption.length} / 2.200 caracteres`;
+  }
+  if (k === 'bname'){ S.brand.name = t.value || 'Bastidor'; rail(); document.querySelectorAll('.login .brand-name').forEach(n => n.textContent = S.brand.name); document.querySelectorAll('.login .brand-mark').forEach(n => n.textContent = S.brand.name[0]); }
+  if (k === 'bcolor'){ S.brand.accent = t.value; applyBrand(); document.querySelectorAll('.sw').forEach(s => s.classList.toggle('on', s.dataset.v === t.value)); }
+  if (k === 'bdomain'){ S.brand.domain = t.value; const d = document.getElementById('dprev'); if (d) d.textContent = t.value; }
+});
+document.addEventListener('submit', e => {
+  const f = e.target.dataset.form; if (!f) return; e.preventDefault();
+  if (f === 'msg'){ const i = document.getElementById('msgin'); const v = i.value.trim(); if (!v) return; const n = new Date(); S.msgs.push({ch:S.ui.ch, who:S.me, time:String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'), text:v}); render(); document.getElementById('msgin').focus(); }
+  if (f === 'recur'){ const title = document.getElementById('rt').value.trim().toUpperCase(); if (!title) return; const freq = document.getElementById('rfq').value;
+    S.recur.push({ id:'r'+Date.now(), title, cat:document.getElementById('ra').value, client:document.getElementById('rc').value, owner:document.getElementById('ro').value, freq, dia:Number(document.getElementById('rd').value), on:true });
+    toast('Regra criada'); render(); }
+  if (f === 'meet'){ const m = { client:document.getElementById('mc').value, title:document.getElementById('mt').value.trim(), date:document.getElementById('md').value, time:document.getElementById('mh').value, who:person(S.me).name }; if (!m.title) return; S.meetings.push(m); toast(`Reunião marcada para ${ddmm(m.date)} às ${m.time}`); render(); }
+});
+/* arrastar e soltar */
+let dragId = null;
+document.addEventListener('dragstart', e => { const c = e.target.closest && e.target.closest('[data-drag]'); if (!c) return; dragId = c.dataset.drag; c.classList.add('dragging'); try { e.dataTransfer.setData('text/plain', dragId); e.dataTransfer.effectAllowed = 'move'; } catch(_){} });
+document.addEventListener('dragend', e => { document.querySelectorAll('.dragging,.over').forEach(n => n.classList.remove('dragging','over')); });
+document.addEventListener('dragover', e => { const col = e.target.closest && e.target.closest('[data-drop]'); if (!col || !dragId) return; e.preventDefault(); document.querySelectorAll('.kcol.over').forEach(n => n !== col && n.classList.remove('over')); col.classList.add('over'); });
+document.addEventListener('drop', e => {
+  const col = e.target.closest && e.target.closest('[data-drop]'); if (!col || !dragId) return; e.preventDefault();
+  const p = S.posts.find(x => x.id === dragId), st = col.dataset.drop; dragId = null;
+  if (!p || p.stage === st) { render(); return; }
+  if (!stagesOf(p).some(s => s.id === st)) { render(); return; }
+  if (st === 'agendado'){ toast('Defina data e hora em Agendamento.'); render(); return; }
+  setStage(p, st); toast(`Movido para ${stage(st).label} · com ${person(p.owner).name}`); render();
+});
+
+function moveLead(l, st){
+  if (!l || l.stage === st) { render(); return; }
+  l.stage = st;
+  if (st === 'ganho' || st === 'perdido') { l.closed = iso(TODAY); l.next = null; }
+  l.hist.push({date:iso(TODAY), text:`Movido para ${lstage(st).label}`, who:person(S.me).name});
+  toast(st === 'ganho' ? `${l.empresa} fechou! Abra a ficha para virar cliente.` : `Movido para ${lstage(st).label}`);
+  render();
+}
+let dragLead = null;
+document.addEventListener('dragstart', e => { const c = e.target.closest && e.target.closest('[data-ldrag]'); if (!c) return; dragLead = c.dataset.ldrag; c.classList.add('dragging'); try { e.dataTransfer.setData('text/plain', dragLead); } catch(_){} });
+document.addEventListener('dragover', e => { const col = e.target.closest && e.target.closest('[data-ldrop]'); if (!col || !dragLead) return; e.preventDefault(); document.querySelectorAll('.kcol.over').forEach(n => n !== col && n.classList.remove('over')); col.classList.add('over'); });
+document.addEventListener('drop', e => { const col = e.target.closest && e.target.closest('[data-ldrop]'); if (!col || !dragLead) return; e.preventDefault(); const l = S.leads.find(x => x.id === dragLead); dragLead = null; moveLead(l, col.dataset.ldrop); });
+document.addEventListener('dragend', () => { dragLead = null; });
+
+function applyBrand(){
+  const r = document.documentElement;
+  if (S.brand.accent) r.style.setProperty('--accent', S.brand.accent); else r.style.removeProperty('--accent');
+}
+
+/* início */
+(function(){
+  let h = ''; try { h = (location.hash || '').slice(1); } catch(e){}
+  if (VIEWS[h]) S.ui.view = h;
+  render();
+})();
+</script>
+
+</body></html>
