@@ -53,6 +53,7 @@ export async function convidar(_: Estado, form: FormData): Promise<Estado> {
   }
 
   revalidatePath("/configuracoes");
+  revalidatePath("/clientes", "layout");
   return { ok: `Convite enviado para ${email}.` };
 }
 
@@ -74,6 +75,7 @@ export async function mudarPerfil(_: Estado, form: FormData): Promise<Estado> {
   if (error) return { erro: error.message.includes("Sócio ativo") ? "É preciso ter pelo menos um Sócio ativo." : "Sem permissão para mudar o perfil." };
   if (!count) return { erro: "Sem permissão para mudar o perfil." };
   revalidatePath("/configuracoes");
+  revalidatePath("/clientes", "layout");
   return { ok: "Perfil atualizado." };
 }
 
@@ -88,6 +90,7 @@ export async function alternarAcesso(_: Estado, form: FormData): Promise<Estado>
   if (error) return { erro: error.message.includes("Sócio ativo") ? "É preciso ter pelo menos um Sócio ativo." : "Sem permissão." };
   if (!count) return { erro: "Sem permissão." };
   revalidatePath("/configuracoes");
+  revalidatePath("/clientes", "layout");
   return { ok: pessoa.ativo ? "Acesso desativado." : "Acesso reativado." };
 }
 

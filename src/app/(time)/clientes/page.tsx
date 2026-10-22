@@ -1,12 +1,88 @@
+import Link from "next/link";
 import { CabecalhoPagina, EstadoVazio } from "@/components/cabecalho-pagina";
+import { dataBR, hojeSP } from "@/lib/datas";
+import { exigirTime } from "@/lib/sessao";
+import { criarClienteServidor } from "@/lib/supabase/server";
+import type { ClienteCompleto, Contrato } from "@/types/banco";
 
 export const metadata = { title: "Central do cliente · Bastidor" };
 
-export default function Clientes() {
+export default async function Clientes({ searchParams }: { searchParams: Promise<{ inativos?: string }> }) {
+  const eu = await exigirTime();
+  const gestao = eu.perfil === "socio" || eu.perfil === "adm";
+  const verInativos = (await searchParams).inativos === "1";
+  const supabase = await criarClienteServidor();
+  const hoje = hojeSP();
+
+  const [{ data: clientes }, { data: contratos }] = await Promise.all([
+    supabase.from("clients").select("*").eq("ativo", !verInativos).order("nome").returns<ClienteCompleto[]>(),
+    // Criação recebe lista vazia (RLS de contracts)
+    supabase.from("contracts").select("*").lte("inicio", hoje).returns<Contrato[]>(),
+  ]);
+  const vigente = (id: string) =>
+    (contratos ?? []).find((k) => k.client_id === id && k.inicio <= hoje && (!k.fim || k.fim >= hoje));
+
   return (
     <>
-      <CabecalhoPagina sobretitulo="Clientes" titulo="Central do cliente" descricao="Briefing, tom de voz, identidade, acessos, contrato e atas." />
-      <EstadoVazio>O cadastro de clientes chega na etapa 3.</EstadoVazio>
+      <CabecalhoPagina
+        sobretitulo="Clientes"
+        titulo="Central do cliente"
+        descricao="Tudo o que alguém precisa saber para pegar a conta sem perguntar nada."
+        acoes={
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={verInativos ? "/clientes" : "/clientes?inativos=1"}
+              className="rounded-lg px-3 py-2 text-[13px] text-muted hover:bg-surface hover:text-ink"
+            >
+              {verInativos ? "Ver ativos" : "Ver inativos"}
+            </Link>
+            {gestao && (
+              <Link href="/clientes/novo" className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:brightness-110">
+                Novo cliente
+              </Link>
+            )}
+          </div>
+        }
+      />
+      {!clientes?.length ? (
+        <EstadoVazio>{verInativos ? "Nenhum cliente inativo." : "Nenhum cliente cadastrado ainda."}</EstadoVazio>
+      ) : (
+        <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3">
+          {clientes.map((c) => {
+            const k = vigente(c.id);
+            return (
+              <li key={c.id}>
+                <Link
+                  href={`/clientes/${c.id}`}
+                  className="flex h-full flex-col gap-1.5 rounded-xl border border-line bg-card px-4 py-3.5 hover:border-muted"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: c.cor }} />
+                    <span className="truncate font-medium">{c.nome}</span>
+                  </div>
+                  <div className="text-[12.5px] text-muted">
+                    <span className="font-mono text-[11.5px] tracking-[0.04em]">{c.nome_curto}</span>
+                    {c.instagram && <> · @{c.instagram}</>}
+                  </div>
+                  {gestao && (
+                    <div className="mt-auto pt-1.5 text-[12.5px] text-muted">
+                      {k ? (
+                        <>
+                          <span className="font-mono">{k.conteudos_mes}</span> conteúdos ·{" "}
+                          <span className="font-mono">{k.ajustes_mes}</span> ajustes/mês
+                          {k.fim && <> · até {dataBR(k.fim)}</>}
+                        </>
+                      ) : (
+                        <span className="font-semibold text-warn">Sem contrato vigente</span>
+                      )}
+                    </div>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </>
   );
 }

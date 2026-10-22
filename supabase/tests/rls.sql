@@ -81,8 +81,12 @@ insert into public.tasks (id, tipo, client_id, titulo, formato, area, etapa, hor
   ('00000000-0000-0000-0000-0000000000f3', 'demanda', null, 'Interno', null, 'financeiro', 'a_fazer', null);
 insert into public.task_notes (task_id, tipo, texto) values
   ('00000000-0000-0000-0000-0000000000f1', 'interno', 'Comentário interno A');
-insert into public.task_events (task_id, para_etapa, origem) values
-  ('00000000-0000-0000-0000-0000000000f1', 'cliente', 'time');
+insert into public.task_events (task_id, para_etapa, origem, created_at) values
+  ('00000000-0000-0000-0000-0000000000f1', 'cliente', 'time', now()),
+  -- ajustes do cliente A: 2 neste mês (um pedido pelo portal, um movido pelo time) e 1 no mês passado
+  ('00000000-0000-0000-0000-0000000000f1', 'ajuste', 'cliente', now()),
+  ('00000000-0000-0000-0000-0000000000f1', 'ajuste', 'time', now()),
+  ('00000000-0000-0000-0000-0000000000f1', 'ajuste', 'cliente', now() - interval '40 days');
 insert into public.notifications (destinatario_id, tipo, texto) values
   ('00000000-0000-0000-0000-0000000000ca', 'aprovar', 'Para A'),
   ('00000000-0000-0000-0000-0000000000cb', 'aprovar', 'Para B');
@@ -95,6 +99,7 @@ select testes.recusa($$insert into public.tasks (tipo, client_id, titulo, area, 
 -- ---------------------------------------------------------------- visitante sem login
 set local role anon;
 select set_config('request.jwt.claims', '', true);
+select testes.recusa($$select public.ajustes_do_mes('00000000-0000-0000-0000-00000000000a')$$, 'anon: não lê contador de ajustes');
 select testes.recusa('select * from public.clients', 'anon: não lê clientes');
 select testes.recusa('select * from public.tasks', 'anon: não lê tarefas');
 select testes.recusa('select * from public.profiles', 'anon: não lê pessoas');
@@ -115,6 +120,9 @@ select testes.ok(testes.conta('select * from public.task_events') = 0, 'cliente 
 select testes.ok(testes.conta('select * from public.convites') = 0, 'cliente A: não vê convites');
 select testes.ok(testes.conta('select * from public.stage_defaults') = 0, 'cliente A: não vê configurações');
 select testes.ok(testes.conta('select * from public.notifications') = 1, 'cliente A: vê só os próprios avisos');
+select testes.ok(public.ajustes_do_mes('00000000-0000-0000-0000-00000000000a') = 1, 'cliente A: contador do mês conta só pedidos do portal deste mês');
+select testes.ok(public.ajustes_do_mes('00000000-0000-0000-0000-00000000000a', (current_date - 40)) = 1, 'cliente A: contador do mês passado é separado');
+select testes.recusa($$select public.ajustes_do_mes('00000000-0000-0000-0000-00000000000b')$$, 'cliente A: não lê o contador do Cliente B');
 select testes.recusa($$update public.profiles set perfil = 'socio', client_id = null where id = auth.uid()$$, 'cliente A: não vira Sócio');
 select testes.recusa($$update public.profiles set client_id = '00000000-0000-0000-0000-00000000000b' where id = auth.uid()$$, 'cliente A: não troca de cliente');
 select testes.recusa($$update public.profiles set email = 'x@x.com' where id = auth.uid()$$, 'cliente A: não troca o e-mail');
@@ -138,6 +146,7 @@ select testes.ok(testes.conta('select * from public.contracts') = 0, 'criação:
 select testes.ok(testes.conta('select * from public.client_briefs') = 2, 'criação: lê a Central do cliente');
 select testes.ok(testes.conta($$select * from public.profiles where perfil = 'cliente'$$) = 0, 'criação: não vê pessoas de cliente');
 select testes.ok(testes.conta('select * from public.tasks') = 3, 'criação: vê todas as tarefas');
+select testes.ok(public.ajustes_do_mes('00000000-0000-0000-0000-00000000000b') = 0, 'criação: lê o contador de qualquer cliente');
 select testes.recusa($$update public.client_briefs set negocio = 'x'$$, 'criação: não edita briefing');
 select testes.recusa($$insert into public.meeting_notes (client_id, data, resumo)
   values ('00000000-0000-0000-0000-00000000000a', '2026-10-02', 'x')$$, 'criação: não cria ata');
