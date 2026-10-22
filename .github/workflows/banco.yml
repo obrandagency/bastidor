@@ -3,9 +3,9 @@ name: Banco
 
 on:
   push:
-    paths: ["supabase/**", "scripts/testar-banco.sh", ".github/workflows/banco.yml"]
+    paths: ["supabase/**", "scripts/testar-banco.sh", "scripts/aplicar-migrations.sh", ".github/workflows/banco.yml"]
   pull_request:
-    paths: ["supabase/**", "scripts/testar-banco.sh", ".github/workflows/banco.yml"]
+    paths: ["supabase/**", "scripts/testar-banco.sh", "scripts/aplicar-migrations.sh", ".github/workflows/banco.yml"]
   workflow_dispatch:
 
 jobs:
