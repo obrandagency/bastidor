@@ -11,6 +11,7 @@ Next.js 15 (App Router, TypeScript) + Tailwind 4 + Supabase (Postgres, Auth, Sto
 - `npm run dev`: servidor local
 - `npm run build`: build de produção (rodar antes de cada commit)
 - `npm run lint`
+- `scripts/testar-banco.sh`: aplica as migrations num Postgres vazio e roda os testes de RLS (`supabase/tests/rls.sql`). Precisa de `PGHOST`, `PGPORT`, `PGUSER`. Roda também no GitHub Actions a cada push
 
 ## Convenções
 
@@ -29,9 +30,24 @@ src/app/(time)/      telas do time, com menu lateral (inicio, tarefas, criacao, 
 src/app/portal/      portal do cliente (aprovar, relatorio)
 src/components/      componentes compartilhados
 src/lib/permissoes.ts  o que cada perfil vê no menu (a regra real fica na RLS)
-src/lib/supabase/    clientes do navegador e do servidor
-supabase/migrations/ banco versionado (a partir da etapa 2)
+src/app/entrar/      entrada do time (senha), do cliente (link mágico) e "esqueci a senha"
+src/app/auth/confirmar/  destino dos links de e-mail (token_hash + type)
+src/lib/sessao.ts    pessoaAtual(), exigirTime(perfis?), exigirCliente()
+src/lib/supabase/    clientes do navegador, do servidor, admin (service role, só servidor) e middleware
+src/middleware.ts    renova a sessão e manda quem não está logado para /entrar (precisa ficar dentro de src/)
+supabase/migrations/ banco versionado; aplicado no Supabase pelo GitHub Actions (.github/workflows/banco.yml) ao chegar na main
+supabase/tests/      stub-supabase.sql (imitação mínima do Supabase) e rls.sql (um usuário de cada perfil)
 ```
+
+## Banco e acesso
+
+- Toda tabela nova precisa de RLS e de casos em `supabase/tests/rls.sql`. Nunca dar acesso do cliente a tabelas: o portal usa funções do banco
+- Funções `meu_perfil()`, `meu_cliente()`, `e_time()`, `e_gestao()` (sócio ou adm), `e_socio()` nas políticas, sempre como `(select public.e_time())`
+- `anon` não tem acesso a nada no schema public
+- Só entra quem tem linha em `convites`: o gatilho em `auth.users` cria o `profiles` a partir do convite e recusa e-mails sem convite
+- Perfil, cliente e ativo só mudam pelo Sócio (Adm só entre pessoas de cliente), garantido pelo gatilho `proteger_perfil`; sempre sobra pelo menos um Sócio ativo
+- Pessoa desativada (`ativo = false`) perde todo o acesso, mesmo com sessão aberta
+- Links de e-mail usam os modelos do Supabase com `{{ .SiteURL }}/auth/confirmar?token_hash={{ .TokenHash }}&type=...`
 
 ## Decisões tomadas (21 e 22/10/2026)
 
@@ -48,11 +64,12 @@ Desvios ou complementos do SPEC aprovados pela Mayara:
 9. **Regras de etapa no banco (gatilhos):** responsável padrão em conteúdo, `enviado_cliente_em`, Ajuste só volta para Revisão interna, Agendado exige `publicar_em`, todo movimento gera `task_events`
 10. **Rotinas agendadas:** `pg_cron` + `pg_net` do Supabase chamando `/api/cron/*` com `CRON_SECRET` (o cron gratuito da Vercel só roda 1x por dia sem hora exata)
 11. **Menu da Fase 1:** Início, Tarefas, Criação, Central do cliente, Ver como cliente (sócio e adm), Configurações (sócio). Módulos fora da Fase 1 do protótipo não são construídos
+12. **Convites:** tabela `convites` (13ª tabela) guarda nome, perfil e cliente de quem foi convidado; o perfil nasce dela
 
 ## Andamento
 
 - [x] Etapa 1: base do projeto, visual, menu lateral, telas vazias. Publicado e testado na Vercel (projeto `bastidor-obrand`, time `obrand-agency`), deploy automático a cada push na `main`. O `vercel.json` fixa o framework Next.js (sem ele o deploy dava 404) e a região `gru1`
-- [ ] Etapa 2: login e perfis (o layout do time usa uma pessoa fixa, `PESSOA_PROVISORIA`, até aqui)
+- [ ] Etapa 2: login e perfis. Código e 59 testes de RLS prontos; falta configurar o Supabase (modelos de e-mail, SMTP, chaves) e testar com usuários reais
 - [ ] Etapa 3: clientes, contratos e Central do cliente
 - [ ] Etapa 4: tarefas
 - [ ] Etapa 5: início

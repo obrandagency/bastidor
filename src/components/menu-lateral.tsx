@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BotaoSair } from "@/components/botao-sair";
 import { Icone } from "@/components/icone";
 import { Marca } from "@/components/marca";
 import { ROTULO_PERFIL, menuDoPerfil, type PerfilTime } from "@/lib/permissoes";
@@ -50,10 +51,11 @@ export function MenuLateral({ pessoa, children }: { pessoa: Pessoa; children: Re
           <span className="grid h-[26px] w-[26px] flex-none place-items-center rounded-full bg-ink text-[10.5px] font-semibold text-bg">
             {pessoa.iniciais}
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="truncate font-medium">{pessoa.nome}</div>
             <small className="block text-[11.5px] text-rail-muted">{ROTULO_PERFIL[pessoa.perfil]}</small>
           </div>
+          <BotaoSair />
         </div>
       </aside>
 

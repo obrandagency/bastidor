@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
+import { pessoaAtual } from "@/lib/sessao";
 
-export default function Raiz() {
-  redirect("/inicio");
+export default async function Raiz() {
+  const pessoa = await pessoaAtual();
+  if (!pessoa) redirect("/entrar");
+  redirect(pessoa.perfil === "cliente" ? "/portal" : "/inicio");
 }
