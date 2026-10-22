@@ -74,7 +74,7 @@ Desvios ou complementos do SPEC aprovados pela Mayara:
 
 - [x] Etapa 1: base do projeto, visual, menu lateral, telas vazias. Publicado e testado na Vercel (projeto `bastidor-obrand`, time `obrand-agency`), deploy automático a cada push na `main`. O `vercel.json` fixa o framework Next.js (sem ele o deploy dava 404) e a região `iad1` (a mesma do Supabase, us-east-1)
 - [x] Etapa 2: login e perfis. Aprovada em 22/10: Resend (bastidor@obrandagency.com) ligado ao Supabase, modelos de e-mail em português, Mayara entrou como Sócia, e `/verificacao-acesso` deu tudo ✓ para Sócia, Criação (Lucas) e cliente de teste. Os clientes "Cliente Teste A/B" e as pessoas de teste ficam até o piloto e depois são apagados
-- [ ] Etapa 3: clientes, contratos e Central do cliente. Código pronto (lista, cadastro, Central com briefing, tom de voz, identidade, acessos, contrato com "ajustes X de Y" via `ajustes_do_mes()`, atas e pessoas do cliente); falta teste no navegador e cadastrar os clientes reais
+- [x] Etapa 3: clientes, contratos e Central do cliente. Aprovada em 23/10: testada no navegador pela Mayara e clientes reais cadastrados
 - [ ] Etapa 4: tarefas
 - [ ] Etapa 5: início
 - [ ] Etapa 6: criação e portal
