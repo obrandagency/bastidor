@@ -1,15 +1,10 @@
 import Link from "next/link";
-import { IconeQuadrado } from "@/components/icone";
-import { Painel } from "@/components/painel";
-import { Avatar, Miniatura, Prazo } from "@/components/tarefa";
 import { diaDaSemana, diaPorExtenso, diaMes, hojeSP, mesEAno, semanasDoMes, somarDias, somarMes } from "@/lib/datas";
 import { lerIdentidade } from "@/lib/identidade";
 import { urlMarca } from "@/lib/marca";
 import { pensamentoDoDia } from "@/lib/pensamentos";
 import {
-  area,
   dataHoraSP,
-  diasEntre,
   estaAtrasada,
   ETAPAS_CONTEUDO,
   ETAPAS_DEMANDA,
@@ -17,7 +12,6 @@ import {
   PARADAS,
   proximaEtapa,
   rotuloEtapa,
-  rotuloFormato,
 } from "@/lib/dominio/tarefas";
 import { ROTULO_PERFIL } from "@/lib/permissoes";
 import { exigirTime } from "@/lib/sessao";
@@ -26,7 +20,7 @@ import type { Pessoa, Tarefa } from "@/types/banco";
 import { DetalheTarefa, INTERNO } from "../tarefas/detalhe-tarefa";
 import { CabecalhoDia } from "./cabecalho-dia";
 import { CalendarioSemanas, type ItemCalendario } from "./calendario";
-import { CentralAvisos, ConteudosProducao, TarefasPendentes, type AvisoResumo, type ConversaResumo, type TarefaResumo } from "./resumo";
+import { CentralAvisos, ConteudosProducao, TarefasAtrasadas, TarefasPendentes, type AvisoResumo, type ConversaResumo, type TarefaResumo } from "./resumo";
 
 export const metadata = { title: "Início" };
 
@@ -247,30 +241,8 @@ async function Calendario({ mes, time, hoje, link, clienteDe }: Ctx & { mes: str
 // ---------------------------------------------------------------- resumo do dia
 async function Resumo({ eu, hoje, link, clienteDe, pessoaPor }: Ctx & { eu: string }) {
   const supabase = await criarClienteServidor();
-  const [{ data: abertas }, { data: proximas }, { data: followups }, { data: etapasHoje }, { data: avisos }, { data: naoLidas }, { data: canais }, { data: logos }] = await Promise.all([
+  const [{ data: abertas }, { data: avisos }, { data: naoLidas }, { data: canais }, { data: logos }] = await Promise.all([
     supabase.from("tasks").select("*").not("etapa", "in", `(${FINALIZADAS.join(",")})`).order("prazo").returns<Tarefa[]>(),
-    supabase
-      .from("tasks")
-      .select("*")
-      .eq("etapa", "agendado")
-      .gte("publicar_em", new Date().toISOString())
-      .order("publicar_em")
-      .limit(6)
-      .returns<Tarefa[]>(),
-    supabase
-      .from("leads")
-      .select("id, empresa, proximo_passo, proximo_passo_em, responsavel_id")
-      .not("etapa", "in", "(ganho,perdido)")
-      .lte("proximo_passo_em", hoje)
-      .order("proximo_passo_em"),
-    supabase
-      .from("tarefa_etapas")
-      .select("id, nome, prazo, responsavel_id, tasks!inner(id, titulo, client_id, etapa)")
-      .is("feito_em", null)
-      .lte("prazo", hoje)
-      .neq("tasks.etapa", "concluido")
-      .order("prazo")
-      .returns<{ id: string; nome: string; prazo: string; responsavel_id: string | null; tasks: { id: string; titulo: string; client_id: string | null } }[]>(),
     // Central de avisos: avisos não lidos (só os da própria pessoa, pela RLS) e mensagens novas do chat
     supabase.from("notifications").select("id, texto, link, created_at").is("lida_em", null).order("created_at", { ascending: false }).limit(30),
     supabase.rpc("chat_nao_lidas"),
@@ -305,133 +277,14 @@ async function Resumo({ eu, hoje, link, clienteDe, pessoaPor }: Ctx & { eu: stri
   const conversas: ConversaResumo[] = ((naoLidas ?? []) as { canal_id: string; total: number }[])
     .filter((n) => Number(n.total) > 0 && nomeCanal.has(n.canal_id))
     .map((n) => ({ canalId: n.canal_id, canal: nomeCanal.get(n.canal_id)!, novas: Number(n.total) }));
-  const atrasadas = lista.filter((t) => estaAtrasada(t, hoje));
-  const venceHoje = lista.filter((t) => t.prazo === hoje && !PARADAS.includes(t.etapa));
-  const esperando = lista
-    .filter((t) => t.etapa === "cliente")
-    .sort((a, b) => (a.enviado_cliente_em ?? "").localeCompare(b.enviado_cliente_em ?? ""));
-  const emAjuste = lista.filter((t) => t.etapa === "ajuste").length;
 
-  const linha = (t: Tarefa, direita: React.ReactNode) => {
-    const c = clienteDe(t.client_id);
-    const r = t.responsavel_id ? pessoaPor.get(t.responsavel_id) : null;
-    const detalhe = t.tipo === "conteudo" ? rotuloFormato(t.formato) : area(t.area)?.rotulo;
-    return (
-      <Link key={t.id} href={link({ tarefa: t.id })} scroll={false} className="flex min-w-0 items-center gap-3 border-t border-line px-4 py-[11px] first:border-t-0 hover:bg-surface">
-        <Miniatura cor={c.cor} sigla={t.tipo === "demanda" ? area(t.area)?.sigla : undefined} />
-        <div className="min-w-0 flex-1">
-          <div className="font-medium [overflow-wrap:anywhere]">{t.titulo}</div>
-          <div className="text-[12.5px] text-muted">
-            {c.nome} · {detalhe} · {rotuloEtapa(t.etapa)}
-          </div>
-        </div>
-        {r && <Avatar iniciais={r.iniciais} nome={r.nome} foto={r.foto} />}
-        <span className="text-[12px]">{direita}</span>
-      </Link>
-    );
-  };
-  const vazio = (texto: string) => <p className="px-4 py-[18px] text-[13px] text-muted">{texto}</p>;
-
+  // Ordem pedida em 07/11: atrasadas, pendentes, avisos, conteúdos em produção
   return (
-    <>
-      <div className="mb-4">
-        <CentralAvisos avisos={avisosResumo} conversas={conversas} tarefas={minhasUrgentes} />
-      </div>
-      <div className="mb-4">
-        <TarefasPendentes tarefas={lista.filter((t) => t.tipo === "demanda").map(resumo)} etapas={ETAPAS_DEMANDA.filter((e) => e.id !== "concluido")} />
-      </div>
-      <div className="mb-[18px]">
-        <ConteudosProducao conteudos={lista.filter((t) => t.tipo === "conteudo").map(resumo)} etapas={ETAPAS_CONTEUDO.filter((e) => !FINALIZADAS.includes(e.id))} />
-      </div>
-
-      <div className="mb-[18px] grid grid-cols-[repeat(auto-fit,minmax(min(100%,170px),1fr))] gap-3">
-        {(
-          [
-            [lista.length, "tarefas em aberto", "tarefas", "azul"],
-            [atrasadas.length, "atrasadas", "alerta", "vermelho"],
-            [esperando.length, "esperando o cliente", "relogio", "ambar"],
-            [emAjuste, "em ajuste", "criacao", "violeta"],
-          ] as const
-        ).map(([n, rotulo, icone, tom]) => (
-          <div key={rotulo} className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3.5">
-            <IconeQuadrado nome={icone} tom={tom} grande />
-            <div>
-              <b className={`block font-display text-[28px] font-bold leading-[1.1] tabular-nums ${tom === "vermelho" && n > 0 ? "text-bad" : ""}`}>{n}</b>
-              <span className="text-[12.5px] text-muted">{rotulo}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] gap-4">
-        <Painel icone="alerta" tom="vermelho" titulo="Precisa de atenção hoje" semPadding extra={<Link href="/tarefas" className="text-[12.5px] text-muted hover:text-ink">Abrir tarefas</Link>}>
-          {[...atrasadas, ...venceHoje].map((t) => linha(t, <Prazo prazo={t.prazo} etapa={t.etapa} hoje={hoje} />))}
-          {atrasadas.length + venceHoje.length === 0 && vazio("Nada atrasado nem vencendo hoje.")}
-        </Painel>
-
-        <Painel icone="relogio" tom="ambar" titulo="Esperando o cliente" semPadding>
-          {esperando.map((t) => {
-            const dias = t.enviado_cliente_em ? diasEntre(dataHoraSP(t.enviado_cliente_em).data, hoje) : 0;
-            return linha(
-              t,
-              <span className={dias >= 2 ? "font-semibold text-bad" : "text-muted"}>
-                {dias === 0 ? "enviado hoje" : `há ${dias} dia${dias > 1 ? "s" : ""}`}
-              </span>,
-            );
-          })}
-          {esperando.length === 0 && vazio("Nenhum conteúdo com o cliente.")}
-        </Painel>
-
-        {(etapasHoje ?? []).length > 0 && (
-          <Painel icone="lista" tom="violeta" titulo="Etapas de processo para hoje" semPadding>
-            {(etapasHoje ?? []).map((e) => {
-              const r = e.responsavel_id ? pessoaPor.get(e.responsavel_id) : null;
-              const dias = diasEntre(e.prazo, hoje);
-              return (
-                <Link key={e.id} href={link({ tarefa: e.tasks.id })} scroll={false} className="flex min-w-0 items-center gap-3 border-t border-line px-4 py-[11px] first:border-t-0 hover:bg-surface">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium [overflow-wrap:anywhere]">{e.nome}</div>
-                    <div className="text-[12.5px] text-muted">
-                      {clienteDe(e.tasks.client_id).nome} · {e.tasks.titulo}
-                    </div>
-                  </div>
-                  {r && <Avatar iniciais={r.iniciais} nome={r.nome} foto={r.foto} />}
-                  <span className={`text-[12px] font-semibold ${dias > 0 ? "text-bad" : "text-warn"}`}>{dias > 0 ? `Atrasada ${dias}d` : "Hoje"}</span>
-                </Link>
-              );
-            })}
-          </Painel>
-        )}
-
-        {(followups ?? []).length > 0 && (
-          <Painel icone="funil" tom="azul" titulo="Follow-ups do CRM" semPadding extra={<Link href="/crm" className="text-[12.5px] text-muted hover:text-ink">Abrir CRM</Link>}>
-            {(followups ?? []).map((f) => {
-              const r = f.responsavel_id ? pessoaPor.get(f.responsavel_id) : null;
-              const dias = diasEntre(f.proximo_passo_em!, hoje);
-              return (
-                <Link key={f.id} href={`/crm?lead=${f.id}`} className="flex min-w-0 items-center gap-3 border-t border-line px-4 py-[11px] first:border-t-0 hover:bg-surface">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium [overflow-wrap:anywhere]">{f.empresa}</div>
-                    <div className="text-[12.5px] text-muted">{f.proximo_passo ?? "Próximo passo"}</div>
-                  </div>
-                  {r && <Avatar iniciais={r.iniciais} nome={r.nome} foto={r.foto} />}
-                  <span className={`text-[12px] ${dias > 0 ? "font-semibold text-bad" : "font-semibold text-warn"}`}>
-                    {dias > 0 ? `Atrasado ${dias}d` : "Hoje"}
-                  </span>
-                </Link>
-              );
-            })}
-          </Painel>
-        )}
-
-        <Painel icone="calendario" tom="verde" titulo="Próximas publicações" semPadding>
-          {(proximas ?? []).map((t) => {
-            const { data, hora } = dataHoraSP(t.publicar_em);
-            return linha(t, <span className="font-mono">{diaMes(data)} {hora}</span>);
-          })}
-          {!proximas?.length && vazio("Nada agendado.")}
-        </Painel>
-      </div>
-    </>
+    <div className="flex flex-col gap-4">
+      <TarefasAtrasadas tarefas={lista.filter((t) => estaAtrasada(t, hoje)).map(resumo)} />
+      <TarefasPendentes tarefas={lista.filter((t) => t.tipo === "demanda").map(resumo)} etapas={ETAPAS_DEMANDA.filter((e) => e.id !== "concluido")} />
+      <CentralAvisos avisos={avisosResumo} conversas={conversas} tarefas={minhasUrgentes} />
+      <ConteudosProducao conteudos={lista.filter((t) => t.tipo === "conteudo").map(resumo)} etapas={ETAPAS_CONTEUDO.filter((e) => !FINALIZADAS.includes(e.id))} />
+    </div>
   );
 }

@@ -189,6 +189,40 @@ function LinhaTarefa({ t }: { t: TarefaResumo }) {
   );
 }
 
+// ---------------------------------------------------------------- tarefas atrasadas (conteúdos e demandas)
+export function TarefasAtrasadas({ tarefas }: { tarefas: TarefaResumo[] }) {
+  const [busca, setBusca] = useState("");
+  const [minhas, setMinhas] = useState(true);
+  const lista = useMemo(() => filtrar(tarefas, busca, minhas), [tarefas, busca, minhas]);
+
+  return (
+    <section className="rounded-xl border border-line bg-card p-5">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <IconeQuadrado nome="relogio" tom="vermelho" />
+        <h2 className="text-[17px] font-bold">Tarefas atrasadas</h2>
+        <span className={`rounded-full px-2 font-mono text-[12px] ${lista.length ? "bg-bad-soft text-bad" : "bg-surface text-muted"}`}>{lista.length}</span>
+        <span className="flex-1" />
+        <Link href="/tarefas" className="text-[13px] text-muted hover:text-ink">
+          Abrir tarefas →
+        </Link>
+      </div>
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Busca valor={busca} mudar={setBusca} placeholder="Buscar tarefa ou cliente…" />
+        <Escopo minhas={minhas} mudar={setMinhas} rotulo={["Minhas tarefas", "Todo o time"]} />
+      </div>
+      {lista.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 py-6 text-center">
+          <IconeQuadrado nome="relogio" tom="verde" grande />
+          <b className="mt-1 text-[15px]">Nada atrasado!</b>
+          <p className="text-[13.5px] text-muted">{busca ? "Nenhuma tarefa atrasada com essa busca." : minhas ? "Nenhuma tarefa sua passou do prazo." : "Nenhuma tarefa do time passou do prazo."}</p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-line">{lista.map((t) => <LinhaTarefa key={t.id} t={t} />)}</div>
+      )}
+    </section>
+  );
+}
+
 // ---------------------------------------------------------------- tarefas pendentes (demandas abertas)
 export function TarefasPendentes({ tarefas, etapas }: { tarefas: TarefaResumo[]; etapas: { id: Etapa; rotulo: string }[] }) {
   const [busca, setBusca] = useState("");
