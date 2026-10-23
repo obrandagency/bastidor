@@ -15,6 +15,8 @@ import { moverTarefa } from "../tarefas/acoes";
 export type ItemCalendario = {
   chave: string;
   tipo: "tarefa" | "etapa" | "crm";
+  categoria: "conteudo" | "demanda" | "etapa" | "crm"; // para o filtro de tipo
+  clienteId: string | null;
   id: string;
   dia: string;
   pessoaId: string | null;
@@ -138,23 +140,144 @@ function NovoNoDia({ dia }: { dia: DiaCalendario }) {
 
 const GRADE = "grid grid-cols-[128px_repeat(7,minmax(152px,1fr))] md:grid-cols-[180px_repeat(7,minmax(152px,1fr))]";
 
+const TIPOS = [
+  ["", "Todos os tipos"],
+  ["conteudo", "Conteúdos"],
+  ["demanda", "Demandas"],
+  ["etapa", "Etapas de processo"],
+  ["crm", "Follow-ups do CRM"],
+] as const;
+
+const SELETOR = "h-9 min-w-0 rounded-lg border-0 bg-white/15 px-2.5 text-[13px] text-white outline-none [&>option]:text-ink focus:bg-white/25";
+
 export function CalendarioSemanas({
+  mes,
+  navegacao,
   semanas,
-  itens,
-  pessoas,
+  itens: todosItens,
+  pessoas: todasPessoas,
+  clientes,
   abertaInicial,
 }: {
+  mes: string; // "outubro de 2026"
+  navegacao: { anterior: string; atual: string; proximo: string };
   semanas: DiaCalendario[][];
   itens: ItemCalendario[];
   pessoas: PessoaCalendario[];
+  clientes: { id: string; nome: string }[];
   abertaInicial: number;
 }) {
   const [abertas, setAbertas] = useState<number[]>([abertaInicial]);
+  const [busca, setBusca] = useState("");
+  const [pessoa, setPessoa] = useState("");
+  const [cliente, setCliente] = useState("");
+  const [tipo, setTipo] = useState("");
   const alternar = (i: number) => setAbertas((a) => (a.includes(i) ? a.filter((x) => x !== i) : [...a, i]));
   const semDono: PessoaCalendario = { id: "", nome: "Sem responsável", cargo: "", iniciais: "?", foto: null };
+  const todasAbertas = abertas.length === semanas.length;
+
+  // Filtros da barra, aplicados aqui no navegador
+  const termo = busca.trim().toLowerCase();
+  const itens = todosItens.filter(
+    (it) =>
+      (!pessoa || (it.pessoaId ?? "-") === pessoa) &&
+      (!cliente || it.clienteId === cliente) &&
+      (!tipo || it.categoria === tipo) &&
+      (!termo || `${it.titulo} ${it.sub ?? ""} ${it.cliente.nome}`.toLowerCase().includes(termo)),
+  );
+  const pessoas = pessoa && pessoa !== "-" ? todasPessoas.filter((p) => p.id === pessoa) : todasPessoas;
+  const filtrando = !!(termo || pessoa || cliente || tipo);
+  const contagem = (pred: (it: ItemCalendario) => boolean) => itens.filter(pred).length;
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="rounded-xl bg-accent p-3 text-white md:px-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <div className="flex items-center gap-1">
+            <Link href={navegacao.anterior} aria-label="Mês anterior" className="grid h-8 w-8 place-items-center rounded-lg text-[18px] hover:bg-white/15">
+              ‹
+            </Link>
+            <h2 className="min-w-[150px] text-center font-display text-[19px] font-bold first-letter:uppercase">{mes}</h2>
+            <Link href={navegacao.proximo} aria-label="Próximo mês" className="grid h-8 w-8 place-items-center rounded-lg text-[18px] hover:bg-white/15">
+              ›
+            </Link>
+            <Link href={navegacao.atual} className="ml-1 rounded-lg bg-white/15 px-2.5 py-1 text-[12.5px] font-medium hover:bg-white/25">
+              Hoje
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-white/85">
+            <span>
+              <b className="font-mono text-white">{contagem((it) => it.categoria !== "crm")}</b> tarefas
+            </span>
+            <span>
+              <b className="font-mono text-white">{contagem((it) => it.feito)}</b> concluídas
+            </span>
+            <span>
+              <b className="font-mono text-white">{contagem((it) => it.atrasado)}</b> atrasadas
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAbertas(todasAbertas ? [] : semanas.map((_, i) => i))}
+            className="ml-auto rounded-lg bg-white/15 px-3 py-1.5 text-[12.5px] font-medium hover:bg-white/25"
+          >
+            {todasAbertas ? "Fechar todas" : "Abrir todas"}
+          </button>
+        </div>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))_auto]">
+          <label className="relative">
+            <span className="sr-only">Buscar</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 fill-none stroke-white/70" strokeWidth={1.8} strokeLinecap="round">
+              <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4" />
+            </svg>
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar tarefa ou cliente…"
+              className={`${SELETOR} w-full pl-8 placeholder:text-white/65`}
+            />
+          </label>
+          <select aria-label="Pessoa" value={pessoa} onChange={(e) => setPessoa(e.target.value)} className={SELETOR}>
+            <option value="">Todo o time</option>
+            {todasPessoas.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
+            ))}
+            <option value="-">Sem responsável</option>
+          </select>
+          <select aria-label="Cliente" value={cliente} onChange={(e) => setCliente(e.target.value)} className={SELETOR}>
+            <option value="">Todos os clientes</option>
+            {clientes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nome}
+              </option>
+            ))}
+          </select>
+          <select aria-label="Tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} className={SELETOR}>
+            {TIPOS.map(([v, r]) => (
+              <option key={v} value={v}>
+                {r}
+              </option>
+            ))}
+          </select>
+          {filtrando && (
+            <button
+              type="button"
+              onClick={() => {
+                setBusca("");
+                setPessoa("");
+                setCliente("");
+                setTipo("");
+              }}
+              className="h-9 rounded-lg px-3 text-[12.5px] font-medium text-white/85 hover:bg-white/15 hover:text-white"
+            >
+              Limpar filtros
+            </button>
+          )}
+        </div>
+      </div>
+
       {semanas.map((dias, i) => {
         const daSemana = itens.filter((it) => dias.some((d) => d.iso === it.dia));
         const aberta = abertas.includes(i);
@@ -173,12 +296,7 @@ export function CalendarioSemanas({
                   <span className={`text-muted transition-transform ${aberta ? "rotate-180" : ""}`} aria-hidden="true">
                     ⌄
                   </span>
-                  <span>
-                    <b className="block text-[15px] font-semibold">Semana {String(i + 1).padStart(2, "0")}</b>
-                    <small className="text-[12px] text-muted">
-                      {dias[0].data.split(" de ")[0]}/{dias[0].iso.slice(5, 7)} a {dias[6].data.split(" de ")[0]}/{dias[6].iso.slice(5, 7)}
-                    </small>
-                  </span>
+                  <b className="whitespace-nowrap text-[15px] font-semibold">Semana {String(i + 1).padStart(2, "0")}</b>
                 </button>
                 {dias.map((d) => {
                   const n = daSemana.filter((it) => it.dia === d.iso).length;

@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { IconeQuadrado } from "@/components/icone";
-import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { Painel } from "@/components/painel";
 import { Avatar, Miniatura, Prazo } from "@/components/tarefa";
-import { diaDaSemana, diaPorExtenso, diaMes, hojeSP, mesEAno, saudacao, semanasDoMes, somarDias, somarMes } from "@/lib/datas";
+import { diaDaSemana, diaPorExtenso, diaMes, hojeSP, mesEAno, semanasDoMes, somarDias, somarMes } from "@/lib/datas";
+import { lerIdentidade } from "@/lib/identidade";
+import { urlMarca } from "@/lib/marca";
+import { pensamentoDoDia } from "@/lib/pensamentos";
 import {
   area,
   dataHoraSP,
   diasEntre,
   estaAtrasada,
+  ETAPAS_CONTEUDO,
+  ETAPAS_DEMANDA,
   FINALIZADAS,
   PARADAS,
   proximaEtapa,
@@ -20,56 +24,64 @@ import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Pessoa, Tarefa } from "@/types/banco";
 import { DetalheTarefa, INTERNO } from "../tarefas/detalhe-tarefa";
+import { CabecalhoDia } from "./cabecalho-dia";
 import { CalendarioSemanas, type ItemCalendario } from "./calendario";
+import { CentralAvisos, ConteudosProducao, TarefasPendentes, type AvisoResumo, type ConversaResumo, type TarefaResumo } from "./resumo";
 
 export const metadata = { title: "Início" };
 
-type Busca = { aba?: string; mes?: string; pessoa?: string; tarefa?: string };
+type Busca = { aba?: string; mes?: string; tarefa?: string };
 type Ctx = {
   hoje: string;
   link: (mudar: Partial<Busca>) => string;
   clienteDe: (id: string | null) => { nome: string; nome_curto: string; cor: string };
   pessoaPor: Map<string, Pessoa>;
 };
-type Cliente = { id: string; nome: string; nome_curto: string; cor: string };
+type Cliente = { id: string; nome: string; nome_curto: string; cor: string; logo: string | null };
 
 export default async function Inicio({ searchParams }: { searchParams: Promise<Busca> }) {
   const eu = await exigirTime();
   const busca = await searchParams;
   const hoje = hojeSP();
-  const aba = busca.aba === "resumo" ? "resumo" : "cal";
+  // Resumo do dia é a aba padrão; "mensal" abre as semanas do mês
+  const aba = busca.aba === "mensal" ? "mensal" : "resumo";
   const mes = /^\d{4}-\d{2}$/.test(busca.mes ?? "") ? busca.mes! : hoje.slice(0, 7);
   const supabase = await criarClienteServidor();
 
   const link = (mudar: Partial<Busca>) => {
     const p = new URLSearchParams();
-    const final = { aba: aba === "resumo" ? "resumo" : undefined, mes: busca.mes, pessoa: busca.pessoa, ...mudar };
+    const final = { aba: aba === "mensal" ? "mensal" : undefined, mes: busca.mes, ...mudar };
     Object.entries(final).forEach(([k, v]) => v && p.set(k, v));
     const q = p.toString();
     return q ? `/inicio?${q}` : "/inicio";
   };
 
-  const [{ data: clientes }, { data: time }] = await Promise.all([
-    supabase.from("clients").select("id, nome, nome_curto, cor").returns<Cliente[]>(),
+  const [{ data: clientes }, { data: time }, identidade] = await Promise.all([
+    supabase.from("clients").select("id, nome, nome_curto, cor, logo").returns<Cliente[]>(),
     supabase.from("profiles").select("*").neq("perfil", "cliente").eq("ativo", true).order("nome").returns<Pessoa[]>(),
+    lerIdentidade(),
   ]);
   const clientePor = new Map((clientes ?? []).map((c) => [c.id, c]));
   const pessoaPor = new Map((time ?? []).map((p) => [p.id, p]));
   const clienteDe = (id: string | null) => (id ? clientePor.get(id) : null) ?? INTERNO;
   const ctx = { hoje, link, clienteDe, pessoaPor };
+  const { diaSemana } = diaDaSemana(hoje);
 
   return (
     <>
-      <CabecalhoPagina
-        sobretitulo={diaPorExtenso(hoje)}
-        titulo={`${saudacao()}, ${eu.nome.split(" ")[0]}`}
-        descricao={aba === "cal" ? "Cada semana do mês, com o que cada pessoa tem em cada dia." : "Resumo da operação da agência hoje."}
+      <CabecalhoDia
+        nome={eu.nome.split(" ")[0]}
+        diaSemana={diaSemana}
+        data={`${diaPorExtenso(hoje).split(", ")[1]} de ${hoje.slice(0, 4)}`}
+        pensamento={pensamentoDoDia(hoje)}
+        logo={urlMarca(identidade.logo)}
+        agencia={identidade.nome_agencia}
       />
       <div role="tablist" className="mb-[18px] inline-flex flex-wrap gap-0.5 rounded-[9px] bg-surface p-[3px]">
         {(
           [
-            ["cal", "Semanas do mês", link({ aba: undefined })],
-            ["resumo", "Resumo do dia", link({ aba: "resumo" })],
+            ["resumo", "Resumo do dia", link({ aba: undefined })],
+            ["mensal", "Mensal", link({ aba: "mensal" })],
           ] as const
         ).map(([id, rotulo, href]) => (
           <Link
@@ -77,7 +89,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<B
             role="tab"
             aria-selected={aba === id}
             href={href}
-            className={`rounded-[7px] px-3 py-[5px] text-[12.5px] font-medium ${
+            className={`rounded-[7px] px-3.5 py-[6px] text-[13px] font-medium ${
               aba === id ? "bg-card text-ink shadow-[0_1px_3px_rgba(0,0,0,.08)]" : "text-muted hover:text-ink"
             }`}
           >
@@ -86,7 +98,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<B
         ))}
       </div>
 
-      {aba === "cal" ? <Calendario mes={mes} pessoa={busca.pessoa} time={time ?? []} {...ctx} /> : <Resumo {...ctx} />}
+      {aba === "mensal" ? <Calendario mes={mes} time={time ?? []} {...ctx} /> : <Resumo eu={eu.id} {...ctx} />}
 
       {busca.tarefa && (
         <DetalheTarefa id={busca.tarefa} fechar={link({ tarefa: undefined })} podeExcluir={eu.perfil === "socio" || eu.perfil === "adm"} />
@@ -96,7 +108,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<B
 }
 
 // ---------------------------------------------------------------- calendário do mês, por semanas
-async function Calendario({ mes, pessoa, time, hoje, link, clienteDe, pessoaPor }: Ctx & { mes: string; pessoa?: string; time: Pessoa[] }) {
+async function Calendario({ mes, time, hoje, link, clienteDe }: Ctx & { mes: string; time: Pessoa[] }) {
   const supabase = await criarClienteServidor();
   const semanas = semanasDoMes(mes);
   const inicio = semanas[0][0];
@@ -153,6 +165,8 @@ async function Calendario({ mes, pessoa, time, hoje, link, clienteDe, pessoaPor 
       return {
         chave: `t${t.id}`,
         tipo: "tarefa",
+        categoria: t.tipo,
+        clienteId: t.client_id,
         id: t.id,
         dia: diaDe(t)!,
         pessoaId: t.responsavel_id,
@@ -170,6 +184,8 @@ async function Calendario({ mes, pessoa, time, hoje, link, clienteDe, pessoaPor 
       (e): ItemCalendario => ({
         chave: `e${e.id}`,
         tipo: "etapa",
+        categoria: "etapa",
+        clienteId: e.tasks.client_id,
         id: e.id,
         dia: e.prazo,
         pessoaId: e.responsavel_id,
@@ -186,6 +202,8 @@ async function Calendario({ mes, pessoa, time, hoje, link, clienteDe, pessoaPor 
       (l): ItemCalendario => ({
         chave: `l${l.id}`,
         tipo: "crm",
+        categoria: "crm",
+        clienteId: null,
         id: l.id,
         dia: l.proximo_passo_em as string,
         pessoaId: l.responsavel_id,
@@ -196,78 +214,40 @@ async function Calendario({ mes, pessoa, time, hoje, link, clienteDe, pessoaPor 
         href: `/crm?lead=${l.id}`,
       }),
     ),
-  ].filter((it) => !pessoa || it.pessoaId === pessoa);
+  ];
 
   const dias = semanas.map((sem) => sem.map((iso) => ({ iso, ...diaDaSemana(iso), doMes: iso.startsWith(mes), hoje: iso === hoje })));
   const semanaDeHoje = semanas.findIndex((sem) => sem.includes(hoje));
-  const pessoas = (pessoa ? time.filter((p) => p.id === pessoa) : time).map((p) => ({
+  const pessoas = time.map((p) => ({
     id: p.id,
     nome: p.nome,
     cargo: p.cargo || ROTULO_PERFIL[p.perfil],
     iniciais: p.iniciais,
     foto: p.foto,
   }));
-  const tarefasDoMes = tarefas.filter((t) => diaDe(t)!.startsWith(mes));
-  const contagem = (id: string) => tarefasDoMes.filter((t) => t.responsavel_id === id).length;
-  const atrasadas = itens.filter((it) => it.atrasado && it.tipo !== "crm").length;
-  const botaoPessoa = "inline-flex items-center gap-[7px] rounded-full border px-3 py-1 text-[12.5px]";
+  // Clientes que aparecem no mês (para o filtro da barra)
+  const clientesDoMes = [...new Map(itens.filter((it) => it.clienteId).map((it) => [it.clienteId!, it.cliente.nome])).entries()]
+    .map(([id, nome]) => ({ id, nome }))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
 
   return (
-    <>
-      <div className="mb-3.5 flex flex-wrap gap-2">
-        <Link href={link({ pessoa: undefined })} className={`${botaoPessoa} ${!pessoa ? "border-accent bg-accent-soft font-semibold" : "border-line bg-card hover:border-muted"}`}>
-          Todo o time · {tarefasDoMes.length}
-        </Link>
-        {time.map((p) => (
-          <Link
-            key={p.id}
-            href={link({ pessoa: p.id })}
-            className={`${botaoPessoa} !pl-1 ${pessoa === p.id ? "border-accent bg-accent-soft font-semibold" : "border-line bg-card hover:border-muted"}`}
-          >
-            <Avatar iniciais={p.iniciais} foto={p.foto} classe="h-[22px] w-[22px] text-[9px]" />
-            {p.nome.split(" ")[0]} · {contagem(p.id)}
-          </Link>
-        ))}
-      </div>
-
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5">
-        <div>
-          <h2 className="text-[18px] font-bold capitalize">{mesEAno(mes)}</h2>
-          <div className="text-[12.5px] text-muted">
-            {tarefasDoMes.length} tarefa{tarefasDoMes.length === 1 ? "" : "s"} no mês
-            {pessoa && pessoaPor.get(pessoa) ? ` com ${pessoaPor.get(pessoa)!.nome}` : ""}
-            {atrasadas > 0 && (
-              <span className="font-semibold text-bad">
-                {" "}
-                · {atrasadas} atrasada{atrasadas > 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex gap-1.5">
-          {(
-            [
-              ["‹", "Mês anterior", somarMes(mes, -1)],
-              ["Hoje", "Mês atual", undefined],
-              ["›", "Próximo mês", somarMes(mes, 1)],
-            ] as const
-          ).map(([rotulo, aria, alvo]) => (
-            <Link key={aria} href={link({ mes: alvo })} aria-label={aria} className="rounded-lg border border-line bg-card px-2.5 py-[5px] text-[12.5px] font-medium hover:border-ink">
-              {rotulo}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <CalendarioSemanas key={`${mes}-${pessoa ?? ""}`} semanas={dias} itens={itens} pessoas={pessoas} abertaInicial={semanaDeHoje >= 0 ? semanaDeHoje : 0} />
-    </>
+    <CalendarioSemanas
+      key={mes}
+      mes={mesEAno(mes)}
+      navegacao={{ anterior: link({ mes: somarMes(mes, -1) }), atual: link({ mes: undefined }), proximo: link({ mes: somarMes(mes, 1) }) }}
+      semanas={dias}
+      itens={itens}
+      pessoas={pessoas}
+      clientes={clientesDoMes}
+      abertaInicial={semanaDeHoje >= 0 ? semanaDeHoje : 0}
+    />
   );
 }
 
 // ---------------------------------------------------------------- resumo do dia
-async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
+async function Resumo({ eu, hoje, link, clienteDe, pessoaPor }: Ctx & { eu: string }) {
   const supabase = await criarClienteServidor();
-  const [{ data: abertas }, { data: proximas }, { data: followups }, { data: etapasHoje }] = await Promise.all([
+  const [{ data: abertas }, { data: proximas }, { data: followups }, { data: etapasHoje }, { data: avisos }, { data: naoLidas }, { data: canais }, { data: logos }] = await Promise.all([
     supabase.from("tasks").select("*").not("etapa", "in", `(${FINALIZADAS.join(",")})`).order("prazo").returns<Tarefa[]>(),
     supabase
       .from("tasks")
@@ -291,8 +271,40 @@ async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
       .neq("tasks.etapa", "concluido")
       .order("prazo")
       .returns<{ id: string; nome: string; prazo: string; responsavel_id: string | null; tasks: { id: string; titulo: string; client_id: string | null } }[]>(),
+    // Central de avisos: avisos não lidos (só os da própria pessoa, pela RLS) e mensagens novas do chat
+    supabase.from("notifications").select("id, texto, link, created_at").is("lida_em", null).order("created_at", { ascending: false }).limit(30),
+    supabase.rpc("chat_nao_lidas"),
+    supabase.from("chat_canais").select("id, nome"),
+    supabase.from("clients").select("id, logo"),
   ]);
   const lista = abertas ?? [];
+  const logoDe = new Map((logos ?? []).map((c) => [c.id, c.logo as string | null]));
+  const nomeCanal = new Map((canais ?? []).map((c) => [c.id, c.nome as string]));
+  const resumo = (t: Tarefa): TarefaResumo => {
+    const c = clienteDe(t.client_id);
+    const r = t.responsavel_id ? pessoaPor.get(t.responsavel_id) : null;
+    return {
+      id: t.id,
+      titulo: t.titulo,
+      cliente: { nome: c.nome, cor: c.cor, logo: t.client_id ? (logoDe.get(t.client_id) ?? null) : null },
+      etapa: t.etapa,
+      prazo: t.prazo ? diaMes(t.prazo) : null,
+      atrasada: estaAtrasada(t, hoje),
+      minha: t.responsavel_id === eu,
+      resp: r ? { nome: r.nome, iniciais: r.iniciais, foto: r.foto } : null,
+      href: link({ tarefa: t.id }),
+    };
+  };
+  const minhasUrgentes = lista
+    .filter((t) => t.responsavel_id === eu && !PARADAS.includes(t.etapa) && !!t.prazo && t.prazo <= hoje)
+    .map(resumo);
+  const avisosResumo: AvisoResumo[] = (avisos ?? []).map((a) => {
+    const { data, hora } = dataHoraSP(a.created_at);
+    return { id: a.id, texto: a.texto, link: a.link, quando: data === hoje ? hora : `${diaMes(data)} ${hora}` };
+  });
+  const conversas: ConversaResumo[] = ((naoLidas ?? []) as { canal_id: string; total: number }[])
+    .filter((n) => Number(n.total) > 0 && nomeCanal.has(n.canal_id))
+    .map((n) => ({ canalId: n.canal_id, canal: nomeCanal.get(n.canal_id)!, novas: Number(n.total) }));
   const atrasadas = lista.filter((t) => estaAtrasada(t, hoje));
   const venceHoje = lista.filter((t) => t.prazo === hoje && !PARADAS.includes(t.etapa));
   const esperando = lista
@@ -322,6 +334,16 @@ async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
 
   return (
     <>
+      <div className="mb-4">
+        <CentralAvisos avisos={avisosResumo} conversas={conversas} tarefas={minhasUrgentes} />
+      </div>
+      <div className="mb-4">
+        <TarefasPendentes tarefas={lista.filter((t) => t.tipo === "demanda").map(resumo)} etapas={ETAPAS_DEMANDA.filter((e) => e.id !== "concluido")} />
+      </div>
+      <div className="mb-[18px]">
+        <ConteudosProducao conteudos={lista.filter((t) => t.tipo === "conteudo").map(resumo)} etapas={ETAPAS_CONTEUDO.filter((e) => !FINALIZADAS.includes(e.id))} />
+      </div>
+
       <div className="mb-[18px] grid grid-cols-[repeat(auto-fit,minmax(min(100%,170px),1fr))] gap-3">
         {(
           [
