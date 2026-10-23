@@ -645,6 +645,28 @@ select testes.ok((select concluido_em is null and quando > now() from public.lem
 reset role;
 select set_config('request.jwt.claims', '', true);
 
+-- ---------------------------------------------------------------- chat: reações, encaminhar, tarefa
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+insert into public.tasks (id, tipo, area, titulo, etapa) values ('00000000-0000-0000-0000-000000abc3a9', 'demanda', 'interno', 'Proposta Ótica', 'a_fazer');
+insert into public.chat_mensagens (id, canal_id, autor_id, texto)
+  values ('00000000-0000-0000-0000-000000abc3a1', (select id from public.chat_canais where nome = 'geral'), auth.uid(), 'Vejam #[Proposta Ótica](00000000-0000-0000-0000-000000abc3a9) hoje');
+select testes.ok(testes.conta($$select * from public.chat_tarefas where task_id = '00000000-0000-0000-0000-000000abc3a9'$$) = 1, 'chat: menção de tarefa fica ligada à tarefa');
+insert into public.chat_reacoes (mensagem_id, emoji) values ('00000000-0000-0000-0000-000000abc3a1', '👍');
+select testes.recusa($$insert into public.chat_reacoes (mensagem_id, pessoa_id, emoji) values ('00000000-0000-0000-0000-000000abc3a1', '00000000-0000-0000-0000-000000000002', '❤️')$$, 'chat: não reage em nome de outra pessoa');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.chat_reacoes') = 1, 'chat: time vê as reações');
+select testes.recusa($$delete from public.chat_reacoes$$, 'chat: não tira a reação de outra pessoa');
+insert into public.chat_canais (id, nome) values ('00000000-0000-0000-0000-000000abc3c1', 'criacao-teste');
+insert into public.chat_mensagens (id, canal_id, autor_id, texto, encaminhada_de, encaminhada)
+  values ('00000000-0000-0000-0000-000000abc3a2', '00000000-0000-0000-0000-000000abc3c1', auth.uid(), 'texto forjado', '00000000-0000-0000-0000-000000abc3a1', '{"autor":"Falso"}');
+select testes.ok((select texto like 'Vejam%' and encaminhada ->> 'autor' = 'Criação' and encaminhada ->> 'canal' = 'geral' from public.chat_mensagens where id = '00000000-0000-0000-0000-000000abc3a2'),
+  'chat: encaminhada copia texto e origem da original (não dá para forjar)');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.chat_reacoes') = 0 and testes.conta('select * from public.chat_tarefas') = 0, 'chat: cliente não vê reações nem menções');
+reset role;
+select testes.ok((select 'audio/webm' = any (allowed_mime_types) from storage.buckets where id = 'chat'), 'chat: aceita áudio');
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (

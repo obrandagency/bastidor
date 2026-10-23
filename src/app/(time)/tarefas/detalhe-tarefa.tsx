@@ -24,7 +24,17 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
     supabase.from("tarefa_etapas").select("id, nome, responsavel_id, prazo, feito_em, feito_por").eq("task_id", id).order("ordem").order("created_at"),
     supabase.from("processos").select("id, nome").eq("ativo", true).order("nome"),
   ]);
-  const { data: roteiros } = await supabase.from("roteiros").select("id, titulo").eq("task_id", id).order("created_at");
+  const [{ data: roteiros }, { data: conversas }] = await Promise.all([
+    supabase.from("roteiros").select("id, titulo").eq("task_id", id).order("created_at"),
+    // Mensagens do chat que mencionaram esta tarefa com #
+    supabase
+      .from("chat_tarefas")
+      .select("chat_mensagens!inner(id, texto, autor_nome, created_at, canal_id, chat_canais(nome))")
+      .eq("task_id", id)
+      .limit(20)
+      .returns<{ chat_mensagens: { id: string; texto: string; autor_nome: string | null; created_at: string; canal_id: string; chat_canais: { nome: string } | null } }[]>(),
+  ]);
+  const mencoes = (conversas ?? []).map((c) => c.chat_mensagens).sort((a, b) => b.created_at.localeCompare(a.created_at));
   if (!t) notFound();
   const c = (t.client_id && (todos ?? []).find((x) => x.id === t.client_id)) || INTERNO;
   const ajustes = (eventos ?? []).filter((e) => e.origem === "cliente" && e.para_etapa === "ajuste").length;
@@ -92,6 +102,27 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
         ))}
 
       <Comentarios taskId={t.id} notas={notas ?? []} autores={autores} />
+
+      {mencoes.length > 0 && (
+        <div>
+          <div className="mb-2 text-[11.5px] uppercase tracking-[0.04em] text-muted">Conversas sobre esta tarefa</div>
+          <ul className="flex flex-col gap-1.5">
+            {mencoes.map((m) => {
+              const { data, hora } = dataHoraSP(m.created_at);
+              return (
+                <li key={m.id}>
+                  <Link href={`/chat?canal=${m.canal_id}`} className="block rounded-lg border border-line px-3 py-2 text-[12.5px] hover:border-muted">
+                    <span className="text-muted">
+                      #{m.chat_canais?.nome} · {m.autor_nome ?? "Alguém"} · {dataBR(data).slice(0, 5)} {hora}
+                    </span>
+                    <span className="mt-0.5 line-clamp-2 block [overflow-wrap:anywhere]">{m.texto.replace(/#\[([^\]]*)\]\([0-9a-f-]{36}\)/g, "#$1")}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <div>
         <div className="mb-2 text-[11.5px] uppercase tracking-[0.04em] text-muted">Histórico</div>

@@ -177,7 +177,7 @@ export type EventoLead = {
   created_at: string;
 };
 
-export type Anexo = { caminho: string; nome: string; tipo: string; tamanho: number };
+export type Anexo = { caminho: string; nome: string; tipo: string; tamanho: number; duracao?: number }; // duracao: segundos (áudio)
 
 export type CanalChat = { id: string; nome: string; client_id: string | null; arquivado: boolean };
 
@@ -190,4 +190,8 @@ export type MensagemChat = {
   anexos: Anexo[];
   editada_em: string | null;
   created_at: string;
+  encaminhada_de?: string | null;
+  encaminhada?: { canal: string; autor: string | null } | null;
 };
+
+export type ReacaoChat = { mensagem_id: string; pessoa_id: string; emoji: string };

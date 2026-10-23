@@ -44,9 +44,54 @@ export async function apagarMensagem(id: string): Promise<Estado> {
   const { data: msg } = await supabase.from("chat_mensagens").select("anexos").eq("id", id).maybeSingle();
   const { error, count } = await supabase.from("chat_mensagens").delete({ count: "exact" }).eq("id", id);
   if (error || !count) return { erro: "Não foi possível apagar." };
-  const caminhos = ((msg?.anexos ?? []) as Anexo[]).map((a) => a.caminho);
+  // Só apaga o arquivo se nenhuma outra mensagem (encaminhada) usar o mesmo anexo
+  const caminhos: string[] = [];
+  for (const a of (msg?.anexos ?? []) as Anexo[]) {
+    const { count: usos } = await supabase.from("chat_mensagens").select("id", { count: "exact", head: true }).contains("anexos", [{ caminho: a.caminho }]);
+    if (!usos) caminhos.push(a.caminho);
+  }
   if (caminhos.length) await supabase.storage.from(BUCKET_CHAT).remove(caminhos);
   return { ok: "Apagada." };
+}
+
+// Reação com emoji: liga ou desliga a minha
+export async function reagir(mensagemId: string, emoji: string, ligar: boolean): Promise<Estado> {
+  const eu = await exigirTimeAcao();
+  if (!eu) return { erro: "Sem permissão." };
+  if (!emoji || emoji.length > 16) return { erro: "Emoji inválido." };
+  const supabase = await criarClienteServidor();
+  const { error } = ligar
+    ? await supabase.from("chat_reacoes").upsert({ mensagem_id: mensagemId, pessoa_id: eu.id, emoji }, { ignoreDuplicates: true })
+    : await supabase.from("chat_reacoes").delete().match({ mensagem_id: mensagemId, pessoa_id: eu.id, emoji });
+  if (error) return { erro: "Não foi possível reagir." };
+  return undefined;
+}
+
+// Encaminhar para outro canal (o banco copia texto, anexos e a origem); o comentário vai antes, como mensagem minha
+export async function encaminhar(mensagemId: string, canalId: string, comentario: string): Promise<Estado> {
+  const eu = await exigirTimeAcao();
+  if (!eu) return { erro: "Sem permissão." };
+  if (comentario.length > 4000) return { erro: "Comentário muito longo." };
+  const supabase = await criarClienteServidor();
+  if (comentario.trim()) {
+    const { error } = await supabase.from("chat_mensagens").insert({ canal_id: canalId, autor_id: eu.id, texto: comentario.trim() });
+    if (error) return { erro: "Não foi possível encaminhar." };
+  }
+  const { error } = await supabase.from("chat_mensagens").insert({ canal_id: canalId, autor_id: eu.id, encaminhada_de: mensagemId });
+  if (error) return { erro: "Não foi possível encaminhar." };
+  revalidatePath("/chat");
+  return { ok: "Encaminhada." };
+}
+
+// Busca de tarefas para mencionar com # (título ou cliente)
+export async function buscarTarefas(termo: string): Promise<{ id: string; titulo: string; cliente: string }[]> {
+  if (!(await exigirTimeAcao())) return [];
+  const supabase = await criarClienteServidor();
+  const t = termo.trim().replace(/[%_,()]/g, " ").slice(0, 40);
+  let consulta = supabase.from("tasks").select("id, titulo, clients(nome)").order("updated_at", { ascending: false }).limit(8);
+  if (t) consulta = consulta.ilike("titulo", `%${t}%`);
+  const { data } = await consulta.returns<{ id: string; titulo: string; clients: { nome: string } | null }[]>();
+  return (data ?? []).map((x) => ({ id: x.id, titulo: x.titulo, cliente: x.clients?.nome ?? "Interno" }));
 }
 
 export async function marcarLido(canalId: string) {

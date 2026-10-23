@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
-import type { CanalChat, MensagemChat } from "@/types/banco";
+import type { CanalChat, MensagemChat, ReacaoChat } from "@/types/banco";
 import { ArquivarCanal, NovoCanal } from "./canais";
 import { Conversa } from "./conversa";
 
@@ -30,12 +30,13 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ c
   const { data: mensagens } = atual
     ? await supabase
         .from("chat_mensagens")
-        .select("*")
+        .select("*, chat_reacoes(mensagem_id, pessoa_id, emoji)")
         .eq("canal_id", atual.id)
         .order("created_at", { ascending: false })
         .limit(150)
-        .returns<MensagemChat[]>()
-    : { data: [] as MensagemChat[] };
+        .returns<(MensagemChat & { chat_reacoes: ReacaoChat[] })[]>()
+    : { data: [] as (MensagemChat & { chat_reacoes: ReacaoChat[] })[] };
+  const reacoes = (mensagens ?? []).flatMap((m) => m.chat_reacoes ?? []);
 
   return (
     <>
@@ -76,7 +77,13 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ c
               key={atual.id}
               canalId={atual.id}
               titulo={`#${atual.nome}`}
-              iniciais={[...(mensagens ?? [])].reverse()}
+              iniciais={[...(mensagens ?? [])].reverse().map((m) => {
+                const so = { ...m } as Partial<typeof m>;
+                delete so.chat_reacoes; // as reações vão à parte
+                return so as MensagemChat;
+              })}
+              reacoesIniciais={reacoes}
+              canais={canais.map((c) => ({ id: c.id, nome: c.nome }))}
               eu={eu.id}
               podeApagarTudo={eu.perfil === "socio"}
               pessoas={pessoas ?? []}
