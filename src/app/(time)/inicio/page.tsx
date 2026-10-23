@@ -3,7 +3,7 @@ import { IconeQuadrado } from "@/components/icone";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { Painel } from "@/components/painel";
 import { Avatar, Miniatura, Prazo } from "@/components/tarefa";
-import { diaPorExtenso, diaMes, hojeSP, saudacao, somarMes } from "@/lib/datas";
+import { diaDaSemana, diaPorExtenso, diaMes, hojeSP, mesEAno, saudacao, semanasDoMes, somarDias, somarMes } from "@/lib/datas";
 import {
   area,
   dataHoraSP,
@@ -11,18 +11,26 @@ import {
   estaAtrasada,
   FINALIZADAS,
   PARADAS,
+  proximaEtapa,
   rotuloEtapa,
   rotuloFormato,
 } from "@/lib/dominio/tarefas";
+import { ROTULO_PERFIL } from "@/lib/permissoes";
 import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Pessoa, Tarefa } from "@/types/banco";
 import { DetalheTarefa, INTERNO } from "../tarefas/detalhe-tarefa";
-import { VistaCalendario, type Ctx } from "./calendario";
+import { CalendarioSemanas, type ItemCalendario } from "./calendario";
 
 export const metadata = { title: "Início" };
 
 type Busca = { aba?: string; mes?: string; pessoa?: string; tarefa?: string };
+type Ctx = {
+  hoje: string;
+  link: (mudar: Partial<Busca>) => string;
+  clienteDe: (id: string | null) => { nome: string; nome_curto: string; cor: string };
+  pessoaPor: Map<string, Pessoa>;
+};
 type Cliente = { id: string; nome: string; nome_curto: string; cor: string };
 
 export default async function Inicio({ searchParams }: { searchParams: Promise<Busca> }) {
@@ -55,12 +63,12 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<B
       <CabecalhoPagina
         sobretitulo={diaPorExtenso(hoje)}
         titulo={`${saudacao()}, ${eu.nome.split(" ")[0]}`}
-        descricao={aba === "cal" ? "Todas as demandas do mês e quem está com cada uma." : "Resumo da operação da agência hoje."}
+        descricao={aba === "cal" ? "Cada semana do mês, com o que cada pessoa tem em cada dia." : "Resumo da operação da agência hoje."}
       />
       <div role="tablist" className="mb-[18px] inline-flex flex-wrap gap-0.5 rounded-[9px] bg-surface p-[3px]">
         {(
           [
-            ["cal", "Calendário do mês", link({ aba: undefined })],
+            ["cal", "Semanas do mês", link({ aba: undefined })],
             ["resumo", "Resumo do dia", link({ aba: "resumo" })],
           ] as const
         ).map(([id, rotulo, href]) => (
@@ -87,70 +95,172 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<B
   );
 }
 
-// ---------------------------------------------------------------- calendário do mês
+// ---------------------------------------------------------------- calendário do mês, por semanas
 async function Calendario({ mes, pessoa, time, hoje, link, clienteDe, pessoaPor }: Ctx & { mes: string; pessoa?: string; time: Pessoa[] }) {
   const supabase = await criarClienteServidor();
-  const inicio = `${mes}-01`;
-  const proximo = `${somarMes(mes, 1)}-01`;
-  // Cada demanda aparece no dia do prazo, ou no dia da publicação se já estiver agendada
-  const [{ data: porPrazo }, { data: porPublicacao }] = await Promise.all([
-    supabase.from("tasks").select("*").gte("prazo", inicio).lt("prazo", proximo).returns<Tarefa[]>(),
+  const semanas = semanasDoMes(mes);
+  const inicio = semanas[0][0];
+  const fim = semanas[semanas.length - 1][6];
+  const depois = somarDias(fim, 1);
+  // Cada tarefa aparece no dia do prazo, ou no dia da publicação se já estiver agendada
+  const [{ data: porPrazo }, { data: porPublicacao }, { data: leads }, { data: etapasDoMes }, { data: logos }] = await Promise.all([
+    supabase.from("tasks").select("*").gte("prazo", inicio).lte("prazo", fim).returns<Tarefa[]>(),
     supabase
       .from("tasks")
       .select("*")
       .eq("etapa", "agendado")
       .gte("publicar_em", `${inicio}T00:00:00-03:00`)
-      .lt("publicar_em", `${proximo}T00:00:00-03:00`)
+      .lt("publicar_em", `${depois}T00:00:00-03:00`)
       .returns<Tarefa[]>(),
+    supabase
+      .from("leads")
+      .select("id, empresa, proximo_passo, proximo_passo_em, responsavel_id")
+      .not("etapa", "in", "(ganho,perdido)")
+      .gte("proximo_passo_em", inicio)
+      .lte("proximo_passo_em", fim),
+    // Etapas de processo aparecem no dia do prazo delas, para quem é o responsável da etapa
+    supabase
+      .from("tarefa_etapas")
+      .select("id, nome, prazo, responsavel_id, feito_em, tasks!inner(id, titulo, client_id, tipo)")
+      .gte("prazo", inicio)
+      .lte("prazo", fim)
+      .returns<{ id: string; nome: string; prazo: string; responsavel_id: string | null; feito_em: string | null; tasks: { id: string; titulo: string; client_id: string | null; tipo: string } }[]>(),
+    supabase.from("clients").select("id, logo"),
   ]);
+  const logoDe = new Map((logos ?? []).map((c) => [c.id, c.logo as string | null]));
+  const cliente = (id: string | null) => {
+    const c = clienteDe(id);
+    return { nome: c.nome, cor: c.cor, logo: id ? (logoDe.get(id) ?? null) : null };
+  };
   const diaDe = (t: Tarefa) => (t.etapa === "agendado" && t.publicar_em ? dataHoraSP(t.publicar_em).data : t.prazo);
-  const todas = [...new Map([...(porPrazo ?? []), ...(porPublicacao ?? [])].map((t) => [t.id, t])).values()].filter(
-    (t) => diaDe(t)?.startsWith(mes),
-  );
-  const { data: leads } = await supabase
-    .from("leads")
-    .select("id, empresa, proximo_passo, proximo_passo_em, responsavel_id")
-    .not("etapa", "in", "(ganho,perdido)")
-    .gte("proximo_passo_em", inicio)
-    .lt("proximo_passo_em", proximo);
-  // Etapas de processo aparecem no dia do prazo delas, para quem é o responsável da etapa
-  const { data: etapasDoMes } = await supabase
-    .from("tarefa_etapas")
-    .select("id, nome, prazo, responsavel_id, feito_em, tasks!inner(id, titulo, client_id)")
-    .gte("prazo", inicio)
-    .lt("prazo", proximo)
-    .returns<{ id: string; nome: string; prazo: string; responsavel_id: string | null; feito_em: string | null; tasks: { id: string; titulo: string; client_id: string | null } }[]>();
-  const etapas = (etapasDoMes ?? []).map((e) => ({
-    id: e.id,
-    taskId: e.tasks.id,
-    nome: e.nome,
-    titulo: e.tasks.titulo,
-    clienteId: e.tasks.client_id,
-    dia: e.prazo,
-    responsavel_id: e.responsavel_id,
-    feito: !!e.feito_em,
+  const tarefas = [...new Map([...(porPrazo ?? []), ...(porPublicacao ?? [])].map((t) => [t.id, t])).values()].filter((t) => {
+    const d = diaDe(t);
+    return !!d && d >= inicio && d <= fim;
+  });
+
+  const itens: ItemCalendario[] = [
+    ...tarefas.map((t): ItemCalendario => {
+      const feito = FINALIZADAS.includes(t.etapa);
+      const proxima = proximaEtapa(t.tipo, t.etapa);
+      const marcar: ItemCalendario["marcar"] =
+        t.tipo === "demanda"
+          ? feito
+            ? { tipo: "reabrir", para: "fazendo", rotulo: "Reabrir (volta para Fazendo)" }
+            : { tipo: "concluir", para: "concluido", rotulo: "Concluir" }
+          : !feito && proxima && t.etapa !== "cliente"
+            ? { tipo: "avancar", para: proxima, rotulo: `Avançar para ${rotuloEtapa(proxima)}` }
+            : undefined;
+      return {
+        chave: `t${t.id}`,
+        tipo: "tarefa",
+        id: t.id,
+        dia: diaDe(t)!,
+        pessoaId: t.responsavel_id,
+        cliente: cliente(t.client_id),
+        titulo: t.titulo,
+        etapa: t.etapa,
+        feito,
+        atrasado: estaAtrasada(t, hoje),
+        recorrente: !!t.recorrencia_id,
+        marcar,
+        href: link({ tarefa: t.id }),
+      };
+    }),
+    ...(etapasDoMes ?? []).map(
+      (e): ItemCalendario => ({
+        chave: `e${e.id}`,
+        tipo: "etapa",
+        id: e.id,
+        dia: e.prazo,
+        pessoaId: e.responsavel_id,
+        cliente: cliente(e.tasks.client_id),
+        titulo: e.nome,
+        sub: e.tasks.titulo,
+        feito: !!e.feito_em,
+        atrasado: !e.feito_em && e.prazo < hoje,
+        marcar: { tipo: "etapa", rotulo: e.feito_em ? "Reabrir etapa" : "Concluir etapa" },
+        href: link({ tarefa: e.tasks.id }),
+      }),
+    ),
+    ...(leads ?? []).map(
+      (l): ItemCalendario => ({
+        chave: `l${l.id}`,
+        tipo: "crm",
+        id: l.id,
+        dia: l.proximo_passo_em as string,
+        pessoaId: l.responsavel_id,
+        cliente: { nome: l.empresa, cor: "#6B7280", logo: null },
+        titulo: l.proximo_passo || "Follow-up",
+        feito: false,
+        atrasado: (l.proximo_passo_em as string) < hoje,
+        href: `/crm?lead=${l.id}`,
+      }),
+    ),
+  ].filter((it) => !pessoa || it.pessoaId === pessoa);
+
+  const dias = semanas.map((sem) => sem.map((iso) => ({ iso, ...diaDaSemana(iso), doMes: iso.startsWith(mes), hoje: iso === hoje })));
+  const semanaDeHoje = semanas.findIndex((sem) => sem.includes(hoje));
+  const pessoas = (pessoa ? time.filter((p) => p.id === pessoa) : time).map((p) => ({
+    id: p.id,
+    nome: p.nome,
+    cargo: p.cargo || ROTULO_PERFIL[p.perfil],
+    iniciais: p.iniciais,
+    foto: p.foto,
   }));
-  const followups = (leads ?? []).map((l) => ({
-    id: l.id,
-    empresa: l.empresa,
-    texto: l.proximo_passo,
-    dia: l.proximo_passo_em as string,
-    responsavel_id: l.responsavel_id,
-  }));
+  const tarefasDoMes = tarefas.filter((t) => diaDe(t)!.startsWith(mes));
+  const contagem = (id: string) => tarefasDoMes.filter((t) => t.responsavel_id === id).length;
+  const atrasadas = itens.filter((it) => it.atrasado && it.tipo !== "crm").length;
+  const botaoPessoa = "inline-flex items-center gap-[7px] rounded-full border px-3 py-1 text-[12.5px]";
+
   return (
-    <VistaCalendario
-      mes={mes}
-      pessoa={pessoa}
-      time={time}
-      todas={todas}
-      diaDe={diaDe}
-      hoje={hoje}
-      link={link}
-      clienteDe={clienteDe}
-      pessoaPor={pessoaPor}
-      followups={followups}
-      etapas={etapas}
-    />
+    <>
+      <div className="mb-3.5 flex flex-wrap gap-2">
+        <Link href={link({ pessoa: undefined })} className={`${botaoPessoa} ${!pessoa ? "border-accent bg-accent-soft font-semibold" : "border-line bg-card hover:border-muted"}`}>
+          Todo o time · {tarefasDoMes.length}
+        </Link>
+        {time.map((p) => (
+          <Link
+            key={p.id}
+            href={link({ pessoa: p.id })}
+            className={`${botaoPessoa} !pl-1 ${pessoa === p.id ? "border-accent bg-accent-soft font-semibold" : "border-line bg-card hover:border-muted"}`}
+          >
+            <Avatar iniciais={p.iniciais} foto={p.foto} classe="h-[22px] w-[22px] text-[9px]" />
+            {p.nome.split(" ")[0]} · {contagem(p.id)}
+          </Link>
+        ))}
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5">
+        <div>
+          <h2 className="text-[18px] font-bold capitalize">{mesEAno(mes)}</h2>
+          <div className="text-[12.5px] text-muted">
+            {tarefasDoMes.length} tarefa{tarefasDoMes.length === 1 ? "" : "s"} no mês
+            {pessoa && pessoaPor.get(pessoa) ? ` com ${pessoaPor.get(pessoa)!.nome}` : ""}
+            {atrasadas > 0 && (
+              <span className="font-semibold text-bad">
+                {" "}
+                · {atrasadas} atrasada{atrasadas > 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-1.5">
+          {(
+            [
+              ["‹", "Mês anterior", somarMes(mes, -1)],
+              ["Hoje", "Mês atual", undefined],
+              ["›", "Próximo mês", somarMes(mes, 1)],
+            ] as const
+          ).map(([rotulo, aria, alvo]) => (
+            <Link key={aria} href={link({ mes: alvo })} aria-label={aria} className="rounded-lg border border-line bg-card px-2.5 py-[5px] text-[12.5px] font-medium hover:border-ink">
+              {rotulo}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <CalendarioSemanas key={`${mes}-${pessoa ?? ""}`} semanas={dias} itens={itens} pessoas={pessoas} abertaInicial={semanaDeHoje >= 0 ? semanaDeHoje : 0} />
+    </>
   );
 }
 

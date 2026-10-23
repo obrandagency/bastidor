@@ -77,3 +77,26 @@ export function somarDias(iso: string, dias: number) {
   d.setUTCDate(d.getUTCDate() + dias);
   return isoDe(d);
 }
+
+// Semanas do mês, de segunda a domingo (inclui os dias do mês anterior e do seguinte que completam as pontas)
+export function semanasDoMes(mes: string) {
+  const inicio = utc(`${mes}-01`);
+  inicio.setUTCDate(inicio.getUTCDate() - ((inicio.getUTCDay() + 6) % 7));
+  const fim = utc(`${somarMes(mes, 1)}-01`);
+  fim.setUTCDate(fim.getUTCDate() - 1);
+  fim.setUTCDate(fim.getUTCDate() + ((7 - fim.getUTCDay()) % 7));
+  const semanas: string[][] = [];
+  for (const d = inicio; d <= fim; d.setUTCDate(d.getUTCDate() + 1)) {
+    if ((d.getUTCDay() + 6) % 7 === 0) semanas.push([]);
+    semanas[semanas.length - 1].push(isoDe(d));
+  }
+  return semanas;
+}
+
+const DIAS_LONGOS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+// "2026-11-02" -> { diaSemana: "Segunda-feira", data: "02 de novembro" }
+export function diaDaSemana(iso: string) {
+  const d = utc(iso);
+  return { diaSemana: DIAS_LONGOS[d.getUTCDay()], data: `${iso.slice(8, 10)} de ${MESES[d.getUTCMonth()]}` };
+}

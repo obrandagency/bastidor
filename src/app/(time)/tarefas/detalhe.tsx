@@ -282,6 +282,7 @@ export function FormNovaTarefa({
   clienteFiltro,
   processos = [],
   hoje,
+  prazoInicial,
 }: {
   tipo: TipoTarefa;
   time: Opcao[];
@@ -290,6 +291,7 @@ export function FormNovaTarefa({
   clienteFiltro?: string;
   processos?: (Opcao & { area: string })[];
   hoje?: string;
+  prazoInicial?: string; // vindo do "+" do calendário do Início
 }) {
   const [estado, acao, enviando] = useActionState(criarTarefa, undefined);
   const conteudo = tipo === "conteudo";
@@ -355,7 +357,7 @@ export function FormNovaTarefa({
         {processo ? (
           <Campo rotulo="Início do processo" id="inicio" type="date" required defaultValue={hoje} />
         ) : (
-          <Campo rotulo="Prazo" id="prazo" type="date" />
+          <Campo rotulo="Prazo" id="prazo" type="date" defaultValue={prazoInicial} />
         )}
         {!conteudo && (
           <Selecao rotulo="Responsável" id="responsavel_id" defaultValue={eu}>

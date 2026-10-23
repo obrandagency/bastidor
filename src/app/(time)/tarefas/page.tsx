@@ -12,7 +12,7 @@ import { Quadro, type Card } from "./quadro";
 
 export const metadata = { title: "Tarefas" };
 
-type Busca = { aba?: string; cliente?: string; resp?: string; tarefa?: string; nova?: string };
+type Busca = { aba?: string; cliente?: string; resp?: string; tarefa?: string; nova?: string; prazo?: string };
 
 export default async function Tarefas({ searchParams }: { searchParams: Promise<Busca> }) {
   const eu = await exigirTime();
@@ -172,6 +172,7 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
             clienteFiltro={busca.cliente && busca.cliente !== "interno" ? busca.cliente : undefined}
             processos={processos ?? []}
             hoje={hoje}
+            prazoInicial={/^\d{4}-\d{2}-\d{2}$/.test(busca.prazo ?? "") ? busca.prazo : undefined}
           />
         </Gaveta>
       )}

@@ -1,230 +1,236 @@
+"use client";
+
 import Link from "next/link";
-import { diasDaGrade, DIAS_CURTOS, mesEAno, somarMes } from "@/lib/datas";
-import { estaAtrasada, FUNDO_DO_TOM, rotuloEtapa, tomDaEtapa, type Etapa } from "@/lib/dominio/tarefas";
-import { Avatar } from "@/components/tarefa";
-import type { Pessoa, Tarefa } from "@/types/banco";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { Avatar, LogoCliente, SeloEtapa } from "@/components/tarefa";
+import { Icone } from "@/components/icone";
+import type { Etapa } from "@/lib/dominio/tarefas";
+import { marcarEtapa } from "../tarefas/acoes-etapas";
+import { moverTarefa } from "../tarefas/acoes";
 
-type Busca = { aba?: string; mes?: string; pessoa?: string; tarefa?: string };
+// Calendário do mês dividido em semanas (segunda a domingo). Cada semana abre numa linha por pessoa,
+// com os cards do dia em cada coluna. Sem consultas: o page.tsx entrega tudo pronto.
 
-export type Ctx = {
-  hoje: string;
-  link: (mudar: Partial<Busca>) => string;
-  clienteDe: (id: string | null) => { nome: string; nome_curto: string; cor: string };
-  pessoaPor: Map<string, Pessoa>;
-};
-
-// Cor da etiqueta no calendário (.chip.k-* do protótipo)
-const corDaEtiqueta = (e: Etapa) => FUNDO_DO_TOM[tomDaEtapa(e)];
-
-// Grade do mês (sem consultas: recebe as tarefas já filtradas pelo mês)
-export type EtapaCalendario = {
+export type ItemCalendario = {
+  chave: string;
+  tipo: "tarefa" | "etapa" | "crm";
   id: string;
-  taskId: string;
-  nome: string;
-  titulo: string;
-  clienteId: string | null;
   dia: string;
-  responsavel_id: string | null;
+  pessoaId: string | null;
+  cliente: { nome: string; cor: string; logo: string | null };
+  titulo: string;
+  sub?: string;
+  etapa?: Etapa; // tarefa: para o selo de status
   feito: boolean;
+  atrasado: boolean;
+  recorrente?: boolean;
+  // Caixinha: "concluir" (demanda), "avancar" (conteúdo, com o nome da próxima etapa), "etapa" (processo)
+  marcar?: { tipo: "concluir" | "reabrir" | "avancar" | "etapa"; para?: Etapa; rotulo: string };
+  href: string;
 };
 
-export type FollowUp = { id: string; empresa: string; texto: string | null; dia: string; responsavel_id: string | null };
+export type PessoaCalendario = { id: string; nome: string; cargo: string; iniciais: string; foto: string | null };
+export type DiaCalendario = { iso: string; diaSemana: string; data: string; doMes: boolean; hoje: boolean };
 
-export function VistaCalendario({
-  mes,
-  pessoa,
-  time,
-  todas,
-  diaDe,
-  hoje,
-  link,
-  clienteDe,
-  pessoaPor,
-  followups = [],
-  etapas = [],
-}: Ctx & {
-  mes: string;
-  pessoa?: string;
-  time: Pessoa[];
-  todas: Tarefa[];
-  diaDe: (t: Tarefa) => string | null;
-  followups?: FollowUp[];
-  etapas?: EtapaCalendario[];
-}) {
-  const minhasEtapas = pessoa ? etapas.filter((e) => e.responsavel_id === pessoa) : etapas;
-  const meusFollowups = pessoa ? followups.filter((f) => f.responsavel_id === pessoa) : followups;
-  const doMes = pessoa ? todas.filter((t) => t.responsavel_id === pessoa) : todas;
-  const atrasadas = doMes.filter((t) => estaAtrasada(t, hoje)).length;
-  const porDia = new Map<string, Tarefa[]>();
-  doMes.forEach((t) => porDia.set(diaDe(t)!, [...(porDia.get(diaDe(t)!) ?? []), t]));
-  const nomePessoa = pessoa ? pessoaPor.get(pessoa)?.nome : null;
+function Card({ item }: { item: ItemCalendario }) {
+  const router = useRouter();
+  const [pendente, iniciar] = useTransition();
 
-  const botaoPessoa = "inline-flex items-center gap-[7px] rounded-full border px-3 py-1 text-[12.5px]";
+  function marcar() {
+    const m = item.marcar;
+    if (!m) return;
+    iniciar(async () => {
+      const r =
+        m.tipo === "etapa"
+          ? await marcarEtapa(item.id, !item.feito)
+          : await moverTarefa(item.id, m.para as Etapa);
+      if (r?.erro) alert(r.erro);
+      router.refresh();
+    });
+  }
+
   return (
-    <>
-      <div className="mb-3.5 flex flex-wrap gap-2">
-        <Link
-          href={link({ pessoa: undefined })}
-          className={`${botaoPessoa} ${!pessoa ? "border-accent bg-accent-soft font-semibold" : "border-line bg-card hover:border-muted"}`}
-        >
-          Todo o time · {todas.length}
-        </Link>
-        {time.map((p) => (
-          <Link
-            key={p.id}
-            href={link({ pessoa: p.id })}
-            className={`${botaoPessoa} !pl-1 ${pessoa === p.id ? "border-accent bg-accent-soft font-semibold" : "border-line bg-card hover:border-muted"}`}
-          >
-            <Avatar iniciais={p.iniciais} foto={p.foto} classe="h-[22px] w-[22px] text-[9px]" />
-            {p.nome.split(" ")[0]} · {todas.filter((t) => t.responsavel_id === p.id).length}
-          </Link>
-        ))}
+    <div className={`rounded-xl border border-line bg-card p-2.5 transition-opacity ${item.feito ? "opacity-55" : ""} ${pendente ? "animate-pulse" : ""}`}>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <LogoCliente nome={item.cliente.nome} cor={item.cliente.cor} logo={item.cliente.logo} classe="h-5 w-5 text-[9px]" />
+        <span className={`min-w-0 flex-1 truncate text-[12px] ${item.feito ? "text-muted line-through" : ""}`}>{item.cliente.nome}</span>
+        {item.atrasado && (
+          <span title="Atrasada" className="grid h-5 w-5 flex-none place-items-center rounded-md bg-bad-soft text-bad">
+            <Icone nome="relogio" className="!h-3 !w-3" />
+          </span>
+        )}
+        {item.recorrente && (
+          <span title="Tarefa recorrente" className="flex-none text-[11px] text-muted">
+            ↻
+          </span>
+        )}
       </div>
-
-      <section className="rounded-xl border border-line bg-card">
-        <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-line px-4 py-3.5">
-          <div>
-            <h2 className="text-[15px] font-bold capitalize">{mesEAno(mes)}</h2>
-            <div className="mt-0.5 text-[12.5px] text-muted">
-              {doMes.length} demanda{doMes.length === 1 ? "" : "s"}
-              {nomePessoa ? ` com ${nomePessoa}` : ""}
-              {atrasadas > 0 && (
-                <span className="font-semibold text-bad">
-                  {" "}
-                  · {atrasadas} atrasada{atrasadas > 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="flex gap-1.5">
-            {[
-              ["‹", "Mês anterior", somarMes(mes, -1)],
-              ["Hoje", "Mês atual", undefined],
-              ["›", "Próximo mês", somarMes(mes, 1)],
-            ].map(([rotulo, aria, alvo]) => (
-              <Link
-                key={aria}
-                href={link({ mes: alvo })}
-                aria-label={aria}
-                className="rounded-lg border border-line bg-card px-2.5 py-[5px] text-[12.5px] font-medium hover:border-ink"
-              >
-                {rotulo}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <div className="grid min-w-[660px] grid-cols-[repeat(7,minmax(90px,1fr))] border-l border-t border-line">
-            {DIAS_CURTOS.map((d) => (
-              <div key={d} className="border-b border-r border-line bg-surface p-2 text-[11px] uppercase tracking-[0.08em] text-muted">
-                {d}
-              </div>
-            ))}
-            {diasDaGrade(mes).map((dia) => {
-              const itens = porDia.get(dia) ?? [];
-              const doDia = meusFollowups.filter((f) => f.dia === dia);
-              const etapasDoDia = minhasEtapas.filter((e) => e.dia === dia);
-              return (
-                <div
-                  key={dia}
-                  className={`flex min-h-[118px] min-w-0 flex-col gap-1 border-b border-r border-line p-1.5 ${dia.startsWith(mes) ? "" : "bg-surface"}`}
-                >
-                  <span
-                    className={`font-mono text-[11.5px] ${dia === hoje ? "w-6 rounded-full bg-accent text-center text-accent-ink" : "text-muted"}`}
-                  >
-                    {Number(dia.slice(8))}
-                  </span>
-                  {doDia.map((f) => {
-                    const r = f.responsavel_id ? pessoaPor.get(f.responsavel_id) : null;
-                    return (
-                      <Link
-                        key={f.id}
-                        href={`/crm?lead=${f.id}`}
-                        title={`CRM · ${f.empresa}${f.texto ? ` · ${f.texto}` : ""}${r ? ` · com ${r.nome}` : ""}`}
-                        className={`flex w-full min-w-0 items-center gap-[5px] rounded-md bg-card px-1.5 py-[3px] text-[11px] font-medium text-accent shadow-[inset_0_0_0_1px_var(--color-accent)] hover:brightness-[.96] ${
-                          dia < hoje ? "shadow-[inset_3px_0_0_var(--color-bad),inset_0_0_0_1px_var(--color-accent)]" : ""
-                        }`}
-                      >
-                        {r && (
-                          <span className="grid h-[18px] w-[18px] flex-none place-items-center rounded-full bg-ink text-[8px] font-semibold text-bg">
-                            {r.iniciais}
-                          </span>
-                        )}
-                        <span className="min-w-0 truncate">CRM · {f.empresa}</span>
-                      </Link>
-                    );
-                  })}
-                  {etapasDoDia.map((e) => {
-                    const r = e.responsavel_id ? pessoaPor.get(e.responsavel_id) : null;
-                    const c = clienteDe(e.clienteId);
-                    return (
-                      <Link
-                        key={e.id}
-                        href={link({ tarefa: e.taskId })}
-                        scroll={false}
-                        title={`Etapa ${e.nome} · ${c.nome} · ${e.titulo}${r ? ` · com ${r.nome}` : ""}${e.feito ? " · feita" : ""}`}
-                        className={`flex w-full min-w-0 items-center gap-[5px] rounded-md border border-dashed px-1.5 py-[2px] text-[11px] hover:brightness-[.96] ${
-                          e.feito ? "border-ok/40 bg-ok-soft text-muted line-through" : "border-line bg-card"
-                        } ${!e.feito && dia < hoje ? "shadow-[inset_3px_0_0_var(--color-bad)]" : ""}`}
-                      >
-                        {r && <Avatar iniciais={r.iniciais} foto={r.foto} classe="h-[18px] w-[18px] text-[8px]" />}
-                        <span className="min-w-0 truncate">
-                          ↳ {e.nome} · {e.titulo}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                  {itens.map((t) => {
-                    const c = clienteDe(t.client_id);
-                    const r = t.responsavel_id ? pessoaPor.get(t.responsavel_id) : null;
-                    return (
-                      <Link
-                        key={t.id}
-                        href={link({ tarefa: t.id })}
-                        scroll={false}
-                        title={`${c.nome} · ${t.titulo} · ${rotuloEtapa(t.etapa)}${r ? ` · com ${r.nome}` : ""}`}
-                        className={`flex w-full min-w-0 items-center gap-[5px] rounded-md px-1.5 py-[3px] text-[11px] hover:brightness-[.96] ${corDaEtiqueta(t.etapa)} ${
-                          estaAtrasada(t, hoje) ? "shadow-[inset_3px_0_0_var(--color-bad)]" : ""
-                        }`}
-                      >
-                        {r && (
-                          <span className="grid h-[18px] w-[18px] flex-none place-items-center rounded-full bg-ink text-[8px] font-semibold text-bg">
-                            {r.iniciais}
-                          </span>
-                        )}
-                        <span className="min-w-0 truncate">
-                          {c.nome_curto} · {t.titulo}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-3.5 border-t border-line px-4 py-3 text-[12px] text-muted">
-          {[
-            ["bg-surface border border-line", "Não iniciado"],
-            ["bg-andamento-soft", "Em andamento"],
-            ["bg-warn-soft", "Com o cliente ou em validação"],
-            ["bg-bad-soft", "Ajuste"],
-            ["bg-ok-soft", "Aprovado, agendado ou concluído"],
-            ["bg-bad", "Atrasado"],
-            ...(followups.length ? [["bg-card shadow-[inset_0_0_0_1px_var(--color-accent)]", "Follow-up do CRM"]] : []),
-            ...(etapas.length ? [["bg-card border border-dashed border-muted", "Etapa de processo"]] : []),
-          ].map(([cor, rotulo]) => (
-            <span key={rotulo} className="inline-flex items-center gap-1.5">
-              <i className={`inline-block h-3 w-3 rounded-[3px] ${cor}`} />
-              {rotulo}
+      <div className="mt-1.5 flex items-start gap-2">
+        {item.marcar ? (
+          <button
+            type="button"
+            onClick={marcar}
+            disabled={pendente}
+            title={item.marcar.rotulo}
+            aria-label={`${item.marcar.rotulo}: ${item.titulo}`}
+            className={`mt-[1px] grid h-[18px] w-[18px] flex-none place-items-center rounded-[5px] border text-[11px] ${
+              item.feito ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-transparent hover:border-accent hover:text-accent"
+            }`}
+          >
+            {item.marcar.tipo === "avancar" ? "›" : "✓"}
+          </button>
+        ) : (
+          item.tipo === "crm" && (
+            <span className="mt-[1px] grid h-[18px] w-[18px] flex-none place-items-center rounded-[5px] bg-accent-soft text-accent" title="Follow-up do CRM">
+              <Icone nome="funil" className="!h-3 !w-3" />
             </span>
-          ))}
-          <span>As iniciais mostram quem está com a demanda</span>
-        </div>
-      </section>
-    </>
+          )
+        )}
+        <Link href={item.href} scroll={false} className={`min-w-0 flex-1 text-[13px] font-medium leading-[1.35] [overflow-wrap:anywhere] hover:text-accent ${item.feito ? "text-muted line-through" : ""}`}>
+          {item.titulo}
+          {item.sub && <small className="block text-[11.5px] font-normal text-muted no-underline">{item.sub}</small>}
+        </Link>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {item.etapa && <SeloEtapa etapa={item.etapa} />}
+        {item.tipo === "etapa" && <span className="inline-flex rounded-full bg-andamento-soft px-[9px] py-px text-[11.5px] font-medium text-andamento">Etapa de processo</span>}
+        {item.tipo === "crm" && <span className="inline-flex rounded-full bg-accent-soft px-[9px] py-px text-[11.5px] font-medium text-accent">CRM</span>}
+      </div>
+    </div>
   );
 }
 
+// "+" do dia: nova pauta ou nova demanda com esse prazo
+function NovoNoDia({ dia }: { dia: DiaCalendario }) {
+  const [aberto, setAberto] = useState(false);
+  const caixa = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!aberto) return;
+    const fora = (e: MouseEvent) => !caixa.current?.contains(e.target as Node) && setAberto(false);
+    document.addEventListener("mousedown", fora);
+    return () => document.removeEventListener("mousedown", fora);
+  }, [aberto]);
+  return (
+    <div ref={caixa} className="relative flex-none">
+      <button
+        type="button"
+        onClick={() => setAberto((a) => !a)}
+        aria-label={`Nova tarefa em ${dia.data}`}
+        title="Nova tarefa neste dia"
+        className="grid h-7 w-7 place-items-center rounded-full bg-surface text-[17px] leading-none text-muted hover:bg-accent-soft hover:text-accent"
+      >
+        +
+      </button>
+      {aberto && (
+        <div className="absolute right-0 top-8 z-20 flex w-[150px] flex-col overflow-hidden rounded-lg border border-line bg-card text-[13px] shadow-pop">
+          <Link href={`/tarefas?aba=conteudo&nova=1&prazo=${dia.iso}`} className="px-3 py-2 hover:bg-surface">
+            Nova pauta
+          </Link>
+          <Link href={`/tarefas?aba=demanda&nova=1&prazo=${dia.iso}`} className="border-t border-line px-3 py-2 hover:bg-surface">
+            Nova demanda
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const GRADE = "grid grid-cols-[128px_repeat(7,minmax(152px,1fr))] md:grid-cols-[180px_repeat(7,minmax(152px,1fr))]";
+
+export function CalendarioSemanas({
+  semanas,
+  itens,
+  pessoas,
+  abertaInicial,
+}: {
+  semanas: DiaCalendario[][];
+  itens: ItemCalendario[];
+  pessoas: PessoaCalendario[];
+  abertaInicial: number;
+}) {
+  const [abertas, setAbertas] = useState<number[]>([abertaInicial]);
+  const alternar = (i: number) => setAbertas((a) => (a.includes(i) ? a.filter((x) => x !== i) : [...a, i]));
+  const semDono: PessoaCalendario = { id: "", nome: "Sem responsável", cargo: "", iniciais: "?", foto: null };
+
+  return (
+    <div className="flex flex-col gap-3">
+      {semanas.map((dias, i) => {
+        const daSemana = itens.filter((it) => dias.some((d) => d.iso === it.dia));
+        const aberta = abertas.includes(i);
+        // Só as pessoas com algo nesta semana (e "Sem responsável" se houver)
+        const linhas = [...pessoas, semDono].filter((p) => daSemana.some((it) => (it.pessoaId ?? "") === p.id));
+        return (
+          <section key={dias[0].iso} className="overflow-x-auto rounded-xl border border-line bg-card">
+            <div className="min-w-[1192px] md:min-w-[1244px]">
+              <div className={`${GRADE} items-center`}>
+                <button
+                  type="button"
+                  onClick={() => alternar(i)}
+                  aria-expanded={aberta}
+                  className="sticky left-0 z-10 flex h-full items-center gap-3 bg-card px-4 py-3.5 text-left hover:text-accent"
+                >
+                  <span className={`text-muted transition-transform ${aberta ? "rotate-180" : ""}`} aria-hidden="true">
+                    ⌄
+                  </span>
+                  <span>
+                    <b className="block text-[15px] font-semibold">Semana {String(i + 1).padStart(2, "0")}</b>
+                    <small className="text-[12px] text-muted">
+                      {dias[0].data.split(" de ")[0]}/{dias[0].iso.slice(5, 7)} a {dias[6].data.split(" de ")[0]}/{dias[6].iso.slice(5, 7)}
+                    </small>
+                  </span>
+                </button>
+                {dias.map((d) => {
+                  const n = daSemana.filter((it) => it.dia === d.iso).length;
+                  return (
+                    <div key={d.iso} className={`flex items-start justify-between gap-2 px-3 py-3 ${d.doMes ? "" : "opacity-50"}`}>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`whitespace-nowrap text-[14px] font-semibold ${d.hoje ? "text-accent" : ""}`}>{d.diaSemana}</span>
+                          {n > 0 && <span className="rounded bg-surface px-1.5 font-mono text-[11px] text-muted">{n}</span>}
+                        </div>
+                        <div className={`whitespace-nowrap text-[12.5px] ${d.hoje ? "font-medium text-accent" : "text-muted"}`}>
+                          {d.data}
+                          {d.hoje && <span className="ml-1.5 rounded-full bg-accent px-1.5 py-px text-[10.5px] text-accent-ink">hoje</span>}
+                        </div>
+                      </div>
+                      <NovoNoDia dia={d} />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {aberta &&
+                (linhas.length === 0 ? (
+                  <div className="border-t border-line px-4 py-6 text-center text-[13px] text-muted">Nenhuma tarefa nesta semana.</div>
+                ) : (
+                  linhas.map((p) => (
+                    <div key={p.id || "sem"} className={`${GRADE} border-t border-line`}>
+                      <div className="sticky left-0 z-10 flex items-center gap-3 bg-card px-4 py-3">
+                        <span className="hidden md:block">{p.id ? <Avatar iniciais={p.iniciais} nome={p.nome} foto={p.foto} grande /> : <span className="grid h-11 w-11 flex-none place-items-center rounded-full border border-dashed border-line text-muted">?</span>}</span>
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">{p.nome}</div>
+                          {p.cargo && <div className="truncate text-[12px] text-muted">{p.cargo}</div>}
+                        </div>
+                      </div>
+                      {dias.map((d) => {
+                        const doDia = daSemana.filter((it) => it.dia === d.iso && (it.pessoaId ?? "") === p.id);
+                        return (
+                          <div key={d.iso} className={`flex flex-col gap-2 bg-surface p-2 ${d.hoje ? "bg-accent-soft/60" : ""}`}>
+                            {doDia.map((it) => (
+                              <Card key={it.chave} item={it} />
+                            ))}
+                            {doDia.length === 0 && <div className="rounded-xl border border-dashed border-line px-2 py-3 text-center text-[12px] text-muted/70">Nenhuma tarefa</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))
+                ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
