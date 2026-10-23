@@ -12,6 +12,7 @@ export type Pessoa = {
   client_id: string | null;
   emails_opcionais: boolean;
   ativo: boolean;
+  foto: string | null; // caminho no bucket "marca"
 };
 
 export type Convite = {
@@ -31,6 +32,7 @@ export type Cliente = {
   nome_curto: string;
   cor: string;
   ativo: boolean;
+  logo?: string | null; // caminho no bucket "marca"
 };
 
 export type ClienteCompleto = Cliente & {

@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { EnviarImagem } from "@/components/enviar-imagem";
+import { Avatar } from "@/components/tarefa";
+import { urlMarca } from "@/lib/marca";
+import { salvarFoto } from "../conta/acoes";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { ROTULO_PERFIL } from "@/lib/permissoes";
 import { exigirTime } from "@/lib/sessao";
@@ -10,7 +14,7 @@ import { dataBR } from "@/lib/datas";
 import { dataHoraSP } from "@/lib/dominio/tarefas";
 import { AcoesPessoa, FormConvite, FormLembrete, FormResponsaveisPadrao } from "./formularios";
 
-export const metadata = { title: "Configurações · Bastidor" };
+export const metadata = { title: "Configurações" };
 
 // Último acesso de cada pessoa vem do Auth (só o servidor enxerga)
 async function primeirosAcessos() {
@@ -58,9 +62,17 @@ function Lista({
             }`}
           >
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <span className="grid h-[26px] w-[26px] flex-none place-items-center rounded-full bg-ink text-[10.5px] font-semibold text-bg">
-                {p.iniciais}
-              </span>
+              {p.perfil === "cliente" ? (
+                <Avatar iniciais={p.iniciais} nome={p.nome} foto={p.foto} />
+              ) : (
+                <EnviarImagem
+                  compacta
+                  pasta={`time/${p.id}`}
+                  atual={urlMarca(p.foto)}
+                  salvar={salvarFoto.bind(null, p.id)}
+                  vazio={<Avatar iniciais={p.iniciais} classe="h-8 w-8 text-[11px]" />}
+                />
+              )}
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 font-medium">
                   {p.nome}
@@ -110,7 +122,7 @@ export default async function Configuracoes() {
       <CabecalhoPagina
         sobretitulo="Conta"
         titulo="Configurações"
-        descricao={`Pessoas e perfis de acesso. Perfis: ${Object.values(ROTULO_PERFIL).join(", ")}.`}
+        descricao={`Pessoas, perfis de acesso e fotos (clique na foto para trocar). Perfis: ${Object.values(ROTULO_PERFIL).join(", ")}.`}
       />
       <div className="flex flex-col gap-4">
         <section className="rounded-xl border border-line bg-card">
@@ -139,6 +151,15 @@ export default async function Configuracoes() {
         </section>
         <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-card px-4 py-3.5">
           <div>
+            <h2 className="text-[15px] font-bold">Identidade da agência</h2>
+            <p className="text-[12.5px] text-muted">Nome da agência e do sistema, logo e cor principal.</p>
+          </div>
+          <Link href="/configuracoes/identidade" className="rounded-lg border border-line px-3 py-[6px] text-[13px] font-medium hover:border-ink">
+            Editar identidade
+          </Link>
+        </section>
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-card px-4 py-3.5">
+          <div>
             <h2 className="text-[15px] font-bold">Modelo de onboarding</h2>
             <p className="text-[12.5px] text-muted">Etapas e tarefas que todo cliente novo recebe.</p>
           </div>
@@ -160,7 +181,7 @@ export default async function Configuracoes() {
         <section className="rounded-xl border border-line bg-card">
           <div className="border-b border-line px-4 py-3.5">
             <h2 className="text-[15px] font-bold">Armazenamento</h2>
-            <p className="text-[12.5px] text-muted">Artes, anexos do chat e documentos de onboarding. O plano gratuito do Supabase tem 1 GB.</p>
+            <p className="text-[12.5px] text-muted">Artes, anexos do chat, documentos de onboarding, fotos e logos. O plano gratuito do Supabase tem 1 GB.</p>
           </div>
           <div className="flex flex-col gap-2.5 px-4 py-3.5 text-[13px]">
             <div className="h-2 overflow-hidden rounded-full bg-surface" role="progressbar" aria-valuenow={Math.round((totalBytes / LIMITE_PLANO) * 100)} aria-valuemin={0} aria-valuemax={100}>
@@ -177,6 +198,7 @@ export default async function Configuracoes() {
                 ["artes", "Artes"],
                 ["chat", "Anexos do chat"],
                 ["onboarding", "Onboarding"],
+                ["marca", "Fotos e logos"],
               ].map(([id, rotulo]) => (
                 <span key={id} className="text-muted">
                   {rotulo}: <span className="font-mono">{mb(Number(usoPor.get(id)?.bytes ?? 0))} MB</span> ({usoPor.get(id)?.arquivos ?? 0} arquivos)

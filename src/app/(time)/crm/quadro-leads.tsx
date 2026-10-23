@@ -18,7 +18,7 @@ export type CardLead = {
   origem: string;
   proximo: { texto: string; quando: string; atrasado: boolean; hoje: boolean } | null;
   motivo: string | null;
-  resp: { iniciais: string; nome: string } | null;
+  resp: { iniciais: string; nome: string; foto?: string | null } | null;
   href: string;
 };
 
@@ -151,7 +151,7 @@ export function QuadroLeads({ cards }: { cards: CardLead[] }) {
                         etapaDe(c) === "perdido" && c.motivo && <div className="text-[11.5px] text-muted">{c.motivo}</div>
                       )}
                       <div className="flex items-center gap-2 text-[11.5px] text-muted">
-                        {c.resp && <Avatar iniciais={c.resp.iniciais} nome={c.resp.nome} />}
+                        {c.resp && <Avatar iniciais={c.resp.iniciais} nome={c.resp.nome} foto={c.resp.foto} />}
                         <span>{c.origem}</span>
                         <span className="flex-1" />
                         {proxima && (

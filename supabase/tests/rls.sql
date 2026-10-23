@@ -509,6 +509,36 @@ select testes.ok(
   'recorrentes: quinzenal pula uma semana');
 select testes.ok(testes.conta($$select * from public.tasks where recorrencia_id = '00000000-0000-0000-0000-0000000000d2'$$) = 0, 'recorrentes: modelo pausado não gera');
 
+-- ---------------------------------------------------------------- identidade, fotos e logos
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok((select nome_agencia from public.identidade) = 'O.BRAND', 'identidade: cliente lê o nome da agência');
+select testes.recusa($$update public.identidade set nome_agencia = 'X'$$, 'identidade: cliente não muda');
+select testes.recusa($$insert into storage.objects (bucket_id, name) values ('marca', 'time/00000000-0000-0000-0000-0000000000ca/a.webp')$$, 'identidade: cliente não envia imagem');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select testes.recusa($$update public.identidade set cor = '#000000'$$, 'identidade: Adm não muda a identidade');
+select testes.recusa($$insert into storage.objects (bucket_id, name) values ('marca', 'agencia/logo.webp')$$, 'identidade: Adm não envia logo da agência');
+insert into storage.objects (bucket_id, name) values ('marca', 'clientes/00000000-0000-0000-0000-00000000000a/l1.webp');
+update public.clients set logo = 'clientes/00000000-0000-0000-0000-00000000000a/l1.webp' where id = '00000000-0000-0000-0000-00000000000a';
+select testes.ok((select logo is not null from public.clients where id = '00000000-0000-0000-0000-00000000000a'), 'identidade: Adm coloca logo do cliente');
+select testes.recusa($$update public.clients set logo = 'clientes/00000000-0000-0000-0000-00000000000a/l1.webp' where id = '00000000-0000-0000-0000-00000000000b'$$, 'identidade: logo de outro cliente é recusado');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+insert into storage.objects (bucket_id, name) values ('marca', 'time/00000000-0000-0000-0000-000000000003/f1.webp');
+update public.profiles set foto = 'time/00000000-0000-0000-0000-000000000003/f1.webp' where id = auth.uid();
+select testes.ok((select foto is not null from public.profiles where id = auth.uid()), 'identidade: Criação troca a própria foto');
+select testes.recusa($$insert into storage.objects (bucket_id, name) values ('marca', 'time/00000000-0000-0000-0000-000000000002/f.webp')$$, 'identidade: Criação não envia foto de outra pessoa');
+select testes.recusa($$update public.profiles set foto = 'time/00000000-0000-0000-0000-000000000002/f.webp' where id = auth.uid()$$, 'identidade: foto aponta só para a pasta da própria pessoa');
+select testes.recusa($$update public.profiles set foto = 'https://exemplo.com/x.webp' where id = auth.uid()$$, 'identidade: foto não aceita endereço de fora');
+select testes.recusa($$insert into storage.objects (bucket_id, name) values ('marca', 'clientes/00000000-0000-0000-0000-00000000000a/x.webp')$$, 'identidade: Criação não envia logo de cliente');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+update public.identidade set nome_agencia = 'Agência Nova', cor = '#0F7A5A';
+select testes.ok((select nome_agencia = 'Agência Nova' and atualizado_por = auth.uid() from public.identidade), 'identidade: Sócio muda nome e cor');
+select testes.recusa($$update public.identidade set cor = 'azul'$$, 'identidade: cor precisa ser hexadecimal');
+insert into storage.objects (bucket_id, name) values ('marca', 'time/00000000-0000-0000-0000-000000000002/f2.webp');
+update public.profiles set foto = 'time/00000000-0000-0000-0000-000000000002/f2.webp' where id = '00000000-0000-0000-0000-000000000002';
+select testes.ok((select foto is not null from public.profiles where id = '00000000-0000-0000-0000-000000000002'), 'identidade: Sócio troca a foto de outra pessoa');
+reset role;
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (

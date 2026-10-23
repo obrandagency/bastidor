@@ -14,3 +14,18 @@ export async function salvarPreferencias(_: Estado, form: FormData): Promise<Est
   revalidatePath("/conta");
   return { ok: "Preferência salva." };
 }
+
+// Foto da pessoa: ela mesma ou o Sócio (a política profiles_editar e a do bucket conferem de novo)
+export async function salvarFoto(pessoaId: string, caminho: string | null): Promise<Estado> {
+  const eu = await pessoaAtual();
+  if (!eu || eu.perfil === "cliente") return { erro: "Sem permissão." };
+  if (pessoaId !== eu.id && eu.perfil !== "socio") return { erro: "Só o Sócio troca a foto de outra pessoa." };
+  const supabase = await criarClienteServidor();
+  const { data: antes } = await supabase.from("profiles").select("foto").eq("id", pessoaId).maybeSingle();
+  const { error } = await supabase.from("profiles").update({ foto: caminho }).eq("id", pessoaId);
+  if (error) return { erro: "Não foi possível salvar a foto." };
+  const { apagarImagemAntiga } = await import("@/lib/marca-servidor");
+  await apagarImagemAntiga(supabase, antes?.foto ?? null, caminho);
+  revalidatePath("/", "layout");
+  return { ok: "Foto salva." };
+}

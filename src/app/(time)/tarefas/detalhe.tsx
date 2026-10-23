@@ -114,7 +114,7 @@ export function FormTarefa({ tarefa, time, clientes }: { tarefa: Tarefa; time: O
           ))}
         </Selecao>
         <Selecao rotulo="Cliente" id="client_id" defaultValue={tarefa.client_id ?? "interno"}>
-          {!conteudo && <option value="interno">O.BRAND (interno)</option>}
+          {!conteudo && <option value="interno">Interno da agência</option>}
           {clientes.map((c) => (
             <option key={c.id} value={c.id}>
               {c.nome}
@@ -302,7 +302,7 @@ export function FormNovaTarefa({
               Escolha
             </option>
           ) : (
-            <option value="interno">O.BRAND (interno)</option>
+            <option value="interno">Interno da agência</option>
           )}
           {clientes.map((c) => (
             <option key={c.id} value={c.id}>

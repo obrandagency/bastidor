@@ -2,6 +2,7 @@ import Link from "next/link";
 import { linksDasArtes } from "@/lib/artes";
 import { diaMes, hojeSP, mesEAno, somarMes } from "@/lib/datas";
 import { area, dataHoraSP, rotuloFormato, type Area, type Formato } from "@/lib/dominio/tarefas";
+import { lerIdentidade } from "@/lib/identidade";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { ConteudoPortal, ResumoPortal } from "@/types/banco";
 import { Colunas, Numero } from "@/components/graficos";
@@ -78,6 +79,7 @@ export async function TelaAprovar({ clientId, somenteLeitura }: Alvo) {
       cor={cor}
       somenteLeitura={somenteLeitura}
       onboarding={onboarding as OnboardingPortal | null}
+      agencia={(await lerIdentidade()).nome_agencia}
     />
   );
 }
@@ -90,7 +92,7 @@ export type OnboardingPortal = {
   etapas: { nome: string; ordem: number; tarefas: { texto: string; feito: boolean }[] }[];
 };
 
-export function PrimeirosPassos({ onboarding }: { onboarding: OnboardingPortal }) {
+export function PrimeirosPassos({ onboarding, agencia }: { onboarding: OnboardingPortal; agencia: string }) {
   const etapas = onboarding.etapas ?? [];
   const todas = etapas.flatMap((e) => e.tarefas);
   const feitas = todas.filter((t) => t.feito).length;
@@ -99,7 +101,7 @@ export function PrimeirosPassos({ onboarding }: { onboarding: OnboardingPortal }
   return (
     <section className="mb-5 rounded-xl border border-line bg-card p-4">
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[16px] font-bold">Seus primeiros passos com a O.BRAND</h2>
+        <h2 className="text-[16px] font-bold">Seus primeiros passos com a {agencia}</h2>
         <span className="text-[12.5px] text-muted">
           <b className="font-mono font-semibold text-ink">{pct}%</b> · {feitas} de {todas.length} itens
         </span>
@@ -152,6 +154,7 @@ export function VistaAprovar({
   cor,
   somenteLeitura,
   onboarding,
+  agencia,
 }: {
   resumo: ResumoPortal;
   conteudos: ConteudoPortal[];
@@ -159,6 +162,7 @@ export function VistaAprovar({
   cor: string;
   somenteLeitura?: boolean;
   onboarding?: OnboardingPortal | null;
+  agencia?: string;
 }) {
   const paraAprovar = conteudos.filter((c) => c.etapa === "cliente");
   const recentes = conteudos
@@ -179,7 +183,7 @@ export function VistaAprovar({
         </div>
         <BarraAjustes resumo={resumo} />
       </div>
-      {onboarding && !onboarding.concluido_em && <PrimeirosPassos onboarding={onboarding} />}
+      {onboarding && !onboarding.concluido_em && <PrimeirosPassos onboarding={onboarding} agencia={agencia ?? "agência"} />}
 
       <div className="flex flex-col gap-4">
         {paraAprovar.map((c) => (

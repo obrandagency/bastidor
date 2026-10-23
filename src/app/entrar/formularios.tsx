@@ -43,7 +43,7 @@ export function FormLinkCliente() {
         {enviando ? "Enviando…" : "Receber link de acesso"}
       </Botao>
       <Link href="/entrar" className="text-[13px] text-muted hover:text-ink">
-        Sou da equipe O.BRAND
+        Sou da equipe da agência
       </Link>
     </form>
   );

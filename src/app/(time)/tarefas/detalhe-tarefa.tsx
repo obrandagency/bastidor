@@ -8,7 +8,7 @@ import type { Evento, Nota, Tarefa } from "@/types/banco";
 import { Agendamento, Comentarios, Excluir, FormTarefa, Gaveta, NotificarCliente } from "./detalhe";
 
 // Tarefa sem cliente = demanda interna da agência
-export const INTERNO = { nome: "O.BRAND (interno)", cor: "#0A0C12", nome_curto: "INTERNO" };
+export const INTERNO = { nome: "Interno da agência", cor: "#0A0C12", nome_curto: "INTERNO" };
 
 // Painel lateral de uma tarefa, aberto por ?tarefa=id em Tarefas e no Início
 export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; fechar: string; podeExcluir: boolean }) {
@@ -17,7 +17,7 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
     supabase.from("tasks").select("*").eq("id", id).maybeSingle<Tarefa>(),
     supabase.from("task_notes").select("*").eq("task_id", id).order("created_at").returns<Nota[]>(),
     supabase.from("task_events").select("*").eq("task_id", id).order("created_at", { ascending: false }).returns<Evento[]>(),
-    supabase.from("profiles").select("id, nome, iniciais, perfil, ativo").neq("perfil", "cliente"),
+    supabase.from("profiles").select("id, nome, iniciais, perfil, ativo, foto").neq("perfil", "cliente"),
     supabase.from("clients").select("id, nome, cor, ativo").order("nome"),
   ]);
   if (!t) notFound();
@@ -50,7 +50,7 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
         )}
         {resp && (
           <span className="ml-auto flex items-center gap-1.5 text-[12.5px] text-muted">
-            <Avatar iniciais={resp.iniciais} nome={resp.nome} />
+            <Avatar iniciais={resp.iniciais} nome={resp.nome} foto={resp.foto} />
             {resp.nome}
           </span>
         )}

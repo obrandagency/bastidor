@@ -1,3 +1,4 @@
+import { LogoCliente } from "@/components/tarefa";
 import Link from "next/link";
 import { CabecalhoPagina, EstadoVazio } from "@/components/cabecalho-pagina";
 import { dataBR, hojeSP } from "@/lib/datas";
@@ -6,7 +7,7 @@ import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { ClienteCompleto, Contrato } from "@/types/banco";
 
-export const metadata = { title: "Central do cliente · Bastidor" };
+export const metadata = { title: "Central do cliente" };
 
 export default async function Clientes({ searchParams }: { searchParams: Promise<{ inativos?: string }> }) {
   const eu = await exigirTime();
@@ -66,7 +67,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
                   className="flex h-full flex-col gap-1.5 rounded-xl border border-line bg-card px-4 py-3.5 hover:border-muted"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: c.cor }} />
+                    <LogoCliente nome={c.nome} cor={c.cor} logo={c.logo} />
                     <span className="truncate font-medium">{c.nome}</span>
                   </div>
                   <div className="text-[12.5px] text-muted">

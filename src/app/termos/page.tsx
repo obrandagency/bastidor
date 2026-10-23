@@ -1,20 +1,22 @@
 import { PaginaLegal } from "@/components/pagina-legal";
+import { lerIdentidade } from "@/lib/identidade";
 
-export const metadata = { title: "Termos de uso · Bastidor" };
+export const metadata = { title: "Termos de uso" };
 
 // RASCUNHO para revisão jurídica da O.BRAND antes do piloto
-export default function Termos() {
+export default async function Termos() {
+  const { nome_agencia: a, nome_sistema: s } = await lerIdentidade();
   return (
     <PaginaLegal titulo="Termos de uso" atualizada="25/10/2026">
       <p>
-        O Bastidor é oferecido pela O.BRAND aos seus clientes para acompanhar e aprovar os conteúdos produzidos dentro do contrato de
+        O {s} é oferecido pela {a} aos seus clientes para acompanhar e aprovar os conteúdos produzidos dentro do contrato de
         prestação de serviços. Ao usar o portal, você concorda com estes termos.
       </p>
       <h2>Acesso</h2>
       <ul>
         <li>O acesso é pessoal e feito pelo link enviado ao seu e-mail. Não compartilhe os links de acesso.</li>
         <li>Cada pessoa vê apenas os conteúdos do cliente ao qual está ligada.</li>
-        <li>A O.BRAND pode desativar acessos a pedido do cliente ou ao fim do contrato.</li>
+        <li>A {a} pode desativar acessos a pedido do cliente ou ao fim do contrato.</li>
       </ul>
       <h2>Aprovações e ajustes</h2>
       <ul>
@@ -23,7 +25,7 @@ export default function Termos() {
           Os pedidos de ajuste seguem o limite mensal previsto em contrato. Pedidos acima do limite podem ser cobrados à parte, como
           avisado no próprio portal.
         </li>
-        <li>O Bastidor registra quem aprovou ou pediu ajuste e quando.</li>
+        <li>O {s} registra quem aprovou ou pediu ajuste e quando.</li>
       </ul>
       <h2>Conteúdo</h2>
       <p>

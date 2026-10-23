@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { BotaoSair } from "@/components/botao-sair";
 import { Marca } from "@/components/marca";
+import { LogoCliente } from "@/components/tarefa";
+import { lerIdentidade } from "@/lib/identidade";
 import { exigirCliente } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { AbasPortal } from "./abas-portal";
@@ -8,14 +10,18 @@ import { AbasPortal } from "./abas-portal";
 export default async function LayoutPortal({ children }: { children: React.ReactNode }) {
   const pessoa = await exigirCliente();
   const supabase = await criarClienteServidor();
-  const { data: cliente } = await supabase.from("clients").select("nome").eq("id", pessoa.client_id!).maybeSingle();
+  const [{ data: cliente }, identidade] = await Promise.all([
+    supabase.from("clients").select("nome, cor, logo").eq("id", pessoa.client_id!).maybeSingle(),
+    lerIdentidade(),
+  ]);
 
   return (
     <div className="min-h-full">
       <header className="border-b border-line bg-bg">
         <div className="mx-auto flex max-w-[960px] flex-wrap items-center justify-between gap-3 px-4 pt-[calc(14px+env(safe-area-inset-top,0px))] pb-3.5 md:px-7">
-          <Marca subtitulo="Portal do cliente" />
+          <Marca identidade={identidade} subtitulo={`Portal do cliente · ${identidade.nome_agencia}`} />
           <div className="flex items-center gap-3 text-right">
+            {cliente && <LogoCliente nome={cliente.nome} cor={cliente.cor} logo={cliente.logo} classe="h-9 w-9 text-[14px]" />}
             <div className="min-w-0">
               <div className="truncate font-medium">{cliente?.nome}</div>
               <small className="block text-[11.5px] text-muted">{pessoa.nome}</small>

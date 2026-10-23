@@ -8,7 +8,7 @@ import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Evento, Pessoa, Tarefa } from "@/types/banco";
 
-export const metadata = { title: "Dashboards · Bastidor" };
+export const metadata = { title: "Dashboards" };
 
 // Indicadores calculados em tempo real a partir das tarefas e do histórico de etapas
 export default async function Dashboards({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {

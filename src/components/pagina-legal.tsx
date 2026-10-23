@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { Marca } from "@/components/marca";
+import { lerIdentidade } from "@/lib/identidade";
 
-export function PaginaLegal({ titulo, atualizada, children }: { titulo: string; atualizada: string; children: React.ReactNode }) {
+export async function PaginaLegal({ titulo, atualizada, children }: { titulo: string; atualizada: string; children: React.ReactNode }) {
+  const identidade = await lerIdentidade();
   return (
     <div className="min-h-full bg-bg">
       <div className="mx-auto max-w-[720px] px-4 pb-16 pt-8 md:px-7">
         <Link href="/" className="inline-block">
-          <Marca subtitulo="O.BRAND" />
+          <Marca identidade={identidade} />
         </Link>
         <h1 className="mt-8 text-[28px] font-bold leading-tight">{titulo}</h1>
         <p className="mt-1 text-[12.5px] text-muted">Atualizada em {atualizada}</p>

@@ -6,7 +6,7 @@ import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Pessoa } from "@/types/banco";
 import { QuadroOnboarding, type CardOnboarding } from "./quadro";
 
-export const metadata = { title: "Onboarding · Bastidor" };
+export const metadata = { title: "Onboarding" };
 
 export default async function Onboarding() {
   const eu = await exigirTime();
@@ -19,7 +19,7 @@ export default async function Onboarding() {
     supabase.from("onboarding_tarefas").select("onboarding_id, feito_em"),
     supabase.from("onboarding_eventos").select("onboarding_id").eq("tipo", "comentario"),
     supabase.from("onboarding_documentos").select("onboarding_id"),
-    supabase.from("clients").select("id, nome, cor, ativo").order("nome"),
+    supabase.from("clients").select("id, nome, cor, ativo, logo").order("nome"),
     supabase.from("profiles").select("*").in("perfil", ["socio", "adm"]).eq("ativo", true).order("nome").returns<Pessoa[]>(),
   ]);
   const clientePor = new Map((clientes ?? []).map((c) => [c.id, c]));
@@ -35,12 +35,13 @@ export default async function Onboarding() {
       etapaId: o.etapa_id,
       cliente: c?.nome ?? "Cliente",
       cor: c?.cor ?? "#5A6275",
+      logo: c?.logo ?? null,
       inicio: o.inicio,
       feitas: contar(tarefas, o.id, (t) => !!t.feito_em),
       total: contar(tarefas, o.id),
       comentarios: contar(eventos, o.id),
       documentos: contar(docs, o.id),
-      resp: r ? { iniciais: r.iniciais, nome: r.nome } : null,
+      resp: r ? { iniciais: r.iniciais, nome: r.nome, foto: r.foto } : null,
     };
   });
   const comOnboarding = new Set((onboardings ?? []).map((o) => o.client_id));

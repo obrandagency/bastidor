@@ -5,7 +5,7 @@ import { pessoaAtual } from "@/lib/sessao";
 import { ERROS } from "../erros";
 import { FormLinkCliente } from "../formularios";
 
-export const metadata = { title: "Portal do cliente · Bastidor" };
+export const metadata = { title: "Portal do cliente" };
 
 export default async function EntrarCliente({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
   if (await pessoaAtual()) redirect("/");

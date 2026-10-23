@@ -11,7 +11,7 @@ import { Gaveta } from "../detalhe";
 import { INTERNO } from "../detalhe-tarefa";
 import { AcoesRecorrencia, FormRecorrencia } from "./formulario";
 
-export const metadata = { title: "Tarefas recorrentes · Bastidor" };
+export const metadata = { title: "Tarefas recorrentes" };
 
 type Busca = { nova?: string; editar?: string; de?: string };
 

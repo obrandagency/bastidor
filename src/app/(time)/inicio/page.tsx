@@ -19,7 +19,7 @@ import type { Pessoa, Tarefa } from "@/types/banco";
 import { DetalheTarefa, INTERNO } from "../tarefas/detalhe-tarefa";
 import { VistaCalendario, type Ctx } from "./calendario";
 
-export const metadata = { title: "Início · Bastidor" };
+export const metadata = { title: "Início" };
 
 type Busca = { aba?: string; mes?: string; pessoa?: string; tarefa?: string };
 type Cliente = { id: string; nome: string; nome_curto: string; cor: string };
@@ -176,7 +176,7 @@ async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
             {c.nome} · {detalhe} · {rotuloEtapa(t.etapa)}
           </div>
         </div>
-        {r && <Avatar iniciais={r.iniciais} nome={r.nome} />}
+        {r && <Avatar iniciais={r.iniciais} nome={r.nome} foto={r.foto} />}
         <span className="text-[12px]">{direita}</span>
       </Link>
     );
@@ -229,7 +229,7 @@ async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
                     <div className="font-medium [overflow-wrap:anywhere]">{f.empresa}</div>
                     <div className="text-[12.5px] text-muted">{f.proximo_passo ?? "Próximo passo"}</div>
                   </div>
-                  {r && <Avatar iniciais={r.iniciais} nome={r.nome} />}
+                  {r && <Avatar iniciais={r.iniciais} nome={r.nome} foto={r.foto} />}
                   <span className={`text-[12px] ${dias > 0 ? "font-semibold text-bad" : "font-semibold text-warn"}`}>
                     {dias > 0 ? `Atrasado ${dias}d` : "Hoje"}
                   </span>

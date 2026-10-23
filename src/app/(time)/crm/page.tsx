@@ -23,7 +23,7 @@ import { Anotar, ExcluirLead, FormLead, VirarCliente } from "./ficha";
 import { FiltroResponsavel } from "./filtro";
 import { QuadroLeads, type CardLead } from "./quadro-leads";
 
-export const metadata = { title: "CRM · Bastidor" };
+export const metadata = { title: "CRM" };
 
 type Busca = { aba?: string; resp?: string; lead?: string; novo?: string };
 
@@ -81,7 +81,7 @@ export default async function Crm({ searchParams }: { searchParams: Promise<Busc
             }
           : null,
       motivo: l.motivo_perda,
-      resp: r ? { iniciais: r.iniciais, nome: r.nome } : null,
+      resp: r ? { iniciais: r.iniciais, nome: r.nome, foto: r.foto } : null,
       href: link({ lead: l.id }),
     };
   });
@@ -176,7 +176,7 @@ export default async function Crm({ searchParams }: { searchParams: Promise<Busc
                       </td>
                       <td className="px-2 py-2.5 text-right font-mono">{reais(l.valor_mensal)}</td>
                       <td className="px-2 py-2.5">{rotuloOrigem(l.origem)}</td>
-                      <td className="px-2 py-2.5">{r && <Avatar iniciais={r.iniciais} nome={r.nome} />}</td>
+                      <td className="px-2 py-2.5">{r && <Avatar iniciais={r.iniciais} nome={r.nome} foto={r.foto} />}</td>
                       <td className="px-4 py-2.5 text-[12.5px]">
                         {leadAberto(l.etapa) && (l.proximo_passo || l.proximo_passo_em) ? (
                           <>

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Marca } from "@/components/marca";
+import { lerIdentidade } from "@/lib/identidade";
 
-export function CartaoEntrada({
+export async function CartaoEntrada({
   titulo,
   descricao,
   children,
@@ -10,11 +11,12 @@ export function CartaoEntrada({
   descricao?: string;
   children: React.ReactNode;
 }) {
+  const identidade = await lerIdentidade();
   return (
     <div className="grid min-h-full place-items-center bg-surface px-4 py-10">
       <div className="w-full max-w-[400px]">
         <div className="mb-6">
-          <Marca subtitulo="O.BRAND" />
+          <Marca identidade={identidade} />
         </div>
         <div className="rounded-xl border border-line bg-card p-6">
           <h1 className="text-[22px] font-bold leading-tight">{titulo}</h1>

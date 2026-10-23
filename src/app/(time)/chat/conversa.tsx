@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Botao, classeEntrada } from "@/components/formulario";
+import { Avatar } from "@/components/tarefa";
 import { BUCKET_CHAT } from "@/lib/constantes";
 import { dataHoraSP } from "@/lib/dominio/tarefas";
 import { diaMes, hojeSP } from "@/lib/datas";
@@ -9,7 +10,7 @@ import { criarClienteNavegador } from "@/lib/supabase/client";
 import type { Anexo, MensagemChat } from "@/types/banco";
 import { apagarMensagem, editarMensagem, enviarMensagem, marcarLido } from "./acoes";
 
-type Pessoa = { id: string; nome: string; iniciais: string };
+type Pessoa = { id: string; nome: string; iniciais: string; foto: string | null };
 
 const TIPOS = [
   "image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/quicktime", "application/pdf", "text/plain",
@@ -197,9 +198,7 @@ export function Conversa({
                 </div>
               )}
               <div className="group flex items-start gap-2.5">
-                <span className="grid h-[26px] w-[26px] flex-none place-items-center rounded-full bg-ink text-[10.5px] font-semibold text-bg">
-                  {autor?.iniciais ?? "?"}
-                </span>
+                <Avatar iniciais={autor?.iniciais ?? "?"} nome={autor?.nome} foto={autor?.foto} />
                 <div className="min-w-0 flex-1 text-[13.5px]">
                   <div className="flex items-baseline gap-2">
                     <b className="text-[13px]">{m.autor_nome ?? autor?.nome ?? "Alguém"}</b>
@@ -304,7 +303,7 @@ export function Conversa({
               {sugestoes.map((p) => (
                 <li key={p.id}>
                   <button type="button" onClick={() => mencionar(p)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-surface">
-                    <span className="grid h-5 w-5 place-items-center rounded-full bg-ink text-[8px] font-semibold text-bg">{p.iniciais}</span>
+                    <Avatar iniciais={p.iniciais} foto={p.foto} classe="h-5 w-5 text-[8px]" />
                     {p.nome}
                   </button>
                 </li>

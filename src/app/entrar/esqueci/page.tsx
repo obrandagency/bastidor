@@ -1,7 +1,7 @@
 import { CartaoEntrada } from "@/components/cartao-entrada";
 import { FormEsqueci } from "../formularios";
 
-export const metadata = { title: "Esqueci a senha · Bastidor" };
+export const metadata = { title: "Esqueci a senha" };
 
 export default function Esqueci() {
   return (

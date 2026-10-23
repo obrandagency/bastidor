@@ -4,7 +4,7 @@ import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { TelaAprovar, TelaMetricas, TelaRelatorio } from "@/app/portal/telas";
 
-export const metadata = { title: "Ver como cliente · Bastidor" };
+export const metadata = { title: "Ver como cliente" };
 
 export default async function PortalDoCliente({
   params,

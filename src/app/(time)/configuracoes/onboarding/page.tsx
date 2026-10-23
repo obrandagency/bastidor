@@ -4,7 +4,7 @@ import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { EditorModelo } from "./editor";
 
-export const metadata = { title: "Modelo de onboarding · Bastidor" };
+export const metadata = { title: "Modelo de onboarding" };
 
 export default async function ModeloOnboarding() {
   await exigirTime(["socio"]);

@@ -2,7 +2,7 @@ import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { exigirTime } from "@/lib/sessao";
 import { FormCliente } from "../formularios";
 
-export const metadata = { title: "Novo cliente · Bastidor" };
+export const metadata = { title: "Novo cliente" };
 
 export default async function NovoCliente() {
   await exigirTime(["socio", "adm"]);

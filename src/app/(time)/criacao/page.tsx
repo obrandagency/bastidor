@@ -9,7 +9,7 @@ import type { Arte, ClienteCompleto, Nota, Tarefa } from "@/types/banco";
 import { SeletorClienteCriacao } from "./seletor";
 import { EditorCriacao } from "./editor";
 
-export const metadata = { title: "Criação · Bastidor" };
+export const metadata = { title: "Criação" };
 
 export default async function Criacao({ searchParams }: { searchParams: Promise<{ cliente?: string; conteudo?: string }> }) {
   await exigirTime();

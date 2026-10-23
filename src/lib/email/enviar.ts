@@ -1,6 +1,12 @@
 import "server-only";
+import { lerIdentidade } from "@/lib/identidade";
 
-const REMETENTE = "Bastidor · O.BRAND <bastidor@obrandagency.com>";
+// O endereço fica fixo (domínio verificado no Resend); o nome que aparece segue a identidade da agência
+async function remetente() {
+  const id = await lerIdentidade();
+  const nome = `${id.nome_sistema} · ${id.nome_agencia}`.replace(/["<>\r\n]/g, "");
+  return `"${nome}" <bastidor@obrandagency.com>`;
+}
 
 // Envia pelo Resend (API HTTP). Nunca lança erro: devolve o resultado para registrar em envios_email.
 export async function enviarEmail(para: string, assunto: string, html: string): Promise<{ ok: boolean; erro?: string }> {
@@ -10,7 +16,7 @@ export async function enviarEmail(para: string, assunto: string, html: string): 
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${chave}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: REMETENTE, to: [para], subject: assunto, html }),
+      body: JSON.stringify({ from: await remetente(), to: [para], subject: assunto, html }),
     });
     if (!r.ok) return { ok: false, erro: `Resend ${r.status}: ${(await r.text()).slice(0, 300)}` };
     return { ok: true };

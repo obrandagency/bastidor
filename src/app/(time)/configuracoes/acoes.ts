@@ -47,7 +47,7 @@ export async function convidar(_: Estado, form: FormData): Promise<Estado> {
   const { error } = await criarClienteAdmin().auth.admin.inviteUserByEmail(email, { redirectTo: await linkConfirmar() });
   if (error) {
     await supabase.from("convites").delete().eq("email", email).is("usuario_criado_em", null);
-    if (error.code === "email_exists") return { erro: "Este e-mail já tem acesso ao Bastidor." };
+    if (error.code === "email_exists") return { erro: "Este e-mail já tem acesso ao sistema." };
     if (error.status === 429) return { erro: "Limite de e-mails atingido. Tente de novo em alguns minutos." };
     return { erro: `O e-mail de convite não saiu (${error.message}).` };
   }

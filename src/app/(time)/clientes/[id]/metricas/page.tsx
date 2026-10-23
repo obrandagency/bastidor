@@ -7,7 +7,7 @@ import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { FormMetricas } from "./formulario";
 
-export const metadata = { title: "Relatório de métricas · Bastidor" };
+export const metadata = { title: "Relatório de métricas" };
 
 export default async function Metricas({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ mes?: string }> }) {
   await exigirTime(["socio", "adm"]);

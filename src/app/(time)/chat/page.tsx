@@ -6,7 +6,7 @@ import type { CanalChat, MensagemChat } from "@/types/banco";
 import { ArquivarCanal, NovoCanal } from "./canais";
 import { Conversa } from "./conversa";
 
-export const metadata = { title: "Chat · Bastidor" };
+export const metadata = { title: "Chat" };
 
 export default async function Chat({ searchParams }: { searchParams: Promise<{ canal?: string }> }) {
   const eu = await exigirTime();
@@ -16,7 +16,7 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ c
 
   const [{ data: canaisBrutos }, { data: pessoas }, { data: naoLidas }, { data: clientes }] = await Promise.all([
     supabase.from("chat_canais").select("id, nome, client_id, arquivado").order("nome").returns<CanalChat[]>(),
-    supabase.from("profiles").select("id, nome, iniciais").neq("perfil", "cliente").eq("ativo", true).order("nome"),
+    supabase.from("profiles").select("id, nome, iniciais, foto").neq("perfil", "cliente").eq("ativo", true).order("nome"),
     supabase.rpc("chat_nao_lidas"),
     supabase.from("clients").select("id, nome, cor").eq("ativo", true).order("nome"),
   ]);

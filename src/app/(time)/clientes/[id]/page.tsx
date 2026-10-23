@@ -1,3 +1,4 @@
+import { LogoCliente } from "@/components/tarefa";
 import Link from "next/link";
 import { iniciarDaCentral } from "../../onboarding/acoes";
 import { notFound } from "next/navigation";
@@ -22,7 +23,7 @@ import {
 } from "../formularios";
 import { SeletorCliente } from "../seletor-cliente";
 
-export const metadata = { title: "Central do cliente · Bastidor" };
+export const metadata = { title: "Central do cliente" };
 
 // Leitura para quem não edita (Criação)
 function Texto({ rotulo, valor }: { rotulo: string; valor?: string }) {
@@ -75,7 +76,7 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
         <SeletorCliente atual={id} clientes={opcoes} />
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 text-[13px]">
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: cliente.cor }} />
+            <LogoCliente nome={cliente.nome} cor={cliente.cor} logo={cliente.logo} classe="h-7 w-7 text-[12px]" />
             <span className="font-mono text-[12px] tracking-[0.04em]">{cliente.nome_curto}</span>
           </span>
           {cliente.instagram && (

@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { lerIdentidade } from "@/lib/identidade";
+import { estiloDaCor, urlMarca } from "@/lib/marca";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -18,10 +20,16 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
 });
 
-export const metadata: Metadata = {
-  title: "Bastidor",
-  description: "Operação de conteúdo da O.BRAND",
-};
+// Nome do sistema e da agência vêm de Configurações > Identidade; cada página põe o próprio título antes
+export async function generateMetadata(): Promise<Metadata> {
+  const id = await lerIdentidade();
+  const icone = urlMarca(id.logo);
+  return {
+    title: { default: id.nome_sistema, template: `%s · ${id.nome_sistema}` },
+    description: `Operação de conteúdo da ${id.nome_agencia}`,
+    ...(icone ? { icons: { icon: icone } } : {}),
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -29,9 +37,10 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const { cor } = await lerIdentidade();
   return (
-    <html lang="pt-BR" className={`${bricolage.variable} ${plexSans.variable} ${plexMono.variable}`}>
+    <html lang="pt-BR" className={`${bricolage.variable} ${plexSans.variable} ${plexMono.variable}`} style={estiloDaCor(cor)}>
       <body className="antialiased">{children}</body>
     </html>
   );

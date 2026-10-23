@@ -6,17 +6,21 @@ import { useEffect, useState } from "react";
 import { BotaoSair } from "@/components/botao-sair";
 import { Icone } from "@/components/icone";
 import { Marca } from "@/components/marca";
+import { Avatar } from "@/components/tarefa";
+import type { Identidade } from "@/lib/marca";
 import { ROTULO_PERFIL, menuDoPerfil, type PerfilTime } from "@/lib/permissoes";
 
-type Pessoa = { nome: string; iniciais: string; perfil: PerfilTime };
+type Pessoa = { nome: string; iniciais: string; perfil: PerfilTime; foto: string | null };
 
 export function MenuLateral({
   pessoa,
+  identidade,
   avisos = 0,
   contagens = {},
   children,
 }: {
   pessoa: Pessoa;
+  identidade: Identidade;
   avisos?: number;
   contagens?: Record<string, number>; // número ao lado do item do menu (ex.: mensagens não lidas no Chat)
   children: React.ReactNode;
@@ -35,7 +39,7 @@ export function MenuLateral({
           aberto ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <Marca subtitulo="O.BRAND" />
+        <Marca identidade={identidade} />
         {grupos.map((g) => (
           <nav key={g.grupo} aria-label={g.grupo} className="flex flex-col gap-0.5">
             <div className="px-2.5 pb-1.5 text-[10.5px] uppercase tracking-[0.12em] text-rail-muted">{g.grupo}</div>
@@ -65,9 +69,7 @@ export function MenuLateral({
           </nav>
         ))}
         <div className="mt-auto flex items-center gap-2.5 border-t border-rail-line p-2.5">
-          <span className="grid h-[26px] w-[26px] flex-none place-items-center rounded-full bg-ink text-[10.5px] font-semibold text-bg">
-            {pessoa.iniciais}
-          </span>
+          <Avatar iniciais={pessoa.iniciais} nome={pessoa.nome} foto={pessoa.foto} />
           <Link href="/conta" className="min-w-0 flex-1 hover:underline">
             <div className="truncate font-medium">{pessoa.nome}</div>
             <small className="block text-[11.5px] text-rail-muted">{ROTULO_PERFIL[pessoa.perfil]}</small>
@@ -104,7 +106,7 @@ export function MenuLateral({
           >
             Menu
           </button>
-          <span className="font-display text-[19px] font-bold tracking-[-0.02em]">Bastidor</span>
+          <span className="font-display text-[19px] font-bold tracking-[-0.02em]">{identidade.nome_sistema}</span>
           {avisos > 0 && (
             <Link href="/avisos" className="ml-auto rounded-full bg-accent px-2.5 py-0.5 text-[12px] font-medium text-accent-ink">
               {avisos} aviso{avisos > 1 ? "s" : ""}

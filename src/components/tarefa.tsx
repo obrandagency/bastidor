@@ -1,15 +1,34 @@
+import { urlMarca } from "@/lib/marca";
 import { corDaEtapa, diasEntre, estaAtrasada, FINALIZADAS, rotuloEtapa, type Etapa } from "@/lib/dominio/tarefas";
 import { diaMes } from "@/lib/datas";
 
-export function Avatar({ iniciais, nome, grande }: { iniciais: string; nome?: string; grande?: boolean }) {
+// Foto da pessoa (bucket "marca") ou as iniciais, quando não tem foto
+export function Avatar({ iniciais, nome, grande, foto, classe }: { iniciais: string; nome?: string; grande?: boolean; foto?: string | null; classe?: string }) {
+  const tamanho = classe ?? (grande ? "h-11 w-11 text-[15px]" : "h-[26px] w-[26px] text-[10.5px]");
+  const url = urlMarca(foto);
+  if (url)
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={url} alt={nome ?? ""} title={nome} loading="lazy" className={`inline-block flex-none rounded-full bg-surface object-cover ${tamanho}`} />
+    );
   return (
-    <span
-      title={nome}
-      className={`inline-grid flex-none place-items-center rounded-full bg-ink font-semibold tracking-[0.02em] text-bg ${
-        grande ? "h-11 w-11 text-[15px]" : "h-[26px] w-[26px] text-[10.5px]"
-      }`}
-    >
+    <span title={nome} className={`inline-grid flex-none place-items-center rounded-full bg-ink font-semibold tracking-[0.02em] text-bg ${tamanho}`}>
       {iniciais}
+    </span>
+  );
+}
+
+// Logo do cliente (bucket "marca") ou a bolinha com a cor e a inicial
+export function LogoCliente({ nome, cor, logo, classe = "h-6 w-6 text-[11px]" }: { nome: string; cor: string; logo?: string | null; classe?: string }) {
+  const url = urlMarca(logo);
+  if (url)
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={url} alt="" title={nome} loading="lazy" className={`inline-block flex-none rounded-full border border-line bg-card object-contain ${classe}`} />
+    );
+  return (
+    <span title={nome} className={`grid flex-none place-items-center rounded-full font-semibold text-white ${classe}`} style={{ background: cor }}>
+      {nome.charAt(0).toUpperCase()}
     </span>
   );
 }

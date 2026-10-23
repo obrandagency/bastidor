@@ -1,3 +1,4 @@
+import { LogoCliente } from "@/components/tarefa";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BUCKET_ONBOARDING } from "@/lib/constantes";
@@ -7,7 +8,7 @@ import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { Comentarios, Documentos, ExcluirOnboarding, FormInformacoes, ListaTarefas, MoverPara, type TarefaOb } from "./interativos";
 
-export const metadata = { title: "Onboarding · Bastidor" };
+export const metadata = { title: "Onboarding" };
 
 const ABAS = [
   ["tarefas", "Tarefas"],
@@ -28,7 +29,7 @@ export default async function FichaOnboarding({ params, searchParams }: { params
   const { data: o } = await supabase.from("onboardings").select("*").eq("id", id).maybeSingle();
   if (!o) notFound();
   const [{ data: cliente }, { data: etapas }, { data: tarefas }, { data: eventos }, { data: docs }, { data: pessoas }] = await Promise.all([
-    supabase.from("clients").select("id, nome, cor").eq("id", o.client_id).maybeSingle(),
+    supabase.from("clients").select("id, nome, cor, logo").eq("id", o.client_id).maybeSingle(),
     supabase.from("onboarding_etapas").select("id, nome, cor, ordem").order("ordem"),
     supabase.from("onboarding_tarefas").select("*").eq("onboarding_id", id).order("ordem").order("created_at"),
     supabase.from("onboarding_eventos").select("*").eq("onboarding_id", id).order("created_at", { ascending: false }),
@@ -65,9 +66,7 @@ export default async function FichaOnboarding({ params, searchParams }: { params
         <Link href="/onboarding" aria-label="Voltar para o Onboarding" className="grid h-10 w-10 place-items-center rounded-full border border-line text-[18px] hover:border-ink">
           ←
         </Link>
-        <span className="grid h-11 w-11 place-items-center rounded-full text-[18px] font-semibold text-white" style={{ background: cliente?.cor ?? "#5A6275" }}>
-          {(cliente?.nome ?? "?").charAt(0).toUpperCase()}
-        </span>
+        <LogoCliente nome={cliente?.nome ?? "?"} cor={cliente?.cor ?? "#5A6275"} logo={cliente?.logo} classe="h-11 w-11 text-[18px]" />
         <div className="min-w-0">
           <h1 className="text-[22px] font-bold leading-tight">{cliente?.nome}</h1>
           <p className="text-[12.5px] text-muted">

@@ -431,7 +431,7 @@ export function DadosDoCliente({ clientId, nome }: { clientId: string; nome: str
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[12.5px] text-muted">
-        Ao encerrar um contrato, a pedido do cliente: exporte os dados e depois apague tudo do Bastidor.
+        Ao encerrar um contrato, a pedido do cliente: exporte os dados e depois apague tudo do sistema.
       </p>
       <div className="flex flex-wrap gap-2">
         <a href={`/api/clientes/${clientId}/exportar`} className="rounded-lg border border-line px-3 py-[5px] text-[12.5px] font-medium hover:border-ink">

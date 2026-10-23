@@ -21,7 +21,7 @@ export async function entrar(_: Estado, form: FormData): Promise<Estado> {
   const { data: pessoa } = await supabase.from("profiles").select("perfil, ativo").eq("id", data.user.id).maybeSingle();
   if (!pessoa?.ativo) {
     await supabase.auth.signOut();
-    return { erro: "Seu acesso não está ativo. Fale com a O.BRAND." };
+    return { erro: "Seu acesso não está ativo. Fale com a agência." };
   }
   redirect(pessoa.perfil === "cliente" ? "/portal" : "/inicio");
 }

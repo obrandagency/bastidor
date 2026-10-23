@@ -3,7 +3,7 @@ import { CabecalhoPagina, EstadoVazio } from "@/components/cabecalho-pagina";
 import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
-export const metadata = { title: "Ver como cliente · Bastidor" };
+export const metadata = { title: "Ver como cliente" };
 
 export default async function VerComoCliente() {
   await exigirTime(["socio", "adm"]);

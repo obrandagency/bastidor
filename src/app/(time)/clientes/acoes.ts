@@ -67,6 +67,19 @@ export async function salvarCliente(_: Estado, form: FormData): Promise<Estado> 
 }
 
 // ---------------------------------------------------------------- briefing, tom de voz, identidade e acessos
+// Logo do cliente (bucket público "marca", pasta clientes/<id>)
+export async function salvarLogoCliente(clientId: string, caminho: string | null): Promise<Estado> {
+  if (!(await exigirGestao())) return { erro: "Sem permissão." };
+  const supabase = await criarClienteServidor();
+  const { data: antes } = await supabase.from("clients").select("logo").eq("id", clientId).maybeSingle();
+  const { error } = await supabase.from("clients").update({ logo: caminho }).eq("id", clientId);
+  if (error) return { erro: "Não foi possível salvar o logo." };
+  const { apagarImagemAntiga } = await import("@/lib/marca-servidor");
+  await apagarImagemAntiga(supabase, antes?.logo ?? null, caminho);
+  revalidatePath("/", "layout");
+  return { ok: "Logo salvo." };
+}
+
 export async function salvarBriefing(_: Estado, form: FormData): Promise<Estado> {
   const eu = await exigirGestao();
   if (!eu) return { erro: "Só Sócio e Administrativo editam a Central do cliente." };
@@ -205,6 +218,11 @@ export async function apagarCliente(_: Estado, form: FormData): Promise<Estado> 
   const { data: onb } = await admin.from("onboarding_documentos").select("caminho, onboardings!inner(client_id)").eq("onboardings.client_id", clientId);
   const caminhosOnb = (onb ?? []).map((d) => d.caminho);
   if (caminhosOnb.length) await admin.storage.from(BUCKET_ONBOARDING).remove(caminhosOnb);
+  // 1d. Logo do cliente e fotos das pessoas dele (bucket "marca")
+  const { BUCKET_MARCA } = await import("@/lib/marca");
+  const { data: logos } = await admin.storage.from(BUCKET_MARCA).list(`clientes/${clientId}`, { limit: 100 });
+  const caminhosMarca = (logos ?? []).map((a) => `clientes/${clientId}/${a.name}`);
+  if (caminhosMarca.length) await admin.storage.from(BUCKET_MARCA).remove(caminhosMarca);
   // 2. Logins das pessoas do cliente (o perfil some junto)
   const { data: pessoas } = await admin.from("profiles").select("id").eq("client_id", clientId);
   for (const p of pessoas ?? []) await admin.auth.admin.deleteUser(p.id);

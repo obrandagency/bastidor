@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { Aviso, Botao, Campo, Selecao } from "@/components/formulario";
-import { Avatar } from "@/components/tarefa";
+import { Avatar, LogoCliente } from "@/components/tarefa";
 import { iniciarOnboarding, moverOnboarding } from "./acoes";
 
 export type EtapaQuadro = { id: string; nome: string; cor: string };
@@ -12,12 +12,13 @@ export type CardOnboarding = {
   etapaId: string;
   cliente: string;
   cor: string;
+  logo: string | null;
   inicio: string;
   feitas: number;
   total: number;
   comentarios: number;
   documentos: number;
-  resp: { iniciais: string; nome: string } | null;
+  resp: { iniciais: string; nome: string; foto?: string | null } | null;
 };
 
 function Iniciar({
@@ -194,9 +195,7 @@ export function QuadroOnboarding({
                     } ${pendentes[c.id] ? "animate-pulse" : ""}`}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="grid h-6 w-6 flex-none place-items-center rounded-full text-[11px] font-semibold text-white" style={{ background: c.cor }}>
-                        {c.cliente.charAt(0).toUpperCase()}
-                      </span>
+                      <LogoCliente nome={c.cliente} cor={c.cor} logo={c.logo} />
                       <Link
                         href={`/onboarding/${c.id}`}
                         draggable={false}
@@ -221,7 +220,7 @@ export function QuadroOnboarding({
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 border-t border-line pt-2 text-[11.5px] text-muted">
-                      {c.resp && <Avatar iniciais={c.resp.iniciais} nome={c.resp.nome} />}
+                      {c.resp && <Avatar iniciais={c.resp.iniciais} nome={c.resp.nome} foto={c.resp.foto} />}
                       <span className="flex-1" />
                       {c.comentarios > 0 && (
                         <span className="rounded bg-accent-soft px-1.5 py-0.5 text-accent" title="Comentários">

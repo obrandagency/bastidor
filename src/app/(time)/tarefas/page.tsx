@@ -10,7 +10,7 @@ import { DetalheTarefa, INTERNO } from "./detalhe-tarefa";
 import { Filtros } from "./filtros";
 import { Quadro, type Card } from "./quadro";
 
-export const metadata = { title: "Tarefas · Bastidor" };
+export const metadata = { title: "Tarefas" };
 
 type Busca = { aba?: string; cliente?: string; resp?: string; tarefa?: string; nova?: string };
 
@@ -63,7 +63,7 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
       clienteNome: clienteDe(t.client_id).nome,
       clienteCor: clienteDe(t.client_id).cor,
       detalhe: tipo === "conteudo" ? rotuloFormato(t.formato) : (area(t.area)?.rotulo ?? ""),
-      resp: r ? { iniciais: r.iniciais, nome: r.nome } : null,
+      resp: r ? { iniciais: r.iniciais, nome: r.nome, foto: r.foto } : null,
       ajustesCliente: ajustesPor.get(t.id) ?? 0,
       recorrente: !!t.recorrencia_id,
       href: link({ tarefa: t.id }),

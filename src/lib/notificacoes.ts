@@ -2,6 +2,7 @@ import "server-only";
 import { hojeSP, somarDias } from "@/lib/datas";
 import { PARADAS } from "@/lib/dominio/tarefas";
 import { enviarEmail } from "@/lib/email/enviar";
+import { lerIdentidade } from "@/lib/identidade";
 import { emailAvisoTime, emailLembrete, emailParaAprovar, emailRelatorioPublicado, emailResumoDiario } from "@/lib/email/modelos";
 import { urlDoSite } from "@/lib/sessao";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
@@ -61,7 +62,7 @@ export async function avisarClientesParaAprovar(clientId?: string): Promise<Resu
     }
     let algumOk = false;
     for (const p of pessoas) {
-      const { assunto, html } = emailParaAprovar(p.nome, lista.map((t) => t.titulo), `${urlDoSite()}/portal`);
+      const { assunto, html } = emailParaAprovar(await lerIdentidade(), p.nome, lista.map((t) => t.titulo), `${urlDoSite()}/portal`);
       const r = await enviarEmail(p.email, assunto, html);
       await registrar(admin, "para_aprovar", p, assunto, r, cid);
       if (r.ok) resultado.enviados++;
@@ -97,7 +98,7 @@ export async function enviarLembretes(): Promise<Resultado> {
       .gte("created_at", inicioDeHojeSP());
     if (count) continue;
     for (const p of await pessoasDoCliente(admin, cid)) {
-      const { assunto, html } = emailLembrete(p.nome, lista.map((t) => t.titulo), dias, `${urlDoSite()}/portal`);
+      const { assunto, html } = emailLembrete(await lerIdentidade(), p.nome, lista.map((t) => t.titulo), dias, `${urlDoSite()}/portal`);
       const r = await enviarEmail(p.email, assunto, html);
       await registrar(admin, "lembrete", p, assunto, r, cid);
       if (r.ok) resultado.enviados++;
@@ -130,7 +131,7 @@ export async function enviarAvisosPendentes(): Promise<Resultado> {
     const p = porId.get(a.destinatario_id);
     // Marca como tratado mesmo sem enviar (desativado ou e-mails desligados), para não tentar de novo
     if (p && p.ativo && p.emails_opcionais && p.perfil !== "cliente") {
-      const { assunto, html } = emailAvisoTime(a.tipo, a.texto, `${site}${a.link ?? "/inicio"}`, site);
+      const { assunto, html } = emailAvisoTime(await lerIdentidade(), a.tipo, a.texto, `${site}${a.link ?? "/inicio"}`, site);
       const r = await enviarEmail(p.email, assunto, html);
       await registrar(admin, `aviso_${a.tipo}`, p, assunto, r);
       if (r.ok) resultado.enviados++;
@@ -180,7 +181,7 @@ export async function enviarResumoDiario(): Promise<Resultado> {
       .eq("destinatario_id", p.id)
       .gte("created_at", inicioDeHojeSP());
     if (count) continue;
-    const { assunto, html } = emailResumoDiario(p.nome, venceAmanha, atrasadas, urlDoSite(), followups);
+    const { assunto, html } = emailResumoDiario(await lerIdentidade(), p.nome, venceAmanha, atrasadas, urlDoSite(), followups);
     const r = await enviarEmail(p.email, assunto, html);
     await registrar(admin, "resumo", p, assunto, r);
     if (r.ok) resultado.enviados++;
@@ -194,7 +195,7 @@ export async function avisarRelatorioPublicado(clientId: string, mes: string, me
   const admin = criarClienteAdmin();
   const resultado: Resultado = { enviados: 0, falhas: 0 };
   for (const p of await pessoasDoCliente(admin, clientId)) {
-    const { assunto, html } = emailRelatorioPublicado(p.nome, mesExtenso, `${urlDoSite()}/portal/metricas?mes=${mes.slice(0, 7)}`);
+    const { assunto, html } = emailRelatorioPublicado(await lerIdentidade(), p.nome, mesExtenso, `${urlDoSite()}/portal/metricas?mes=${mes.slice(0, 7)}`);
     const r = await enviarEmail(p.email, assunto, html);
     await registrar(admin, "relatorio", p, assunto, r, clientId);
     if (r.ok) resultado.enviados++;

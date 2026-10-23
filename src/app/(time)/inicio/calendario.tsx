@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { diasDaGrade, DIAS_CURTOS, mesEAno, somarMes } from "@/lib/datas";
 import { estaAtrasada, rotuloEtapa, type Etapa } from "@/lib/dominio/tarefas";
+import { Avatar } from "@/components/tarefa";
 import type { Pessoa, Tarefa } from "@/types/banco";
 
 type Busca = { aba?: string; mes?: string; pessoa?: string; tarefa?: string };
@@ -59,7 +60,7 @@ export function VistaCalendario({
             href={link({ pessoa: p.id })}
             className={`${botaoPessoa} !pl-1 ${pessoa === p.id ? "border-accent bg-accent-soft font-semibold" : "border-line bg-card hover:border-muted"}`}
           >
-            <span className="grid h-[22px] w-[22px] place-items-center rounded-full bg-ink text-[9px] font-semibold text-bg">{p.iniciais}</span>
+            <Avatar iniciais={p.iniciais} foto={p.foto} classe="h-[22px] w-[22px] text-[9px]" />
             {p.nome.split(" ")[0]} · {todas.filter((t) => t.responsavel_id === p.id).length}
           </Link>
         ))}

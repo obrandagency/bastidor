@@ -52,7 +52,7 @@ export function FormRecorrencia({ inicial, time, clientes, hoje }: { inicial: Pa
               Escolha
             </option>
           ) : (
-            <option value="interno">O.BRAND (interno)</option>
+            <option value="interno">Interno da agência</option>
           )}
           {clientes.map((c) => (
             <option key={c.id} value={c.id}>

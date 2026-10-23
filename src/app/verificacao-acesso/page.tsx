@@ -4,7 +4,7 @@ import { ROTULO_PERFIL, type Perfil } from "@/lib/permissoes";
 import { pessoaAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
-export const metadata = { title: "Verificação de acesso · Bastidor" };
+export const metadata = { title: "Verificação de acesso" };
 
 // Consulta cada tabela com a sessão de quem está logado (o mesmo que a API faria com o token
 // dessa pessoa) e compara com o que o perfil deveria enxergar. Serve para testar a RLS em produção.

@@ -14,7 +14,7 @@ export type Card = {
   clienteNome: string;
   clienteCor: string;
   detalhe: string; // formato (conteúdo) ou área (demanda)
-  resp: { iniciais: string; nome: string } | null;
+  resp: { iniciais: string; nome: string; foto?: string | null } | null;
   ajustesCliente: number;
   recorrente: boolean;
   href: string;
@@ -135,7 +135,7 @@ export function Quadro({
                         {c.titulo}
                       </Link>
                       <div className="flex items-center gap-2 text-[11.5px] text-muted">
-                        {c.resp ? <Avatar iniciais={c.resp.iniciais} nome={c.resp.nome} /> : <span>Sem responsável</span>}
+                        {c.resp ? <Avatar iniciais={c.resp.iniciais} nome={c.resp.nome} foto={c.resp.foto} /> : <span>Sem responsável</span>}
                         <Prazo prazo={c.prazo} etapa={etapaDe(c)} hoje={hoje} />
                         {c.ajustesCliente > 0 && (
                           <span className="font-semibold text-bad" title="Ajustes pedidos pelo cliente">

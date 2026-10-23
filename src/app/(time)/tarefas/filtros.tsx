@@ -21,7 +21,7 @@ export function Filtros({ clientes, time, comInterno }: { clientes: Opcao[]; tim
       <div className="w-[200px] max-w-full">
         <Selecao rotulo="Cliente" id="filtro-cliente" value={params.get("cliente") ?? ""} onChange={(e) => mudar("cliente", e.target.value)}>
           <option value="">Todos os clientes</option>
-          {comInterno && <option value="interno">O.BRAND (interno)</option>}
+          {comInterno && <option value="interno">Interno da agência</option>}
           {clientes.map((c) => (
             <option key={c.id} value={c.id}>
               {c.nome}

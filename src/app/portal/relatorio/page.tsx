@@ -1,6 +1,6 @@
 import { TelaRelatorio } from "../telas";
 
-export const metadata = { title: "Relatório de entregas · Bastidor" };
+export const metadata = { title: "Relatório de entregas" };
 
 export default async function Relatorio({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
   const { mes } = await searchParams;

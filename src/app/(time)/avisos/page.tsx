@@ -5,7 +5,7 @@ import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { abrirAviso, marcarTodasLidas } from "./acoes";
 
-export const metadata = { title: "Avisos · Bastidor" };
+export const metadata = { title: "Avisos" };
 
 export default async function Avisos() {
   await exigirTime();
