@@ -5,7 +5,7 @@ import { Aviso, Botao, Campo, classeEntrada } from "@/components/formulario";
 import type { Estado } from "@/app/entrar/acoes";
 import type { Acesso, Briefing, ClienteCompleto, Contrato } from "@/types/banco";
 import { convidar } from "../configuracoes/acoes";
-import { adicionarAta, apagarAta, apagarCliente, apagarContrato, salvarBriefing, salvarCliente, salvarContrato } from "./acoes";
+import { adicionarAta, apagarAta, apagarCliente, apagarContrato, salvarBriefing, salvarCliente, salvarContrato, salvarDrive } from "./acoes";
 
 function Retorno({ estado }: { estado: Estado }) {
   if (estado?.erro) return <Aviso tom="erro">{estado.erro}</Aviso>;
@@ -58,6 +58,7 @@ export function FormCliente({ cliente }: { cliente?: ClienteCompleto }) {
         dica="Aparece no calendário."
       />
       <Campo rotulo="Instagram" id="instagram" defaultValue={cliente?.instagram ?? ""} placeholder="@oticabarbosa" />
+      <Campo rotulo="Segmento" id="segmento" defaultValue={cliente?.segmento ?? ""} placeholder="Ótica" />
       <div className="flex min-w-0 flex-col gap-[5px]">
         <label htmlFor="cor" className="text-[11.5px] uppercase tracking-[0.04em] text-muted">
           Cor no sistema
@@ -106,8 +107,30 @@ export function FormBriefing({ clientId, briefing }: { clientId: string; briefin
       <input type="hidden" name="client_id" value={clientId} />
       <input type="hidden" name="grupo" value="briefing" />
       <AreaTexto rotulo="O negócio" id="negocio" defaultValue={briefing?.negocio} />
-      <AreaTexto rotulo="Público" id="publico" defaultValue={briefing?.publico} />
       <AreaTexto rotulo="Objetivo com o marketing" id="objetivo" defaultValue={briefing?.objetivo} />
+      <Rodape enviando={enviando} estado={estado} />
+    </form>
+  );
+}
+
+export function FormPublico({ clientId, briefing }: { clientId: string; briefing: Briefing | null }) {
+  const [estado, acao, enviando] = useActionState(salvarBriefing, undefined);
+  return (
+    <form action={acao} className="flex flex-col gap-3">
+      <input type="hidden" name="client_id" value={clientId} />
+      <input type="hidden" name="grupo" value="publico" />
+      <AreaTexto rotulo="Quem é o público" id="publico" defaultValue={briefing?.publico} />
+      <Rodape enviando={enviando} estado={estado} />
+    </form>
+  );
+}
+
+export function FormDrive({ clientId, link }: { clientId: string; link: string | null }) {
+  const [estado, acao, enviando] = useActionState(salvarDrive, undefined);
+  return (
+    <form action={acao} className="flex flex-col gap-3">
+      <input type="hidden" name="client_id" value={clientId} />
+      <Campo rotulo="Link da pasta no Drive" id="drive_url" type="url" defaultValue={link ?? ""} placeholder="https://drive.google.com/…" />
       <Rodape enviando={enviando} estado={estado} />
     </form>
   );

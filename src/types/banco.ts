@@ -38,6 +38,7 @@ export type Cliente = {
 export type ClienteCompleto = Cliente & {
   instagram: string | null;
   drive_url: string | null;
+  segmento: string | null;
 };
 
 export type Acesso = { nome: string; liberado: boolean };

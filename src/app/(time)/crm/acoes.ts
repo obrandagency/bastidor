@@ -96,14 +96,14 @@ export async function virarCliente(_: Estado, form: FormData): Promise<Estado> {
   const eu = await exigirGestao();
   if (!eu) return { erro: "Sem permissão." };
   const supabase = await criarClienteServidor();
-  const { data: lead } = await supabase.from("leads").select("id, empresa, etapa, client_id, valor_mensal").eq("id", texto(form, "id")).maybeSingle();
+  const { data: lead } = await supabase.from("leads").select("id, empresa, etapa, client_id, valor_mensal, segmento").eq("id", texto(form, "id")).maybeSingle();
   if (!lead) return { erro: "Lead não encontrado." };
   if (lead.etapa !== "ganho") return { erro: "Só lead fechado vira cliente." };
   if (lead.client_id) redirect(`/clientes/${lead.client_id}`);
 
   const { data: cliente, error } = await supabase
     .from("clients")
-    .insert({ nome: lead.empresa, nome_curto: lead.empresa.slice(0, 20) })
+    .insert({ nome: lead.empresa, nome_curto: lead.empresa.slice(0, 20), segmento: lead.segmento })
     .select("id")
     .single();
   if (error || !cliente) return { erro: "Não foi possível criar o cliente." };

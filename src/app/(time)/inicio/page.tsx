@@ -280,7 +280,7 @@ async function Resumo({ eu, hoje, link, clienteDe, pessoaPor }: Ctx & { eu: stri
 
   // Ordem pedida em 07/11: atrasadas, pendentes, avisos, conteúdos em produção
   return (
-    <div className="flex flex-col gap-4">
+    <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-2">
       <TarefasAtrasadas tarefas={lista.filter((t) => estaAtrasada(t, hoje)).map(resumo)} />
       <TarefasPendentes tarefas={lista.filter((t) => t.tipo === "demanda").map(resumo)} etapas={ETAPAS_DEMANDA.filter((e) => e.id !== "concluido")} />
       <CentralAvisos avisos={avisosResumo} conversas={conversas} tarefas={minhasUrgentes} />

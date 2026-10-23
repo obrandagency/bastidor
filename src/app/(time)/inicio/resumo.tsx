@@ -136,15 +136,27 @@ function Busca({ valor, mudar, placeholder }: { valor: string; mudar: (v: string
   );
 }
 
+// "Todos | Minhas" em botões arredondados
 function Escopo({ minhas, mudar, rotulo }: { minhas: boolean; mudar: (v: boolean) => void; rotulo: [string, string] }) {
   return (
-    <label className="flex items-center gap-2 rounded-lg border border-line bg-card px-3 py-2 text-[13.5px]">
-      <Icone nome="pessoas" className="text-muted" />
-      <select value={minhas ? "minhas" : "todas"} onChange={(e) => mudar(e.target.value === "minhas")} aria-label="De quem" className="bg-transparent font-medium outline-none">
-        <option value="minhas">{rotulo[0]}</option>
-        <option value="todas">{rotulo[1]}</option>
-      </select>
-    </label>
+    <div role="group" aria-label="De quem" className="flex flex-none gap-1.5">
+      {(
+        [
+          [false, rotulo[1]],
+          [true, rotulo[0]],
+        ] as const
+      ).map(([valor, texto]) => (
+        <button
+          key={texto}
+          type="button"
+          onClick={() => mudar(valor)}
+          aria-pressed={minhas === valor}
+          className={`rounded-full border px-3.5 py-[7px] text-[13px] font-medium ${minhas === valor ? "border-accent bg-accent text-accent-ink" : "border-line bg-card text-muted hover:text-ink"}`}
+        >
+          {texto}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -190,9 +202,9 @@ function LinhaTarefa({ t }: { t: TarefaResumo }) {
 }
 
 // ---------------------------------------------------------------- tarefas atrasadas (conteúdos e demandas)
-export function TarefasAtrasadas({ tarefas }: { tarefas: TarefaResumo[] }) {
+export function TarefasAtrasadas({ tarefas, todos }: { tarefas: TarefaResumo[]; todos?: boolean }) {
   const [busca, setBusca] = useState("");
-  const [minhas, setMinhas] = useState(true);
+  const [minhas, setMinhas] = useState(!todos);
   const lista = useMemo(() => filtrar(tarefas, busca, minhas), [tarefas, busca, minhas]);
 
   return (
@@ -208,7 +220,7 @@ export function TarefasAtrasadas({ tarefas }: { tarefas: TarefaResumo[] }) {
       </div>
       <div className="mb-4 flex flex-wrap gap-2">
         <Busca valor={busca} mudar={setBusca} placeholder="Buscar tarefa ou cliente…" />
-        <Escopo minhas={minhas} mudar={setMinhas} rotulo={["Minhas tarefas", "Todo o time"]} />
+        <Escopo minhas={minhas} mudar={setMinhas} rotulo={["Minhas", "Todos"]} />
       </div>
       {lista.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-6 text-center">
@@ -224,9 +236,19 @@ export function TarefasAtrasadas({ tarefas }: { tarefas: TarefaResumo[] }) {
 }
 
 // ---------------------------------------------------------------- tarefas pendentes (demandas abertas)
-export function TarefasPendentes({ tarefas, etapas }: { tarefas: TarefaResumo[]; etapas: { id: Etapa; rotulo: string }[] }) {
+export function TarefasPendentes({
+  tarefas,
+  etapas,
+  todos,
+  verTodas = "/tarefas?aba=demanda",
+}: {
+  tarefas: TarefaResumo[];
+  etapas: { id: Etapa; rotulo: string }[];
+  todos?: boolean; // abre em "Todos" (Central do cliente)
+  verTodas?: string;
+}) {
   const [busca, setBusca] = useState("");
-  const [minhas, setMinhas] = useState(true);
+  const [minhas, setMinhas] = useState(!todos);
   const [vista, setVista] = useState<"grade" | "lista">("grade");
   const lista = useMemo(() => filtrar(tarefas, busca, minhas), [tarefas, busca, minhas]);
 
@@ -251,25 +273,25 @@ export function TarefasPendentes({ tarefas, etapas }: { tarefas: TarefaResumo[];
             </button>
           ))}
         </div>
-        <Link href="/tarefas?aba=demanda" className="text-[13px] text-muted hover:text-ink">
+        <Link href={verTodas} className="text-[13px] text-muted hover:text-ink">
           Ver todas →
         </Link>
       </div>
       <div className="mb-4 flex flex-wrap gap-2">
         <Busca valor={busca} mudar={setBusca} placeholder="Buscar tarefa ou cliente…" />
-        <Escopo minhas={minhas} mudar={setMinhas} rotulo={["Minhas tarefas", "Todo o time"]} />
+        <Escopo minhas={minhas} mudar={setMinhas} rotulo={["Minhas", "Todos"]} />
       </div>
       {lista.length === 0 ? (
         <EstadoVazio icone="tarefas">{busca ? "Nenhuma tarefa com essa busca." : minhas ? "Nenhuma demanda pendente com você." : "Nenhuma demanda pendente."}</EstadoVazio>
       ) : vista === "lista" ? (
         <div className="rounded-xl border border-line">{lista.map((t) => <LinhaTarefa key={t.id} t={t} />)}</div>
       ) : (
-        <div className="grid gap-3 overflow-x-auto md:grid-cols-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-3">
           {etapas.map((e) => {
             const da = lista.filter((t) => t.etapa === e.id);
             if (!da.length) return null;
             return (
-              <div key={e.id} className={`flex min-w-[240px] flex-col gap-2 rounded-xl border border-t-[3px] border-line bg-surface p-2.5 ${BARRA_DO_TOM[tomDaEtapa(e.id)]}`}>
+              <div key={e.id} className={`flex min-w-0 flex-col gap-2 rounded-xl border border-t-[3px] border-line bg-surface p-2.5 ${BARRA_DO_TOM[tomDaEtapa(e.id)]}`}>
                 <div className="flex items-center justify-between px-1 text-[13.5px] font-semibold">
                   {e.rotulo}
                   <span className="font-mono text-[11.5px] text-muted">{da.length}</span>
@@ -287,9 +309,19 @@ export function TarefasPendentes({ tarefas, etapas }: { tarefas: TarefaResumo[];
 }
 
 // ---------------------------------------------------------------- conteúdos em produção
-export function ConteudosProducao({ conteudos, etapas }: { conteudos: TarefaResumo[]; etapas: { id: Etapa; rotulo: string }[] }) {
+export function ConteudosProducao({
+  conteudos,
+  etapas,
+  todos,
+  verQuadro = "/tarefas?aba=conteudo",
+}: {
+  conteudos: TarefaResumo[];
+  etapas: { id: Etapa; rotulo: string }[];
+  todos?: boolean;
+  verQuadro?: string;
+}) {
   const [busca, setBusca] = useState("");
-  const [meus, setMeus] = useState(true);
+  const [meus, setMeus] = useState(!todos);
   const [etapa, setEtapa] = useState<Etapa | null>(null);
   const base = useMemo(() => filtrar(conteudos, busca, meus), [conteudos, busca, meus]);
   const lista = etapa ? base.filter((c) => c.etapa === etapa) : base;
@@ -301,13 +333,13 @@ export function ConteudosProducao({ conteudos, etapas }: { conteudos: TarefaResu
         <h2 className="text-[17px] font-bold">Conteúdos em produção</h2>
         <span className="rounded-full bg-surface px-2 font-mono text-[12px] text-muted">{base.length}</span>
         <span className="flex-1" />
-        <Link href="/tarefas?aba=conteudo" className="text-[13px] text-muted hover:text-ink">
+        <Link href={verQuadro} className="text-[13px] text-muted hover:text-ink">
           Ver quadro →
         </Link>
       </div>
       <div className="mb-3 flex flex-wrap gap-2">
         <Busca valor={busca} mudar={setBusca} placeholder="Buscar conteúdo ou cliente…" />
-        <Escopo minhas={meus} mudar={setMeus} rotulo={["Meus conteúdos", "Todo o time"]} />
+        <Escopo minhas={meus} mudar={setMeus} rotulo={["Meus", "Todos"]} />
       </div>
       <div className="mb-4 flex flex-wrap gap-1.5">
         <button type="button" onClick={() => setEtapa(null)} className={`rounded-full px-3 py-1 text-[12.5px] font-medium ${!etapa ? "bg-rail text-rail-ink" : "bg-surface text-muted hover:text-ink"}`}>

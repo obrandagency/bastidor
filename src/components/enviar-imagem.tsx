@@ -7,7 +7,7 @@ import { criarClienteNavegador } from "@/lib/supabase/client";
 import type { Estado } from "@/app/entrar/acoes";
 
 // Reduz a imagem no navegador (lado maior até `maximo` px) e converte para WebP, mantendo a transparência
-async function reduzir(arquivo: File, maximo: number): Promise<Blob> {
+export async function reduzir(arquivo: File, maximo: number): Promise<Blob> {
   const bitmap = await createImageBitmap(arquivo);
   const escala = Math.min(1, maximo / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");

@@ -43,6 +43,7 @@ export async function salvarCliente(_: Estado, form: FormData): Promise<Estado> 
     nome: texto(form, "nome"),
     nome_curto: texto(form, "nome_curto"),
     instagram: limparInstagram(texto(form, "instagram")),
+    segmento: texto(form, "segmento") || null,
     cor: texto(form, "cor").toUpperCase(),
     drive_url: texto(form, "drive_url") || null,
     ativo: id ? form.get("ativo") === "on" : true,
@@ -88,7 +89,9 @@ export async function salvarBriefing(_: Estado, form: FormData): Promise<Estado>
 
   let dados: Record<string, unknown>;
   if (grupo === "briefing") {
-    dados = { negocio: texto(form, "negocio"), publico: texto(form, "publico"), objetivo: texto(form, "objetivo") };
+    dados = { negocio: texto(form, "negocio"), objetivo: texto(form, "objetivo") };
+  } else if (grupo === "publico") {
+    dados = { publico: texto(form, "publico") };
   } else if (grupo === "tom") {
     dados = { tom_voz: lista(form, "tom_voz"), evitar: texto(form, "evitar") };
   } else if (grupo === "identidade") {
@@ -114,7 +117,7 @@ export async function salvarBriefing(_: Estado, form: FormData): Promise<Estado>
     .from("client_briefs")
     .upsert({ client_id: clientId, ...dados, updated_at: new Date().toISOString(), updated_by: eu.id });
   if (error) return { erro: "Não foi possível salvar." };
-  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath(`/clientes/${clientId}`, "layout");
   return { ok: "Salvo." };
 }
 
@@ -144,7 +147,7 @@ export async function salvarContrato(_: Estado, form: FormData): Promise<Estado>
     : await supabase.from("contracts").insert(dados);
   if (error?.code === "23P01") return { erro: "Já existe um contrato valendo nesse período. Ajuste o fim do anterior." };
   if (error) return { erro: "Não foi possível salvar o contrato." };
-  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath(`/clientes/${clientId}`, "layout");
   revalidatePath("/clientes");
   return { ok: "Contrato salvo." };
 }
@@ -155,7 +158,7 @@ export async function apagarContrato(_: Estado, form: FormData): Promise<Estado>
   const supabase = await criarClienteServidor();
   const { error } = await supabase.from("contracts").delete().eq("id", texto(form, "id"));
   if (error) return { erro: "Não foi possível apagar." };
-  revalidatePath(`/clientes/${texto(form, "client_id")}`);
+  revalidatePath(`/clientes/${texto(form, "client_id")}`, "layout");
   revalidatePath("/clientes");
   return { ok: "Contrato apagado." };
 }
@@ -171,7 +174,7 @@ export async function adicionarAta(_: Estado, form: FormData): Promise<Estado> {
   const supabase = await criarClienteServidor();
   const { error } = await supabase.from("meeting_notes").insert({ client_id: clientId, data, resumo, autor_id: eu.id });
   if (error) return { erro: "Não foi possível salvar a ata." };
-  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath(`/clientes/${clientId}`, "layout");
   return { ok: "Ata salva." };
 }
 
@@ -180,7 +183,7 @@ export async function apagarAta(_: Estado, form: FormData): Promise<Estado> {
   const supabase = await criarClienteServidor();
   const { error } = await supabase.from("meeting_notes").delete().eq("id", texto(form, "id"));
   if (error) return { erro: "Não foi possível apagar." };
-  revalidatePath(`/clientes/${texto(form, "client_id")}`);
+  revalidatePath(`/clientes/${texto(form, "client_id")}`, "layout");
   return { ok: "Ata apagada." };
 }
 
@@ -223,6 +226,11 @@ export async function apagarCliente(_: Estado, form: FormData): Promise<Estado> 
   const { data: logos } = await admin.storage.from(BUCKET_MARCA).list(`clientes/${clientId}`, { limit: 100 });
   const caminhosMarca = (logos ?? []).map((a) => `clientes/${clientId}/${a.name}`);
   if (caminhosMarca.length) await admin.storage.from(BUCKET_MARCA).remove(caminhosMarca);
+  // 1e. Imagens das inspirações (pasta client_id/arquivo)
+  const { BUCKET_INSPIRACOES } = await import("@/lib/constantes");
+  const { data: refs } = await admin.storage.from(BUCKET_INSPIRACOES).list(clientId, { limit: 1000 });
+  const caminhosRefs = (refs ?? []).map((a) => `${clientId}/${a.name}`);
+  if (caminhosRefs.length) await admin.storage.from(BUCKET_INSPIRACOES).remove(caminhosRefs);
   // 2. Logins das pessoas do cliente (o perfil some junto)
   const { data: pessoas } = await admin.from("profiles").select("id").eq("client_id", clientId);
   for (const p of pessoas ?? []) await admin.auth.admin.deleteUser(p.id);
@@ -232,4 +240,17 @@ export async function apagarCliente(_: Estado, form: FormData): Promise<Estado> 
 
   revalidatePath("/clientes", "layout");
   redirect("/clientes");
+}
+
+// ---------------------------------------------------------------- materiais: link da pasta no Drive
+export async function salvarDrive(_: Estado, form: FormData): Promise<Estado> {
+  if (!(await exigirGestao())) return { erro: "Só Sócio e Administrativo editam o link." };
+  const clientId = texto(form, "client_id");
+  const link = texto(form, "drive_url") || null;
+  if (link && !/^https?:\/\//.test(link)) return { erro: "O link precisa começar com https://" };
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.from("clients").update({ drive_url: link }).eq("id", clientId);
+  if (error) return { erro: "Não foi possível salvar o link." };
+  revalidatePath(`/clientes/${clientId}`, "layout");
+  return { ok: "Link salvo." };
 }

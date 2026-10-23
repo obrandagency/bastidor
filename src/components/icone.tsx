@@ -2,7 +2,8 @@ import type { IconeMenu } from "@/lib/permissoes";
 
 // Ícones fora do menu (painéis e estados vazios)
 export type IconeExtra =
-  | "alerta" | "relogio" | "calendario" | "pessoas" | "documento" | "paleta" | "chave" | "voz" | "escudo" | "sino" | "foto" | "contrato" | "funil" | "lista";
+  | "alerta" | "relogio" | "calendario" | "pessoas" | "documento" | "paleta" | "chave" | "voz" | "escudo" | "sino" | "foto" | "contrato" | "funil" | "lista"
+  | "lampada" | "pasta" | "alvo" | "aprovacao" | "predio" | "camera" | "seta";
 export type NomeIcone = IconeMenu | IconeExtra;
 
 // Traços copiados do protótipo
@@ -32,6 +33,13 @@ const CAMINHOS: Record<NomeIcone, string> = {
   contrato: "M6 3h12v18H6zM9 8h6M9 12h6M9 16h3",
   funil: "M3 5h18l-7 8v6l-4 2v-8z",
   lista: "M8 6h12M8 12h12M8 18h12M4 6v.01M4 12v.01M4 18v.01",
+  lampada: "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z",
+  pasta: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 10h18",
+  alvo: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 11v2",
+  aprovacao: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12.5l2.5 2.5L16 9.5",
+  predio: "M5 21V4h10v17M15 9h4v12M3 21h18M8 8h4M8 12h4M8 16h4",
+  camera: "M3 7h12v10H3zM15 10.5l6-3.5v10l-6-3.5",
+  seta: "M5 12h14M13 6l6 6-6 6",
 };
 
 // Ícone num quadradinho colorido (cards e estados vazios)

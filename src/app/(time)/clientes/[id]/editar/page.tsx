@@ -29,7 +29,7 @@ export default async function EditarCliente({ params }: { params: Promise<{ id: 
           rotulo="Enviar logo"
           vazio={<LogoCliente nome={cliente.nome} cor={cliente.cor} classe="h-full w-full text-[20px]" />}
         />
-        <p className="mt-2.5 text-[12.5px] text-muted">Aparece na Central, no quadro de onboarding e no topo do portal desse cliente. Fica recortado em círculo.</p>
+        <p className="mt-2.5 text-[12.5px] text-muted">Aparece na Central do cliente, no quadro de onboarding e no topo do portal desse cliente.</p>
       </div>
       <FormCliente cliente={cliente} />
     </>

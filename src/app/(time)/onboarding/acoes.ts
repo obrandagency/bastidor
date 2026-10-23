@@ -38,7 +38,7 @@ export async function iniciarOnboarding(_: Estado, form: FormData): Promise<Esta
   if (error?.code === "23505") return { erro: "Este cliente já tem onboarding." };
   if (error || !data) return { erro: "Não foi possível iniciar." };
   atualizar();
-  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath(`/clientes/${clientId}`, "layout");
   redirect(`/onboarding/${data.id}`);
 }
 

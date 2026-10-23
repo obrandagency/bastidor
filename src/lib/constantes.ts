@@ -8,3 +8,6 @@ export const BUCKET_CHAT = "chat";
 
 // Bucket privado dos documentos do onboarding (caminho: onboarding_id/arquivo)
 export const BUCKET_ONBOARDING = "onboarding";
+
+// Bucket privado das imagens de inspiração (caminho: client_id/arquivo)
+export const BUCKET_INSPIRACOES = "inspiracoes";

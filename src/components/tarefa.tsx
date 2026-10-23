@@ -19,15 +19,28 @@ export function Avatar({ iniciais, nome, grande, foto, classe }: { iniciais: str
 }
 
 // Logo do cliente (bucket "marca") ou a bolinha com a cor e a inicial
-export function LogoCliente({ nome, cor, logo, classe = "h-6 w-6 text-[11px]" }: { nome: string; cor: string; logo?: string | null; classe?: string }) {
+export function LogoCliente({
+  nome,
+  cor,
+  logo,
+  classe = "h-6 w-6 text-[11px]",
+  quadrado,
+}: {
+  nome: string;
+  cor: string;
+  logo?: string | null;
+  classe?: string;
+  quadrado?: boolean; // cantos arredondados em vez de círculo (cards da Central do cliente)
+}) {
   const url = urlMarca(logo);
+  const forma = quadrado ? "rounded-xl" : "rounded-full";
   if (url)
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={url} alt="" title={nome} loading="lazy" className={`inline-block flex-none rounded-full border border-line bg-card object-contain ${classe}`} />
+      <img src={url} alt="" title={nome} loading="lazy" className={`inline-block flex-none border border-line bg-card object-contain ${forma} ${classe}`} />
     );
   return (
-    <span title={nome} className={`grid flex-none place-items-center rounded-full font-semibold text-white ${classe}`} style={{ background: cor }}>
+    <span title={nome} className={`grid flex-none place-items-center font-semibold text-white ${forma} ${classe}`} style={{ background: cor }}>
       {nome.charAt(0).toUpperCase()}
     </span>
   );

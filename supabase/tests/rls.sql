@@ -692,6 +692,30 @@ select testes.ok(testes.conta($$select * from public.chat_mensagens where canal_
 reset role;
 select set_config('request.jwt.claims', '', true);
 
+-- ---------------------------------------------------------------- inspirações (só o time)
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+insert into public.inspiracoes (id, client_id, titulo, link) values ('00000000-0000-0000-0000-000000abc5a1', '00000000-0000-0000-0000-00000000000a', 'Feed de referência', 'https://exemplo.com');
+select testes.ok(testes.conta('select * from public.inspiracoes') = 1, 'inspirações: Criação adiciona e vê');
+select testes.recusa($$insert into public.inspiracoes (client_id, titulo, criado_por) values ('00000000-0000-0000-0000-00000000000a', 'x', '00000000-0000-0000-0000-000000000001')$$, 'inspirações: não cria em nome de outra pessoa');
+select testes.recusa($$insert into public.inspiracoes (client_id, titulo, imagem) values ('00000000-0000-0000-0000-00000000000a', 'x', '00000000-0000-0000-0000-00000000000b/y.webp')$$, 'inspirações: imagem precisa ser da pasta do cliente');
+insert into storage.objects (bucket_id, name) values ('inspiracoes', '00000000-0000-0000-0000-00000000000a/ref.webp');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+insert into storage.objects (bucket_id, name) values ('inspiracoes', '00000000-0000-0000-0000-00000000000a/do-adm.webp');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.recusa($$delete from storage.objects where bucket_id = 'inspiracoes' and name like '%do-adm.webp'$$, 'inspirações: Criação não apaga imagem de outra pessoa');
+delete from storage.objects where bucket_id = 'inspiracoes' and name like '%ref.webp';
+select testes.ok(testes.conta($$select * from storage.objects where name like '%ref.webp'$$) = 0, 'inspirações: Criação apaga a própria imagem');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+update public.inspiracoes set nota = 'Adm edita' where id = '00000000-0000-0000-0000-000000abc5a1';
+select testes.ok(testes.conta($$select * from public.inspiracoes where nota = 'Adm edita'$$) = 1, 'inspirações: Adm edita a de outra pessoa');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.inspiracoes') = 0, 'inspirações: cliente não vê');
+select testes.ok(testes.conta($$select * from storage.objects where bucket_id = 'inspiracoes'$$) = 0, 'inspirações: cliente não vê as imagens');
+select testes.recusa($$insert into public.inspiracoes (client_id, titulo) values ('00000000-0000-0000-0000-00000000000a', 'x')$$, 'inspirações: cliente não adiciona');
+reset role;
+select set_config('request.jwt.claims', '', true);
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (
