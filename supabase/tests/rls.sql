@@ -616,6 +616,35 @@ select testes.ok((select margem_topo = 40 from public.identidade), 'roteiros: S�
 select testes.recusa($$update public.identidade set timbrado = 'https://exemplo.com/t.png'$$, 'roteiros: timbrado só do bucket da marca');
 reset role;
 
+-- ---------------------------------------------------------------- lembretes
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+insert into public.lembretes (id, texto, quando) values ('00000000-0000-0000-0000-000000abc2a1', 'Enviar mensagem para a Ótica', now() - interval '1 minute');
+insert into public.lembretes (id, texto, quando, repetir) values ('00000000-0000-0000-0000-000000abc2a2', 'Conferir agenda', '2026-11-06 16:00-03', 'dias_uteis');
+select testes.ok(testes.conta('select * from public.lembretes') = 2, 'lembretes: Criação cria os seus');
+select testes.recusa($$insert into public.lembretes (dono_id, texto, quando) values ('00000000-0000-0000-0000-000000000002', 'x', now())$$, 'lembretes: não cria lembrete para outra pessoa');
+select testes.ok(public.disparar_lembretes() = 1, 'lembretes: o que venceu entra no sino');
+select testes.ok(public.disparar_lembretes() = 0, 'lembretes: não avisa duas vezes');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.lembretes') = 0, 'lembretes: Adm não vê os lembretes da Criação');
+select testes.recusa($$delete from public.lembretes$$, 'lembretes: Adm não apaga os lembretes da Criação');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.recusa($$insert into public.lembretes (texto, quando) values ('x', now())$$, 'lembretes: cliente não cria');
+reset role;
+select testes.ok(testes.conta($$select * from public.notifications where tipo = 'lembrete' and destinatario_id = '00000000-0000-0000-0000-000000000003' and email_enviado_em is not null$$) = 1,
+  'lembretes: aviso no sino sem e-mail');
+-- sexta 16h, dias úteis: depois de concluir vai para segunda 16h
+select testes.ok(public.proximo_lembrete('2026-11-06 16:00-03', 'dias_uteis', '2026-11-06 16:05-03') = '2026-11-09 16:00-03', 'lembretes: dias úteis pula o fim de semana');
+select testes.ok(public.proximo_lembrete('2026-11-06 16:00-03', 'semanal', '2026-11-20 10:00-03') = '2026-11-20 16:00-03', 'lembretes: semanal mantém o horário e pula o que passou');
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select public.concluir_lembrete('00000000-0000-0000-0000-000000abc2a1');
+select public.concluir_lembrete('00000000-0000-0000-0000-000000abc2a2');
+select testes.ok((select concluido_em is not null from public.lembretes where id = '00000000-0000-0000-0000-000000abc2a1'), 'lembretes: concluir o de uma vez fecha');
+select testes.ok((select concluido_em is null and quando > now() from public.lembretes where id = '00000000-0000-0000-0000-000000abc2a2'), 'lembretes: concluir o que repete vai para a próxima vez');
+reset role;
+select set_config('request.jwt.claims', '', true);
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (

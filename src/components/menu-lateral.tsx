@@ -113,7 +113,7 @@ export function MenuLateral({
             </Link>
           )}
         </div>
-        <main className="min-w-0 px-4 pb-14 pt-5 md:px-7 md:pb-16 md:pt-7">{children}</main>
+        <main className="min-w-0 px-4 pb-24 pt-5 md:px-7 md:pb-24 md:pt-7">{children}</main>
       </div>
     </div>
   );
