@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { Lembretes } from "@/components/lembretes";
 import { MenuLateral } from "@/components/menu-lateral";
@@ -24,6 +25,7 @@ export default async function LayoutTime({ children }: { children: React.ReactNo
         identidade={identidade}
         avisos={count ?? 0}
         contagens={{ "/chat": chat }}
+        recolhidoInicial={(await cookies()).get("menu_recolhido")?.value === "1"}
       >
         {children}
       </MenuLateral>
