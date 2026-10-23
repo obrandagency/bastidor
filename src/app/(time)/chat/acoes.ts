@@ -123,6 +123,9 @@ export async function criarCanal(_: Estado, form: FormData): Promise<Estado> {
   const { data, error } = await supabase.from("chat_canais").insert({ nome, client_id: clientId, criado_por: eu.id }).select("id").single();
   if (error?.code === "23505") return { erro: `Já existe o canal #${nome}.` };
   if (error || !data) return { erro: "Não foi possível criar o canal." };
+  // Membros escolhidos (quem criou já entra pelo banco)
+  const membros = form.getAll("membros").map(String).filter((id) => id !== eu.id);
+  if (membros.length) await supabase.from("chat_membros").insert(membros.map((pessoa_id) => ({ canal_id: data.id, pessoa_id })));
   revalidatePath("/chat");
   redirect(`/chat?canal=${data.id}`);
 }
@@ -135,4 +138,41 @@ export async function arquivarCanal(_: Estado, form: FormData): Promise<Estado> 
   if (error || !count) return { erro: "Não foi possível arquivar." };
   revalidatePath("/chat");
   redirect("/chat");
+}
+
+// ---------------------------------------------------------------- membros (Sócio e Adm)
+export async function adicionarMembro(canalId: string, pessoaId: string): Promise<Estado> {
+  const eu = await pessoaAtual();
+  if (eu?.perfil !== "socio" && eu?.perfil !== "adm") return { erro: "Só Sócio e Administrativo mudam os membros." };
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.from("chat_membros").upsert({ canal_id: canalId, pessoa_id: pessoaId }, { ignoreDuplicates: true });
+  if (error) return { erro: "Não foi possível adicionar." };
+  revalidatePath("/chat");
+  return undefined;
+}
+
+export async function removerMembro(canalId: string, pessoaId: string): Promise<Estado> {
+  const eu = await pessoaAtual();
+  if (eu?.perfil !== "socio" && eu?.perfil !== "adm") return { erro: "Só Sócio e Administrativo mudam os membros." };
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.from("chat_membros").delete().match({ canal_id: canalId, pessoa_id: pessoaId });
+  if (error) return { erro: "Não foi possível tirar." };
+  revalidatePath("/chat");
+  return undefined;
+}
+
+// Pesquisa dentro das mensagens (só dos canais que a pessoa vê: a RLS filtra)
+export async function buscarMensagens(termo: string): Promise<{ id: string; canal_id: string; canal: string; autor: string; texto: string; created_at: string }[]> {
+  if (!(await exigirTimeAcao())) return [];
+  const t = termo.trim().replace(/[%_,()\\]/g, " ").slice(0, 60);
+  if (t.length < 2) return [];
+  const supabase = await criarClienteServidor();
+  const { data } = await supabase
+    .from("chat_mensagens")
+    .select("id, canal_id, texto, autor_nome, created_at, chat_canais(nome)")
+    .ilike("texto", `%${t}%`)
+    .order("created_at", { ascending: false })
+    .limit(30)
+    .returns<{ id: string; canal_id: string; texto: string; autor_nome: string | null; created_at: string; chat_canais: { nome: string } | null }[]>();
+  return (data ?? []).map((m) => ({ id: m.id, canal_id: m.canal_id, canal: m.chat_canais?.nome ?? "", autor: m.autor_nome ?? "Alguém", texto: m.texto, created_at: m.created_at }));
 }

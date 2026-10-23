@@ -366,6 +366,7 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
 insert into public.chat_canais (id, nome, client_id) values ('00000000-0000-0000-0000-0000000000c1', 'cliente-a', '00000000-0000-0000-0000-00000000000a');
+insert into public.chat_membros (canal_id, pessoa_id) values ('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000003');
 select testes.ok(true, 'chat: Adm cria canal');
 select testes.recusa($$insert into public.chat_canais (nome) values ('Nome Inválido')$$, 'chat: nome de canal só minúsculas, números e hífen');
 select testes.recusa($$update public.chat_canais set arquivado = true where nome = 'geral'$$, 'chat: #geral não é arquivado');
@@ -666,6 +667,30 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 select testes.ok(testes.conta('select * from public.chat_reacoes') = 0 and testes.conta('select * from public.chat_tarefas') = 0, 'chat: cliente não vê reações nem menções');
 reset role;
 select testes.ok((select 'audio/webm' = any (allowed_mime_types) from storage.buckets where id = 'chat'), 'chat: aceita áudio');
+
+-- ---------------------------------------------------------------- chat: membros por canal
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+insert into public.chat_canais (id, nome) values ('00000000-0000-0000-0000-000000abc4c1', 'so-gestao');
+insert into public.chat_mensagens (id, canal_id, autor_id, texto) values ('00000000-0000-0000-0000-000000abc4a1', '00000000-0000-0000-0000-000000abc4c1', auth.uid(), 'Assunto reservado, @criação não vê');
+select testes.ok(testes.conta($$select * from public.chat_membros where canal_id = '00000000-0000-0000-0000-000000abc4c1' and pessoa_id = auth.uid()$$) = 1, 'chat membros: quem cria o canal entra nele');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.ok(testes.conta($$select * from public.chat_canais where id = '00000000-0000-0000-0000-000000abc4c1'$$) = 0, 'chat membros: quem não é membro não vê o canal');
+select testes.ok(testes.conta($$select * from public.chat_mensagens where canal_id = '00000000-0000-0000-0000-000000abc4c1'$$) = 0, 'chat membros: nem as mensagens');
+select testes.recusa($$insert into public.chat_mensagens (canal_id, autor_id, texto) values ('00000000-0000-0000-0000-000000abc4c1', auth.uid(), 'oi')$$, 'chat membros: não escreve em canal de que não é membro');
+select testes.recusa($$insert into public.chat_mensagens (canal_id, autor_id, encaminhada_de) values ((select id from public.chat_canais where nome = 'geral'), auth.uid(), '00000000-0000-0000-0000-000000abc4a1')$$, 'chat membros: não encaminha mensagem de canal que não vê');
+select testes.recusa($$insert into storage.objects (bucket_id, name) values ('chat', '00000000-0000-0000-0000-000000abc4c1/x.pdf')$$, 'chat membros: não envia anexo em canal de que não é membro');
+select testes.recusa($$insert into public.chat_membros (canal_id, pessoa_id) values ('00000000-0000-0000-0000-000000abc4c1', auth.uid())$$, 'chat membros: Criação não se coloca em canal');
+select testes.ok(testes.conta($$select * from public.chat_canais where nome = 'geral'$$) = 1, 'chat membros: #geral é de todos');
+reset role;
+select testes.ok(testes.conta($$select * from public.notifications where tipo = 'mencao' and destinatario_id = '00000000-0000-0000-0000-000000000003' and texto like '%reservado%'$$) = 0, 'chat membros: @menção não avisa quem não está no canal');
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+insert into public.chat_membros (canal_id, pessoa_id) values ('00000000-0000-0000-0000-000000abc4c1', '00000000-0000-0000-0000-000000000003');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.ok(testes.conta($$select * from public.chat_mensagens where canal_id = '00000000-0000-0000-0000-000000abc4c1'$$) = 1, 'chat membros: adicionado pelo Sócio passa a ver');
+reset role;
+select set_config('request.jwt.claims', '', true);
 
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');

@@ -82,6 +82,9 @@ export function Conversa({
   arquivado,
   reacoesIniciais,
   canais,
+  menuCanal,
+  membros,
+  destacar,
 }: {
   canalId: string;
   titulo: string;
@@ -92,6 +95,9 @@ export function Conversa({
   arquivado?: boolean;
   reacoesIniciais: ReacaoChat[];
   canais: { id: string; nome: string }[]; // destino do "Encaminhar"
+  menuCanal?: React.ReactNode; // "⋯" ao lado do nome
+  membros?: React.ReactNode; // ícone de pessoas à direita
+  destacar?: string; // mensagem vinda da pesquisa
 }) {
   const [mensagens, setMensagens] = useState(iniciais);
   const [reacoes, setReacoes] = useState(reacoesIniciais);
@@ -149,11 +155,15 @@ export function Conversa({
         .subscribe();
     })();
     marcarLido(canalId);
-    rolarParaFim();
+    // Vindo da pesquisa: vai até a mensagem e destaca; senão, vai para a última
+    const alvo = destacar ? document.getElementById(`msg-${destacar}`) : null;
+    if (alvo) requestAnimationFrame(() => alvo.scrollIntoView({ block: "center" }));
+    else rolarParaFim();
     return () => {
       ativo = false;
       supabase.removeChannel(canal);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canalId, eu, supabase]);
 
   // Links temporários dos anexos (gerados com a sessão de quem vê)
@@ -274,9 +284,12 @@ export function Conversa({
   let diaAnterior = "";
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <div className="flex items-center justify-between border-b border-line px-4 py-3.5">
-        <h2 className="text-[15px] font-bold">{titulo}</h2>
-        <span className="text-[12.5px] text-muted">{pessoas.length} pessoas</span>
+      <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <h2 className="truncate text-[15px] font-bold">{titulo}</h2>
+          {menuCanal}
+        </div>
+        {membros ?? <span className="text-[12.5px] text-muted">{pessoas.length} pessoas</span>}
       </div>
 
       <div ref={lista} className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto p-4">
@@ -288,7 +301,7 @@ export function Conversa({
           const autor = m.autor_id ? porId.get(m.autor_id) : null;
           const meu = m.autor_id === eu;
           return (
-            <div key={m.id}>
+            <div key={m.id} id={`msg-${m.id}`} className={m.id === destacar ? "-mx-2 rounded-xl bg-accent-soft px-2 py-1" : ""}>
               {separador && (
                 <div className="mb-3 flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] text-muted">
                   <span className="h-px flex-1 bg-line" />
