@@ -8,7 +8,7 @@ import { Icone } from "@/components/icone";
 import { Marca } from "@/components/marca";
 import { Avatar } from "@/components/tarefa";
 import type { Identidade } from "@/lib/marca";
-import { ROTULO_PERFIL, menuDoPerfil, type PerfilTime } from "@/lib/permissoes";
+import { eGrupo, menuDoPerfil, ROTULO_PERFIL, type GrupoMenu, type ItemMenu, type PerfilTime } from "@/lib/permissoes";
 
 type Pessoa = { nome: string; iniciais: string; perfil: PerfilTime; foto: string | null };
 
@@ -30,7 +30,39 @@ export function MenuLateral({
   const pathname = usePathname();
   const [aberto, setAberto] = useState(false);
   const [recolhido, setRecolhido] = useState(recolhidoInicial);
-  const grupos = menuDoPerfil(pessoa.perfil);
+  const entradas = menuDoPerfil(pessoa.perfil);
+  const ativoEm = (item: ItemMenu) => pathname === item.href || pathname.startsWith(item.href + "/");
+  // Grupo abre sozinho quando a tela atual está dentro dele; depois vale o clique
+  const [abertos, setAbertos] = useState<Record<string, boolean>>({});
+  const grupoAberto = (g: GrupoMenu) => abertos[g.grupo] ?? g.itens.some(ativoEm);
+  const somaDe = (g: GrupoMenu) => g.itens.reduce((a, i) => a + (contagens[i.href] ?? 0), 0);
+
+  const link = (item: ItemMenu) => {
+    const ativo = ativoEm(item);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        aria-current={ativo ? "page" : undefined}
+        title={recolhido ? item.rotulo : undefined}
+        className={`relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] ${
+          ativo ? "bg-accent font-medium text-accent-ink" : "text-rail-ink/85 hover:bg-rail-line hover:text-white"
+        } ${r("md:h-10 md:w-10 md:justify-center md:px-0")}`}
+      >
+        <Icone nome={item.icone} className={ativo ? "" : "opacity-80"} />
+        <span className={r("md:sr-only")}>{item.rotulo}</span>
+        {!!contagens[item.href] && (
+          <span
+            className={`ml-auto rounded-full px-[7px] font-mono text-[11px] ${ativo ? "bg-white/20" : "bg-rail-line text-rail-ink"} ${r(
+              "md:absolute md:-right-1 md:-top-1 md:ml-0 md:bg-accent md:px-[5px] md:text-[10px] md:text-accent-ink",
+            )}`}
+          >
+            {contagens[item.href]}
+          </span>
+        )}
+      </Link>
+    );
+  };
   // Recolhido vale só no computador; no celular o menu continua sendo a gaveta inteira
   const r = (classes: string) => (recolhido ? classes : "");
 
@@ -67,38 +99,48 @@ export function MenuLateral({
             </svg>
           </button>
         </div>
-        {grupos.map((g) => (
-          <nav key={g.grupo} aria-label={g.grupo} className={`flex flex-col gap-0.5 ${r("md:w-full md:items-center")}`}>
-            <div className={`px-2.5 pb-1.5 text-[10.5px] uppercase tracking-[0.12em] text-rail-muted ${r("md:hidden")}`}>{g.grupo}</div>
-            {recolhido && <div className="mb-1 hidden h-px w-8 bg-rail-line md:block" aria-hidden="true" />}
-            {g.itens.map((item) => {
-              const ativo = pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={ativo ? "page" : undefined}
-                  title={recolhido ? item.rotulo : undefined}
-                  className={`relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] ${
-                    ativo ? "bg-accent font-medium text-accent-ink" : "text-rail-ink/85 hover:bg-rail-line hover:text-white"
-                  } ${r("md:h-10 md:w-10 md:justify-center md:px-0")}`}
-                >
-                  <Icone nome={item.icone} className={ativo ? "" : "opacity-80"} />
-                  <span className={r("md:sr-only")}>{item.rotulo}</span>
-                  {!!contagens[item.href] && (
-                    <span
-                      className={`ml-auto rounded-full px-[7px] font-mono text-[11px] ${ativo ? "bg-white/20" : "bg-rail-line text-rail-ink"} ${r(
-                        "md:absolute md:-right-1 md:-top-1 md:ml-0 md:bg-accent md:px-[5px] md:text-[10px] md:text-accent-ink",
-                      )}`}
+        <nav aria-label="Menu principal" className={`flex flex-col gap-0.5 ${r("md:w-full md:items-center")}`}>
+          {entradas.map((e) =>
+            eGrupo(e) ? (
+              recolhido ? (
+                // Recolhido: os itens do grupo aparecem direto, separados por um traço
+                <div key={e.grupo} className="contents md:flex md:w-full md:flex-col md:items-center md:gap-0.5">
+                  <div className="my-1 hidden h-px w-8 bg-rail-line md:block" aria-hidden="true" />
+                  {e.itens.map((item) => link(item))}
+                  <div className="my-1 hidden h-px w-8 bg-rail-line md:block" aria-hidden="true" />
+                </div>
+              ) : (
+                <div key={e.grupo}>
+                  <button
+                    type="button"
+                    onClick={() => setAbertos((a) => ({ ...a, [e.grupo]: !grupoAberto(e) }))}
+                    aria-expanded={grupoAberto(e)}
+                    className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13.5px] hover:bg-rail-line hover:text-white ${
+                      e.itens.some(ativoEm) ? "font-medium text-white" : "text-rail-ink/85"
+                    }`}
+                  >
+                    <Icone nome={e.icone} className="opacity-80" />
+                    <span className="flex-1">{e.grupo}</span>
+                    {!grupoAberto(e) && somaDe(e) > 0 && <span className="rounded-full bg-rail-line px-[7px] font-mono text-[11px] text-rail-ink">{somaDe(e)}</span>}
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      className={`h-4 w-4 flex-none fill-none stroke-current text-rail-muted transition-transform ${grupoAberto(e) ? "rotate-180" : ""}`}
+                      strokeWidth={1.8}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
-                      {contagens[item.href]}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-        ))}
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                  {grupoAberto(e) && <div className="mb-1 ml-[18px] mt-0.5 flex flex-col gap-0.5 border-l border-rail-line pl-2.5">{e.itens.map((item) => link(item))}</div>}
+                </div>
+              )
+            ) : (
+              link(e)
+            ),
+          )}
+        </nav>
         <div className={`mt-auto flex items-center gap-2.5 border-t border-rail-line p-2.5 ${r("md:flex-col md:gap-2 md:px-0")}`}>
           <Link href="/conta" title={recolhido ? `${pessoa.nome} · Minha conta` : undefined} className="flex-none">
             <Avatar iniciais={pessoa.iniciais} nome={pessoa.nome} foto={pessoa.foto} classe="h-[26px] w-[26px] text-[10.5px] !bg-white !text-ink" />
