@@ -151,6 +151,20 @@ export async function adicionarMembro(canalId: string, pessoaId: string): Promis
   return undefined;
 }
 
+export async function adicionarMembros(canalId: string, pessoas: string[]): Promise<Estado> {
+  const eu = await pessoaAtual();
+  if (eu?.perfil !== "socio" && eu?.perfil !== "adm") return { erro: "Só Sócio e Administrativo mudam os membros." };
+  if (!pessoas.length) return { erro: "Escolha pelo menos uma pessoa." };
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.from("chat_membros").upsert(
+    pessoas.map((pessoa_id) => ({ canal_id: canalId, pessoa_id })),
+    { ignoreDuplicates: true },
+  );
+  if (error) return { erro: "Não foi possível adicionar." };
+  revalidatePath("/chat");
+  return { ok: "Adicionadas." };
+}
+
 export async function removerMembro(canalId: string, pessoaId: string): Promise<Estado> {
   const eu = await pessoaAtual();
   if (eu?.perfil !== "socio" && eu?.perfil !== "adm") return { erro: "Só Sócio e Administrativo mudam os membros." };

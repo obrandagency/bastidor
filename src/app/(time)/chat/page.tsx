@@ -88,7 +88,7 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ c
               pessoas={pessoas}
               arquivado={atual.arquivado}
               destacar={msg}
-              menuCanal={gestao && atual.nome !== "geral" && !atual.arquivado ? <MenuCanal key="menu" id={atual.id} nome={atual.nome} /> : undefined}
+              menuCanal={gestao && atual.nome !== "geral" && !atual.arquivado ? <MenuCanal key="menu" id={atual.id} nome={atual.nome} podeAdicionar={!atual.todos} fora={pessoas.filter((p) => !membrosDe(atual.id).has(p.id))} /> : undefined}
               membros={<MembrosCanal key="membros" canalId={atual.id} todos={atual.todos} membros={membrosAtual} time={pessoas} podeEditar={gestao} />}
             />
           </div>

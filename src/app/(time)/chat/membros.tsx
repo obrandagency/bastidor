@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/tarefa";
-import { adicionarMembro, arquivarCanal, removerMembro } from "./acoes";
+import { adicionarMembro, adicionarMembros, arquivarCanal, removerMembro } from "./acoes";
 
 type Pessoa = { id: string; nome: string; iniciais: string; foto: string | null; cargo: string };
 
@@ -101,9 +101,79 @@ export function MembrosCanal({ canalId, todos, membros, time, podeEditar }: { ca
   );
 }
 
-// "⋯" ao lado do nome do canal (Sócio e Adm): arquivar
-export function MenuCanal({ id, nome }: { id: string; nome: string }) {
+// Janela para marcar várias pessoas de uma vez e colocar no canal
+function AdicionarPessoas({ canalId, nome, fora, fechar }: { canalId: string; nome: string; fora: Pessoa[]; fechar: () => void }) {
+  const [marcados, setMarcados] = useState<string[]>([]);
+  const [erro, setErro] = useState<string | null>(null);
+  const [pendente, iniciar] = useTransition();
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-[rgba(5,7,11,.45)] px-4" onClick={fechar}>
+      <div role="dialog" aria-modal="true" aria-label="Adicionar pessoas" onClick={(e) => e.stopPropagation()} className="flex max-h-[85dvh] w-full max-w-[400px] flex-col gap-3 rounded-xl bg-card p-5 shadow-pop">
+        <h2 className="text-[17px] font-bold">Adicionar pessoas em #{nome}</h2>
+        {fora.length === 0 ? (
+          <p className="text-[13.5px] text-muted">Todo o time já está neste canal.</p>
+        ) : (
+          <>
+            <div className="flex justify-end gap-3 text-[12.5px]">
+              <button type="button" onClick={() => setMarcados(fora.map((p) => p.id))} className="text-accent hover:underline">
+                Marcar todos
+              </button>
+              <button type="button" onClick={() => setMarcados([])} className="text-muted hover:text-ink">
+                Limpar
+              </button>
+            </div>
+            <ul className="min-h-0 flex-1 overflow-y-auto">
+              {fora.map((p) => (
+                <li key={p.id}>
+                  <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1.5 hover:bg-surface">
+                    <input
+                      type="checkbox"
+                      checked={marcados.includes(p.id)}
+                      onChange={(e) => setMarcados((m) => (e.target.checked ? [...m, p.id] : m.filter((x) => x !== p.id)))}
+                      className="h-4 w-4"
+                    />
+                    <Avatar iniciais={p.iniciais} nome={p.nome} foto={p.foto} />
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13.5px] font-medium">{p.nome}</span>
+                      {p.cargo && <span className="block truncate text-[11.5px] text-muted">{p.cargo}</span>}
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {erro && <p className="text-[12.5px] text-bad">{erro}</p>}
+        <div className="flex gap-2">
+          {fora.length > 0 && (
+            <button
+              type="button"
+              disabled={pendente || !marcados.length}
+              onClick={() =>
+                iniciar(async () => {
+                  const r = await adicionarMembros(canalId, marcados);
+                  if (r?.erro) setErro(r.erro);
+                  else fechar();
+                })
+              }
+              className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:border-accent-hover hover:bg-accent-hover disabled:opacity-60"
+            >
+              {pendente ? "Adicionando…" : marcados.length ? `Adicionar ${marcados.length}` : "Adicionar"}
+            </button>
+          )}
+          <button type="button" onClick={fechar} className="rounded-lg px-3.5 py-2 hover:bg-surface">
+            {fora.length ? "Cancelar" : "Fechar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// "⋯" ao lado do nome do canal (Sócio e Adm): adicionar pessoas e arquivar
+export function MenuCanal({ id, nome, fora, podeAdicionar }: { id: string; nome: string; fora: Pessoa[]; podeAdicionar: boolean }) {
   const [aberto, setAberto] = useState(false);
+  const [adicionando, setAdicionando] = useState(false);
   const caixa = useFora(aberto, () => setAberto(false));
   const [, iniciar] = useTransition();
   return (
@@ -116,7 +186,20 @@ export function MenuCanal({ id, nome }: { id: string; nome: string }) {
         </svg>
       </button>
       {aberto && (
-        <div role="menu" className="absolute left-0 top-9 z-30 w-[170px] overflow-hidden rounded-lg border border-line bg-card py-1 text-[13px] shadow-pop">
+        <div role="menu" className="absolute left-0 top-9 z-30 w-[180px] overflow-hidden rounded-lg border border-line bg-card py-1 text-[13px] shadow-pop">
+          {podeAdicionar && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setAberto(false);
+                setAdicionando(true);
+              }}
+              className="w-full px-3 py-1.5 text-left hover:bg-surface"
+            >
+              Adicionar pessoas
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"
@@ -132,6 +215,7 @@ export function MenuCanal({ id, nome }: { id: string; nome: string }) {
           </button>
         </div>
       )}
+      {adicionando && <AdicionarPessoas canalId={id} nome={nome} fora={fora} fechar={() => setAdicionando(false)} />}
     </div>
   );
 }
