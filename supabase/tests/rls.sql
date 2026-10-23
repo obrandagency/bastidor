@@ -539,6 +539,53 @@ update public.profiles set foto = 'time/00000000-0000-0000-0000-000000000002/f2.
 select testes.ok((select foto is not null from public.profiles where id = '00000000-0000-0000-0000-000000000002'), 'identidade: Sócio troca a foto de outra pessoa');
 reset role;
 
+-- ---------------------------------------------------------------- processos
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+insert into public.processos (id, nome, area) values ('00000000-0000-0000-0000-000000abc0f1', 'Projeto de branding', 'branding');
+insert into public.processo_etapas (processo_id, ordem, nome, responsavel_id, dias) values
+  ('00000000-0000-0000-0000-000000abc0f1', 1, 'Briefing', '00000000-0000-0000-0000-000000000002', 2),
+  ('00000000-0000-0000-0000-000000abc0f1', 2, 'Conceito', '00000000-0000-0000-0000-000000000003', 10),
+  ('00000000-0000-0000-0000-000000abc0f1', 3, 'Entrega', '00000000-0000-0000-0000-000000000001', 20);
+select testes.ok(testes.conta('select * from public.processo_etapas') = 3, 'processos: Adm cria modelo com etapas');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.processos') = 1, 'processos: Criação vê os modelos para usar');
+select testes.recusa($$update public.processos set nome = 'x'$$, 'processos: Criação não edita modelo');
+insert into public.tasks (id, tipo, area, titulo, etapa) values ('00000000-0000-0000-0000-000000abc0f2', 'demanda', 'branding', 'Branding Cliente A', 'a_fazer');
+-- 2026-11-02 é segunda: Briefing 04/11 (qua), Conceito 12/11 (qui), Entrega 22/11 (dom) vira 20/11 (sex)
+select public.aplicar_processo('00000000-0000-0000-0000-000000abc0f2', '00000000-0000-0000-0000-000000abc0f1', '2026-11-02');
+select testes.ok(
+  (select array_agg(prazo order by ordem) from public.tarefa_etapas where task_id = '00000000-0000-0000-0000-000000abc0f2') = array['2026-11-04', '2026-11-12', '2026-11-20']::date[],
+  'processos: prazos das etapas a partir do início, fim de semana vai para sexta');
+select testes.ok((select prazo = '2026-11-20' and responsavel_id = '00000000-0000-0000-0000-000000000002' and processo_id is not null from public.tasks where id = '00000000-0000-0000-0000-000000abc0f2'),
+  'processos: demanda fica com o prazo da última etapa e o responsável da primeira');
+select testes.recusa($$select public.aplicar_processo('00000000-0000-0000-0000-000000abc0f2', '00000000-0000-0000-0000-000000abc0f1', '2026-11-02')$$, 'processos: não aplica duas vezes');
+select testes.recusa($$update public.tarefa_etapas set feito_em = now() where task_id = '00000000-0000-0000-0000-000000abc0f2' and nome = 'Conceito'$$, 'processos: não pula etapa');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+update public.tarefa_etapas set feito_em = now() where task_id = '00000000-0000-0000-0000-000000abc0f2' and nome = 'Briefing';
+select testes.ok((select responsavel_id = '00000000-0000-0000-0000-000000000003' and etapa = 'fazendo' from public.tasks where id = '00000000-0000-0000-0000-000000abc0f2'),
+  'processos: concluir passa a demanda para o responsável da próxima e tira de A fazer');
+reset role;
+select testes.ok(testes.conta($$select * from public.notifications where destinatario_id = '00000000-0000-0000-0000-000000000003' and tipo = 'etapa_vez' and texto like 'Sua vez: Conceito%'$$) = 1,
+  'processos: responsável da próxima etapa recebe "sua vez"');
+select testes.ok(testes.conta($$select * from public.notifications where destinatario_id = '00000000-0000-0000-0000-000000000003' and tipo = 'responsavel' and task_id = '00000000-0000-0000-0000-000000abc0f2'$$) = 0,
+  'processos: sem aviso duplicado de "Você recebeu"');
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+update public.tarefa_etapas set feito_em = now() where task_id = '00000000-0000-0000-0000-000000abc0f2' and nome = 'Conceito';
+select testes.recusa($$update public.tarefa_etapas set feito_em = null where task_id = '00000000-0000-0000-0000-000000abc0f2' and nome = 'Briefing'$$, 'processos: não reabre etapa com a seguinte feita');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.tarefa_etapas') = 0 and testes.conta('select * from public.processos') = 0, 'processos: cliente não vê');
+reset role;
+select set_config('request.jwt.claims', '', true);
+-- Recorrente com processo: termina na data da ocorrência
+insert into public.recorrencias (id, tipo, area, titulo, frequencia, dia_mes, antecedencia, inicio, processo_id, created_at)
+  values ('00000000-0000-0000-0000-000000abc0f3', 'demanda', 'branding', 'Branding mensal', 'mensal', 25, 30, '2026-11-01', '00000000-0000-0000-0000-000000abc0f1', '2026-11-01 12:00-03');
+select public.gerar_recorrentes('00000000-0000-0000-0000-000000abc0f3', '2026-11-02');
+select testes.ok(
+  (select array_agg(e.prazo order by e.ordem) from public.tarefa_etapas e join public.tasks t on t.id = e.task_id where t.recorrencia_id = '00000000-0000-0000-0000-000000abc0f3') = array['2026-11-06', '2026-11-13', '2026-11-25']::date[],
+  'processos: recorrente nasce com as etapas e termina na data dela');
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (

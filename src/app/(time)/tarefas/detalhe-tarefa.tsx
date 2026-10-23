@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Avatar, PontoCliente, SeloEtapa } from "@/components/tarefa";
-import { dataBR } from "@/lib/datas";
+import { dataBR, hojeSP } from "@/lib/datas";
 import { area, dataHoraSP, rotuloEtapa } from "@/lib/dominio/tarefas";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Evento, Nota, Tarefa } from "@/types/banco";
+import { EtapasTarefa, UsarProcesso } from "./etapas";
 import { Agendamento, Comentarios, Excluir, FormTarefa, Gaveta, NotificarCliente } from "./detalhe";
 
 // Tarefa sem cliente = demanda interna da agência
@@ -13,12 +14,14 @@ export const INTERNO = { nome: "Interno da agência", cor: "#0A0C12", nome_curto
 // Painel lateral de uma tarefa, aberto por ?tarefa=id em Tarefas e no Início
 export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; fechar: string; podeExcluir: boolean }) {
   const supabase = await criarClienteServidor();
-  const [{ data: t }, { data: notas }, { data: eventos }, { data: pessoas }, { data: todos }] = await Promise.all([
+  const [{ data: t }, { data: notas }, { data: eventos }, { data: pessoas }, { data: todos }, { data: etapas }, { data: processos }] = await Promise.all([
     supabase.from("tasks").select("*").eq("id", id).maybeSingle<Tarefa>(),
     supabase.from("task_notes").select("*").eq("task_id", id).order("created_at").returns<Nota[]>(),
     supabase.from("task_events").select("*").eq("task_id", id).order("created_at", { ascending: false }).returns<Evento[]>(),
     supabase.from("profiles").select("id, nome, iniciais, perfil, ativo, foto").neq("perfil", "cliente"),
     supabase.from("clients").select("id, nome, cor, ativo").order("nome"),
+    supabase.from("tarefa_etapas").select("id, nome, responsavel_id, prazo, feito_em, feito_por").eq("task_id", id).order("ordem").order("created_at"),
+    supabase.from("processos").select("id, nome").eq("ativo", true).order("nome"),
   ]);
   if (!t) notFound();
   const c = (t.client_id && (todos ?? []).find((x) => x.id === t.client_id)) || INTERNO;
@@ -66,6 +69,25 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
       )}
 
       <FormTarefa key={t.updated_at} tarefa={t} time={opcoesTime} clientes={clientes} />
+
+      {t.tipo === "demanda" &&
+        (etapas?.length ? (
+          <EtapasTarefa
+            taskId={t.id}
+            hoje={hojeSP()}
+            time={(pessoas ?? []).filter((p) => p.ativo).map((p) => ({ id: p.id, nome: p.nome, iniciais: p.iniciais, foto: p.foto }))}
+            etapas={etapas.map((e) => ({
+              id: e.id,
+              nome: e.nome,
+              responsavel_id: e.responsavel_id,
+              prazo: e.prazo,
+              feito: !!e.feito_em,
+              feitoPor: e.feito_por ? (autores[e.feito_por] ?? null) : null,
+            }))}
+          />
+        ) : (
+          <UsarProcesso taskId={t.id} processos={processos ?? []} hoje={hojeSP()} />
+        ))}
 
       <Comentarios taskId={t.id} notas={notas ?? []} autores={autores} />
 

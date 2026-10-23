@@ -23,6 +23,17 @@ function corDaEtiqueta(e: Etapa) {
 }
 
 // Grade do mês (sem consultas: recebe as tarefas já filtradas pelo mês)
+export type EtapaCalendario = {
+  id: string;
+  taskId: string;
+  nome: string;
+  titulo: string;
+  clienteId: string | null;
+  dia: string;
+  responsavel_id: string | null;
+  feito: boolean;
+};
+
 export type FollowUp = { id: string; empresa: string; texto: string | null; dia: string; responsavel_id: string | null };
 
 export function VistaCalendario({
@@ -36,7 +47,17 @@ export function VistaCalendario({
   clienteDe,
   pessoaPor,
   followups = [],
-}: Ctx & { mes: string; pessoa?: string; time: Pessoa[]; todas: Tarefa[]; diaDe: (t: Tarefa) => string | null; followups?: FollowUp[] }) {
+  etapas = [],
+}: Ctx & {
+  mes: string;
+  pessoa?: string;
+  time: Pessoa[];
+  todas: Tarefa[];
+  diaDe: (t: Tarefa) => string | null;
+  followups?: FollowUp[];
+  etapas?: EtapaCalendario[];
+}) {
+  const minhasEtapas = pessoa ? etapas.filter((e) => e.responsavel_id === pessoa) : etapas;
   const meusFollowups = pessoa ? followups.filter((f) => f.responsavel_id === pessoa) : followups;
   const doMes = pessoa ? todas.filter((t) => t.responsavel_id === pessoa) : todas;
   const atrasadas = doMes.filter((t) => estaAtrasada(t, hoje)).length;
@@ -109,6 +130,7 @@ export function VistaCalendario({
             {diasDaGrade(mes).map((dia) => {
               const itens = porDia.get(dia) ?? [];
               const doDia = meusFollowups.filter((f) => f.dia === dia);
+              const etapasDoDia = minhasEtapas.filter((e) => e.dia === dia);
               return (
                 <div
                   key={dia}
@@ -136,6 +158,26 @@ export function VistaCalendario({
                           </span>
                         )}
                         <span className="min-w-0 truncate">CRM · {f.empresa}</span>
+                      </Link>
+                    );
+                  })}
+                  {etapasDoDia.map((e) => {
+                    const r = e.responsavel_id ? pessoaPor.get(e.responsavel_id) : null;
+                    const c = clienteDe(e.clienteId);
+                    return (
+                      <Link
+                        key={e.id}
+                        href={link({ tarefa: e.taskId })}
+                        scroll={false}
+                        title={`Etapa ${e.nome} · ${c.nome} · ${e.titulo}${r ? ` · com ${r.nome}` : ""}${e.feito ? " · feita" : ""}`}
+                        className={`flex w-full min-w-0 items-center gap-[5px] rounded-md border border-dashed px-1.5 py-[2px] text-[11px] hover:brightness-[.96] ${
+                          e.feito ? "border-ok/40 bg-ok-soft text-muted line-through" : "border-line bg-card"
+                        } ${!e.feito && dia < hoje ? "shadow-[inset_3px_0_0_var(--color-bad)]" : ""}`}
+                      >
+                        {r && <Avatar iniciais={r.iniciais} foto={r.foto} classe="h-[18px] w-[18px] text-[8px]" />}
+                        <span className="min-w-0 truncate">
+                          ↳ {e.nome} · {e.titulo}
+                        </span>
                       </Link>
                     );
                   })}
@@ -178,6 +220,7 @@ export function VistaCalendario({
             ["bg-accent-soft", "Agendado"],
             ["bg-bad", "Atrasado"],
             ...(followups.length ? [["bg-card shadow-[inset_0_0_0_1px_var(--color-accent)]", "Follow-up do CRM"]] : []),
+            ...(etapas.length ? [["bg-card border border-dashed border-muted", "Etapa de processo"]] : []),
           ].map(([cor, rotulo]) => (
             <span key={rotulo} className="inline-flex items-center gap-1.5">
               <i className={`inline-block h-3 w-3 rounded-[3px] ${cor}`} />

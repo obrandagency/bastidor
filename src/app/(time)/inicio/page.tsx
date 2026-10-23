@@ -112,6 +112,23 @@ async function Calendario({ mes, pessoa, time, hoje, link, clienteDe, pessoaPor 
     .not("etapa", "in", "(ganho,perdido)")
     .gte("proximo_passo_em", inicio)
     .lt("proximo_passo_em", proximo);
+  // Etapas de processo aparecem no dia do prazo delas, para quem é o responsável da etapa
+  const { data: etapasDoMes } = await supabase
+    .from("tarefa_etapas")
+    .select("id, nome, prazo, responsavel_id, feito_em, tasks!inner(id, titulo, client_id)")
+    .gte("prazo", inicio)
+    .lt("prazo", proximo)
+    .returns<{ id: string; nome: string; prazo: string; responsavel_id: string | null; feito_em: string | null; tasks: { id: string; titulo: string; client_id: string | null } }[]>();
+  const etapas = (etapasDoMes ?? []).map((e) => ({
+    id: e.id,
+    taskId: e.tasks.id,
+    nome: e.nome,
+    titulo: e.tasks.titulo,
+    clienteId: e.tasks.client_id,
+    dia: e.prazo,
+    responsavel_id: e.responsavel_id,
+    feito: !!e.feito_em,
+  }));
   const followups = (leads ?? []).map((l) => ({
     id: l.id,
     empresa: l.empresa,
@@ -131,6 +148,7 @@ async function Calendario({ mes, pessoa, time, hoje, link, clienteDe, pessoaPor 
       clienteDe={clienteDe}
       pessoaPor={pessoaPor}
       followups={followups}
+      etapas={etapas}
     />
   );
 }
@@ -138,7 +156,7 @@ async function Calendario({ mes, pessoa, time, hoje, link, clienteDe, pessoaPor 
 // ---------------------------------------------------------------- resumo do dia
 async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
   const supabase = await criarClienteServidor();
-  const [{ data: abertas }, { data: proximas }, { data: followups }] = await Promise.all([
+  const [{ data: abertas }, { data: proximas }, { data: followups }, { data: etapasHoje }] = await Promise.all([
     supabase.from("tasks").select("*").not("etapa", "in", `(${FINALIZADAS.join(",")})`).order("prazo").returns<Tarefa[]>(),
     supabase
       .from("tasks")
@@ -154,6 +172,14 @@ async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
       .not("etapa", "in", "(ganho,perdido)")
       .lte("proximo_passo_em", hoje)
       .order("proximo_passo_em"),
+    supabase
+      .from("tarefa_etapas")
+      .select("id, nome, prazo, responsavel_id, tasks!inner(id, titulo, client_id, etapa)")
+      .is("feito_em", null)
+      .lte("prazo", hoje)
+      .neq("tasks.etapa", "concluido")
+      .order("prazo")
+      .returns<{ id: string; nome: string; prazo: string; responsavel_id: string | null; tasks: { id: string; titulo: string; client_id: string | null } }[]>(),
   ]);
   const lista = abertas ?? [];
   const atrasadas = lista.filter((t) => estaAtrasada(t, hoje));
@@ -217,6 +243,27 @@ async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
           })}
           {esperando.length === 0 && vazio("Nenhum conteúdo com o cliente.")}
         </Painel>
+
+        {(etapasHoje ?? []).length > 0 && (
+          <Painel titulo="Etapas de processo para hoje" semPadding>
+            {(etapasHoje ?? []).map((e) => {
+              const r = e.responsavel_id ? pessoaPor.get(e.responsavel_id) : null;
+              const dias = diasEntre(e.prazo, hoje);
+              return (
+                <Link key={e.id} href={link({ tarefa: e.tasks.id })} scroll={false} className="flex min-w-0 items-center gap-3 border-t border-line px-4 py-[11px] first:border-t-0 hover:bg-surface">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium [overflow-wrap:anywhere]">{e.nome}</div>
+                    <div className="text-[12.5px] text-muted">
+                      {clienteDe(e.tasks.client_id).nome} · {e.tasks.titulo}
+                    </div>
+                  </div>
+                  {r && <Avatar iniciais={r.iniciais} nome={r.nome} foto={r.foto} />}
+                  <span className={`text-[12px] font-semibold ${dias > 0 ? "text-bad" : "text-warn"}`}>{dias > 0 ? `Atrasada ${dias}d` : "Hoje"}</span>
+                </Link>
+              );
+            })}
+          </Painel>
+        )}
 
         {(followups ?? []).length > 0 && (
           <Painel titulo="Follow-ups do CRM" semPadding extra={<Link href="/crm" className="text-[12.5px] text-muted hover:text-ink">Abrir CRM</Link>}>

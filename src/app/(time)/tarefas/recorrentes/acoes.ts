@@ -41,6 +41,7 @@ export async function salvarRecorrencia(_: Estado, form: FormData): Promise<Esta
     responsavel_id: ouNulo(texto(form, "responsavel_id")),
     texto: texto(form, "texto"),
     frequencia,
+    processo_id: tipo === "demanda" ? ouNulo(texto(form, "processo_id")) : null,
     dias_semana: frequencia === "mensal" ? null : form.getAll("dias_semana").map(Number),
     dia_mes: frequencia === "mensal" ? Number(texto(form, "dia_mes")) || null : null,
     antecedencia: Number(texto(form, "antecedencia") || "7"),

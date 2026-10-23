@@ -21,13 +21,15 @@ export default async function Recorrentes({ searchParams }: { searchParams: Prom
   const hoje = hojeSP();
   const supabase = await criarClienteServidor();
 
-  const [{ data: modelos }, { data: proximas }, { data: geradas }, { data: clientes }, { data: time }] = await Promise.all([
+  const [{ data: modelos }, { data: proximas }, { data: geradas }, { data: clientes }, { data: time }, { data: processos }] = await Promise.all([
     supabase.from("recorrencias").select("*").order("ativa", { ascending: false }).order("titulo").returns<Recorrencia[]>(),
     supabase.rpc("proximas_recorrencias"),
     supabase.from("recorrencia_geradas").select("recorrencia_id"),
     supabase.from("clients").select("id, nome, cor, ativo").order("nome"),
     supabase.from("profiles").select("id, nome").neq("perfil", "cliente").eq("ativo", true).order("nome"),
+    supabase.from("processos").select("id, nome").eq("ativo", true).order("nome"),
   ]);
+  const nomeProcesso = new Map((processos ?? []).map((p) => [p.id, p.nome]));
   const proxima = new Map(((proximas ?? []) as { id: string; prazo: string; aparece_em: string }[]).map((p) => [p.id, p]));
   const criadas = new Map<string, number>();
   (geradas ?? []).forEach((g) => criadas.set(g.recorrencia_id, (criadas.get(g.recorrencia_id) ?? 0) + 1));
@@ -52,6 +54,7 @@ export default async function Recorrentes({ searchParams }: { searchParams: Prom
         texto: t.texto,
         frequencia: "mensal",
         dia_mes: Math.min(dia, 28),
+        processo_id: t.processo_id,
       };
     }
   } else if (busca.nova) inicial = {};
@@ -94,6 +97,7 @@ export default async function Recorrentes({ searchParams }: { searchParams: Prom
                 <div className="text-[12.5px] text-muted">
                   {descreverRegra(m)} · aparece {m.antecedencia === 0 ? "no próprio dia" : `${m.antecedencia} dia${m.antecedencia > 1 ? "s" : ""} antes`}
                   {m.fim ? ` · até ${dataBR(m.fim)}` : ""}
+                  {m.processo_id ? ` · processo ${nomeProcesso.get(m.processo_id) ?? "arquivado"}` : ""}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]">
@@ -130,6 +134,7 @@ export default async function Recorrentes({ searchParams }: { searchParams: Prom
           <FormRecorrencia
             inicial={inicial}
             hoje={hoje}
+            processos={processos ?? []}
             time={(time ?? []).map((p) => ({ id: p.id, nome: p.nome }))}
             clientes={
               inicial.client_id && !opcoesClientes.some((o) => o.id === inicial.client_id)

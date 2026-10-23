@@ -88,6 +88,7 @@ export type Tarefa = {
   aviso_cliente_em: string | null;
   horas: number | null;
   recorrencia_id: string | null;
+  processo_id: string | null;
   created_at: string;
   updated_at: string;
 };

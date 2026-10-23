@@ -54,6 +54,7 @@ export function emailAvisoTime(id: Identidade, tipo: string, texto: string, link
     cliente_aprovou: "Cliente aprovou",
     ajuste_pedido: "Cliente pediu ajuste",
     responsavel: "Você recebeu uma tarefa",
+    etapa_vez: "Sua vez numa etapa",
   };
   const titulo = titulos[tipo] ?? `Aviso do ${id.nome_sistema}`;
   return {

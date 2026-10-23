@@ -50,6 +50,12 @@ export async function criarTarefa(_: Estado, form: FormData): Promise<Estado> {
   const supabase = await criarClienteServidor();
   const { data, error } = await supabase.from("tasks").insert(dados).select("id").single();
   if (error || !data) return { erro: mensagem(error, "Não foi possível criar a tarefa.") };
+  // Demanda com processo: copia as etapas (prazos a partir do início)
+  const processo = tipo === "demanda" ? texto(form, "processo_id") : "";
+  if (processo) {
+    const { error: e2 } = await supabase.rpc("aplicar_processo", { p_task: data.id, p_processo: processo, p_inicio: texto(form, "inicio") });
+    if (e2) return { erro: `A demanda foi criada, mas o processo não foi aplicado: ${mensagem(e2, "tente de novo pelo detalhe dela.")}` };
+  }
   atualizar();
   redirect(`/tarefas?aba=${tipo}&tarefa=${data.id}`);
 }

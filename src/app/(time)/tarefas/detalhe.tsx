@@ -280,21 +280,46 @@ export function FormNovaTarefa({
   clientes,
   eu,
   clienteFiltro,
+  processos = [],
+  hoje,
 }: {
   tipo: TipoTarefa;
   time: Opcao[];
   clientes: Opcao[];
   eu: string;
   clienteFiltro?: string;
+  processos?: (Opcao & { area: string })[];
+  hoje?: string;
 }) {
   const [estado, acao, enviando] = useActionState(criarTarefa, undefined);
   const conteudo = tipo === "conteudo";
+  const [processo, setProcesso] = useState("");
+  const [area, setArea] = useState("atendimento");
   return (
     <form action={acao} className="flex flex-col gap-4">
       <input type="hidden" name="tipo" value={tipo} />
       <h2 className="text-[20px] font-bold">{conteudo ? "Nova pauta" : "Nova demanda"}</h2>
       {estado?.erro && <Aviso tom="erro">{estado.erro}</Aviso>}
       <Campo rotulo="Título" id="titulo" required autoFocus />
+      {!conteudo && processos.length > 0 && (
+        <Selecao
+          rotulo="Processo (opcional)"
+          id="processo_id"
+          value={processo}
+          onChange={(e) => {
+            setProcesso(e.target.value);
+            const p = processos.find((x) => x.id === e.target.value);
+            if (p) setArea(p.area);
+          }}
+        >
+          <option value="">Sem processo: demanda simples</option>
+          {processos.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nome}
+            </option>
+          ))}
+        </Selecao>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <Selecao rotulo="Cliente" id="client_id" required defaultValue={clienteFiltro ?? (conteudo ? "" : "interno")}>
           {conteudo ? (
@@ -319,7 +344,7 @@ export function FormNovaTarefa({
             ))}
           </Selecao>
         ) : (
-          <Selecao rotulo="Área" id="area" defaultValue="atendimento">
+          <Selecao rotulo="Área" id="area" value={area} onChange={(e) => setArea(e.target.value)}>
             {AREAS.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.rotulo}
@@ -327,7 +352,11 @@ export function FormNovaTarefa({
             ))}
           </Selecao>
         )}
-        <Campo rotulo="Prazo" id="prazo" type="date" />
+        {processo ? (
+          <Campo rotulo="Início do processo" id="inicio" type="date" required defaultValue={hoje} />
+        ) : (
+          <Campo rotulo="Prazo" id="prazo" type="date" />
+        )}
         {!conteudo && (
           <Selecao rotulo="Responsável" id="responsavel_id" defaultValue={eu}>
             {time.map((p) => (
@@ -339,6 +368,11 @@ export function FormNovaTarefa({
         )}
       </div>
       {conteudo && <p className="-mt-2 text-[12px] text-muted">Começa em Pauta, com o responsável padrão da etapa.</p>}
+      {processo && (
+        <p className="-mt-2 text-[12px] text-muted">
+          As etapas do processo entram com responsáveis e prazos contados a partir do início. A demanda fica com quem cuida da primeira etapa.
+        </p>
+      )}
       <Legenda tipo={tipo} inicial="" />
       <div>
         <Botao variante="principal" disabled={enviando}>

@@ -17,6 +17,7 @@ export type Card = {
   resp: { iniciais: string; nome: string; foto?: string | null } | null;
   ajustesCliente: number;
   recorrente: boolean;
+  etapas?: { feitas: number; total: number; atual: string | null }; // demanda com processo
   href: string;
 };
 
@@ -134,6 +135,19 @@ export function Quadro({
                       >
                         {c.titulo}
                       </Link>
+                      {c.etapas && (
+                        <div className="text-[11px] text-muted">
+                          <div className="mb-1 flex justify-between gap-2">
+                            <span className="truncate">{c.etapas.atual ? `Etapa: ${c.etapas.atual}` : "Etapas concluídas"}</span>
+                            <span className="flex-none font-mono">
+                              {c.etapas.feitas}/{c.etapas.total}
+                            </span>
+                          </div>
+                          <div className="h-1 overflow-hidden rounded-full bg-surface">
+                            <i className="block h-full rounded-full bg-accent" style={{ width: `${(c.etapas.feitas / c.etapas.total) * 100}%` }} />
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 text-[11.5px] text-muted">
                         {c.resp ? <Avatar iniciais={c.resp.iniciais} nome={c.resp.nome} foto={c.resp.foto} /> : <span>Sem responsável</span>}
                         <Prazo prazo={c.prazo} etapa={etapaDe(c)} hoje={hoje} />

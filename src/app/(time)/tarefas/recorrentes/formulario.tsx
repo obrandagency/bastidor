@@ -9,7 +9,7 @@ import { apagarRecorrencia, pausarRecorrencia, salvarRecorrencia } from "./acoes
 
 type Opcao = { id: string; nome: string };
 
-export function FormRecorrencia({ inicial, time, clientes, hoje }: { inicial: Partial<Recorrencia>; time: Opcao[]; clientes: Opcao[]; hoje: string }) {
+export function FormRecorrencia({ inicial, time, clientes, hoje, processos = [] }: { inicial: Partial<Recorrencia>; time: Opcao[]; clientes: Opcao[]; hoje: string; processos?: Opcao[] }) {
   const [estado, acao, enviando] = useActionState(salvarRecorrencia, undefined);
   const [tipo, setTipo] = useState<TipoTarefa>(inicial.tipo ?? "demanda");
   const [frequencia, setFrequencia] = useState<Frequencia>(inicial.frequencia ?? "mensal");
@@ -44,6 +44,20 @@ export function FormRecorrencia({ inicial, time, clientes, hoje }: { inicial: Pa
         defaultValue={inicial.titulo ?? ""}
         dica="Use {mês}, {mês anterior} ou {data} para preencher sozinho. Ex.: Relatório de {mês anterior}"
       />
+
+      {!conteudo && processos.length > 0 && (
+        <Selecao rotulo="Processo (opcional)" id="processo_id" defaultValue={inicial.processo_id ?? ""}>
+          <option value="">Sem processo: demanda simples</option>
+          {processos.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nome}
+            </option>
+          ))}
+        </Selecao>
+      )}
+      {!conteudo && processos.length > 0 && (
+        <p className="-mt-2 text-[12px] text-muted">Com processo, as etapas são contadas para terminar no prazo de cada repetição.</p>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Selecao key={tipo} rotulo="Cliente" id="client_id" required defaultValue={inicial.client_id ?? (conteudo ? "" : "interno")}>

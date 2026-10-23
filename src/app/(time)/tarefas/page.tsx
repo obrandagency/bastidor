@@ -47,6 +47,17 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
     ),
   ]);
 
+  // Demandas com processo: progresso e etapa atual no card
+  const comProcesso = tipo === "demanda";
+  const [{ data: etapas }, { data: processos }] = await Promise.all([
+    comProcesso
+      ? supabase.from("tarefa_etapas").select("task_id, nome, feito_em, ordem, tasks!inner(etapa)").neq("tasks.etapa", "concluido").order("ordem").order("created_at")
+      : Promise.resolve({ data: [] as { task_id: string; nome: string; feito_em: string | null; ordem: number }[] }),
+    supabase.from("processos").select("id, nome, area").eq("ativo", true).order("nome"),
+  ]);
+  const etapasPor = new Map<string, { nome: string; feito: boolean }[]>();
+  (etapas ?? []).forEach((e) => etapasPor.set(e.task_id, [...(etapasPor.get(e.task_id) ?? []), { nome: e.nome, feito: !!e.feito_em }]));
+
   const clientePor = new Map((clientes ?? []).map((c) => [c.id, c]));
   const pessoaPor = new Map((time ?? []).map((p) => [p.id, p]));
   const ajustesPor = new Map<string, number>();
@@ -66,6 +77,13 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
       resp: r ? { iniciais: r.iniciais, nome: r.nome, foto: r.foto } : null,
       ajustesCliente: ajustesPor.get(t.id) ?? 0,
       recorrente: !!t.recorrencia_id,
+      etapas: etapasPor.has(t.id)
+        ? {
+            feitas: etapasPor.get(t.id)!.filter((e) => e.feito).length,
+            total: etapasPor.get(t.id)!.length,
+            atual: etapasPor.get(t.id)!.find((e) => !e.feito)?.nome ?? null,
+          }
+        : undefined,
       href: link({ tarefa: t.id }),
     };
   });
@@ -86,6 +104,11 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
         }
         acoes={
           <div className="flex flex-wrap items-center gap-2">
+            {gestao && (
+              <Link href="/tarefas/processos" className="rounded-lg border border-line bg-card px-3.5 py-2 font-medium hover:border-ink">
+                Processos
+              </Link>
+            )}
             {gestao && (
               <Link href="/tarefas/recorrentes" className="rounded-lg border border-line bg-card px-3.5 py-2 font-medium hover:border-ink">
                 ↻ Recorrentes
@@ -147,6 +170,8 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
             clientes={opcoesClientes}
             eu={eu.id}
             clienteFiltro={busca.cliente && busca.cliente !== "interno" ? busca.cliente : undefined}
+            processos={processos ?? []}
+            hoje={hoje}
           />
         </Gaveta>
       )}

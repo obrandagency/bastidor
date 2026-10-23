@@ -19,6 +19,7 @@ export type Recorrencia = {
   inicio: string;
   fim: string | null;
   ativa: boolean;
+  processo_id: string | null;
 };
 
 export const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
