@@ -160,9 +160,10 @@ export function QuadroOnboarding({
                   if (arrastando) mover(arrastando, etapa.id);
                   setArrastando(null);
                 }}
-                className={`flex flex-col gap-2.5 rounded-xl border p-2.5 transition-colors ${sobre === etapa.id ? "border-accent bg-accent-soft" : "border-line bg-card"}`}
+                style={{ borderTopColor: etapa.cor }}
+                className={`flex flex-col gap-2.5 rounded-xl border border-t-[3px] p-2.5 transition-colors ${sobre === etapa.id ? "border-accent bg-accent-soft" : "border-line bg-surface"}`}
               >
-                <div className="flex items-center gap-2 border-l-[3px] py-1 pl-2.5" style={{ borderColor: etapa.cor }}>
+                <div className="flex items-center gap-2 px-1 py-0.5">
                   <span className="font-semibold">{etapa.nome}</span>
                   <span className="rounded bg-accent-soft px-1.5 font-mono text-[10.5px] text-accent">{itens.length}</span>
                   {podeEditar && (

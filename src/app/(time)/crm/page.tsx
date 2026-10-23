@@ -101,7 +101,7 @@ export default async function Crm({ searchParams }: { searchParams: Promise<Busc
         titulo="CRM"
         descricao="Funil comercial da agência: do primeiro contato ao contrato assinado."
         acoes={
-          <Link href={link({ novo: "1" })} scroll={false} className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:brightness-110">
+          <Link href={link({ novo: "1" })} scroll={false} className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:border-accent-hover hover:bg-accent-hover">
             + Novo lead
           </Link>
         }

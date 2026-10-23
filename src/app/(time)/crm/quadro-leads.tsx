@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { Botao, classeEntrada } from "@/components/formulario";
 import { Avatar } from "@/components/tarefa";
-import { ETAPAS_LEAD, leadAberto, proximaEtapaLead, reais, rotuloEtapaLead, type EtapaLead } from "@/lib/dominio/crm";
+import { ETAPAS_LEAD, leadAberto, proximaEtapaLead, reais, rotuloEtapaLead, tomDaEtapaLead, type EtapaLead } from "@/lib/dominio/crm";
+import { BARRA_DO_TOM } from "@/lib/dominio/tarefas";
 import { moverLead } from "./acoes";
 
 export type CardLead = {
@@ -85,15 +86,9 @@ export function QuadroLeads({ cards }: { cards: CardLead[] }) {
                   if (arrastando) mover(arrastando, col.id);
                   setArrastando(null);
                 }}
-                className={`flex flex-col gap-2 rounded-xl border p-2.5 transition-colors ${
-                  sobre === col.id
-                    ? "border-accent bg-accent-soft"
-                    : col.id === "ganho"
-                      ? "border-transparent bg-ok-soft/60"
-                      : col.id === "perdido"
-                        ? "border-transparent bg-bad-soft/50"
-                        : "border-transparent bg-surface"
-                }`}
+                className={`flex flex-col gap-2 rounded-xl border border-t-[3px] p-2.5 transition-colors ${
+                  sobre === col.id ? "border-accent bg-accent-soft" : "border-line bg-surface"
+                } ${BARRA_DO_TOM[tomDaEtapaLead(col.id)]}`}
               >
                 <div className="flex items-center justify-between px-1 pt-0.5 text-[13px] font-semibold">
                   <span>{col.rotulo}</span>

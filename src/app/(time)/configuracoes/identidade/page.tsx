@@ -34,7 +34,7 @@ export default async function PaginaIdentidade() {
         }
       />
       <div className="grid max-w-[760px] gap-4">
-        <Painel titulo="Logo">
+        <Painel icone="foto" tom="azul" titulo="Logo">
           <EnviarImagem
             pasta="agencia"
             atual={urlMarca(identidade.logo)}
@@ -48,10 +48,10 @@ export default async function PaginaIdentidade() {
             Prefira PNG com fundo transparente, na horizontal ou quadrado. Sem logo, aparece a primeira letra do nome do sistema.
           </p>
         </Painel>
-        <Painel titulo="Nome e cor">
+        <Painel icone="paleta" tom="violeta" titulo="Nome e cor">
           <FormIdentidade identidade={identidade} />
         </Painel>
-        <Painel titulo="Timbrado dos documentos">
+        <Painel icone="documento" tom="cinza" titulo="Timbrado dos documentos">
           <p className="mb-3 text-[12.5px] text-muted">
             Fundo de todas as páginas do PDF dos roteiros. Envie a página do papel timbrado como imagem A4 em pé (PNG ou JPG, de preferência 2480 × 3508 px). Se só tiver em PDF, exporte a página como imagem.
           </p>

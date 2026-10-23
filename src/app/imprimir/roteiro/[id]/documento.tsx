@@ -29,8 +29,8 @@ export function DocumentoRoteiro({ r, cenas, docs, cliente, timbrado, logo }: { 
   // O timbrado é o fundo da folha inteira, repetido em todas as páginas. O Chrome conta a posição a partir
   // do canto da área de texto, por isso o deslocamento negativo igual às margens
   const fundo = timbrado ? `background: url("${encodeURI(timbrado)}") no-repeat -16mm -${topo}mm / 210mm 297mm;` : "";
-  const numero = timbrado ? "" : `@bottom-right { content: counter(page) " / " counter(pages); font-size: 8pt; color: #5A6275; }`;
-  const rodape = !timbrado && docs?.rodape ? `@bottom-center { content: ${textoCss(docs.rodape)}; font-size: 8pt; color: #5A6275; }` : "";
+  const numero = timbrado ? "" : `@bottom-right { content: counter(page) " / " counter(pages); font-size: 8pt; color: #6B7280; }`;
+  const rodape = !timbrado && docs?.rodape ? `@bottom-center { content: ${textoCss(docs.rodape)}; font-size: 8pt; color: #6B7280; }` : "";
 
   return (
     <div className="mx-auto max-w-[210mm] px-4 py-6 print:max-w-none print:p-0">

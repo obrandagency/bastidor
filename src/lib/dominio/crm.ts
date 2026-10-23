@@ -1,3 +1,4 @@
+import { SELO_DO_TOM } from "./tarefas";
 // Funil comercial (os mesmos valores dos enums do banco)
 
 export type EtapaLead = "novo" | "contato" | "reuniao" | "proposta" | "negociacao" | "ganho" | "perdido";
@@ -51,9 +52,12 @@ export function followUpAtrasado(l: { etapa: EtapaLead; proximo_passo_em: string
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 export const reais = (v: number | string | null) => moeda.format(Number(v ?? 0));
 
-export function corDaEtapaLead(e: EtapaLead) {
-  if (e === "ganho") return "bg-ok-soft text-ok border-transparent";
-  if (e === "perdido") return "bg-bad-soft text-bad border-transparent";
-  if (e === "negociacao" || e === "proposta") return "bg-accent-soft text-accent border-transparent";
-  return "bg-surface text-muted border-line";
+// Mesmas cores de status das tarefas: novo cinza, em conversa violeta, esperando o lead âmbar, fechado verde, perdido vermelho
+export function tomDaEtapaLead(e: EtapaLead) {
+  if (e === "ganho") return "verde" as const;
+  if (e === "perdido") return "vermelho" as const;
+  if (e === "negociacao" || e === "proposta") return "ambar" as const;
+  if (e === "contato" || e === "reuniao") return "violeta" as const;
+  return "cinza" as const;
 }
+export const corDaEtapaLead = (e: EtapaLead) => SELO_DO_TOM[tomDaEtapaLead(e)];

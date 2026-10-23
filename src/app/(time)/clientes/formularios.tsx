@@ -38,7 +38,7 @@ function Rodape({ enviando, estado }: { enviando: boolean; estado: Estado }) {
 // ---------------------------------------------------------------- cadastro do cliente
 export function FormCliente({ cliente }: { cliente?: ClienteCompleto }) {
   const [estado, acao, enviando] = useActionState(salvarCliente, undefined);
-  const [cor, setCor] = useState(cliente?.cor ?? "#1E4BFF");
+  const [cor, setCor] = useState(cliente?.cor ?? "#2563EB");
   return (
     <form action={acao} className="grid max-w-[640px] grid-cols-1 gap-3.5 sm:grid-cols-2">
       {cliente && <input type="hidden" name="id" value={cliente.id} />}
@@ -66,7 +66,7 @@ export function FormCliente({ cliente }: { cliente?: ClienteCompleto }) {
           <input
             type="color"
             aria-label="Escolher cor"
-            value={/^#[0-9A-Fa-f]{6}$/.test(cor) ? cor : "#1E4BFF"}
+            value={/^#[0-9A-Fa-f]{6}$/.test(cor) ? cor : "#2563EB"}
             onChange={(e) => setCor(e.target.value.toUpperCase())}
             className="h-[38px] w-[46px] flex-none cursor-pointer rounded-lg border border-line bg-card p-1"
           />

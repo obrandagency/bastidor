@@ -17,7 +17,7 @@ export default async function Conta() {
     <>
       <CabecalhoPagina sobretitulo="Conta" titulo="Minha conta" descricao={`${eu.nome} · ${eu.email} · ${ROTULO_PERFIL[eu.perfil]}`} />
       <div className="grid max-w-[720px] gap-4">
-        <Painel titulo="Foto">
+        <Painel icone="foto" tom="azul" titulo="Foto">
           <EnviarImagem
             pasta={`time/${eu.id}`}
             atual={urlMarca(eu.foto)}
@@ -26,10 +26,10 @@ export default async function Conta() {
             vazio={<Avatar iniciais={eu.iniciais} classe="h-full w-full text-[18px]" />}
           />
         </Painel>
-        <Painel titulo="E-mails">
+        <Painel icone="sino" tom="azul" titulo="E-mails">
           <FormPreferencias emailsOpcionais={eu.emails_opcionais} />
         </Painel>
-        <Painel titulo="Senha">
+        <Painel icone="chave" tom="cinza" titulo="Senha">
           <Link href="/definir-senha" className="text-accent hover:underline">
             Trocar a minha senha
           </Link>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CabecalhoPagina } from "@/components/cabecalho-pagina";
+import { CabecalhoPagina, EstadoVazio } from "@/components/cabecalho-pagina";
 import { PontoCliente } from "@/components/tarefa";
 import { dataBR, hojeSP } from "@/lib/datas";
 import { descreverRegra, type Recorrencia } from "@/lib/dominio/recorrentes";
@@ -70,13 +70,18 @@ export default async function Recorrentes({ searchParams }: { searchParams: Prom
             <Link href="/tarefas?aba=demanda" className="text-[13px] text-muted hover:text-ink">
               ← Voltar ao quadro
             </Link>
-            <Link href="/tarefas/recorrentes?nova=1" scroll={false} className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:brightness-110">
+            <Link href="/tarefas/recorrentes?nova=1" scroll={false} className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:border-accent-hover hover:bg-accent-hover">
               + Nova recorrente
             </Link>
           </div>
         }
       />
 
+      {!modelos?.length ? (
+        <EstadoVazio icone="calendario" acao={{ href: "/tarefas/recorrentes?nova=1", rotulo: "+ Nova recorrente" }}>
+          Nenhuma tarefa recorrente ainda. Ex.: relatório mensal, fechamento financeiro, reunião de pauta.
+        </EstadoVazio>
+      ) : (
       <section className="rounded-xl border border-line bg-card">
         {(modelos ?? []).map((m) => {
           const c = (m.client_id && clientePor.get(m.client_id)) || INTERNO;
@@ -117,12 +122,8 @@ export default async function Recorrentes({ searchParams }: { searchParams: Prom
             </div>
           );
         })}
-        {!modelos?.length && (
-          <p className="px-4 py-[18px] text-[13px] text-muted">
-            Nenhuma tarefa recorrente ainda. Exemplos: relatório mensal de cada cliente, fechamento financeiro, reunião de pauta da semana.
-          </p>
-        )}
       </section>
+      )}
 
       {inicial && (
         <Gaveta fechar="/tarefas/recorrentes" rotulo="Tarefa recorrente">

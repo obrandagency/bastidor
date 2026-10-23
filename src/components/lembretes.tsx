@@ -354,7 +354,7 @@ export function Lembretes({ lembretes, clientes }: { lembretes: Lembrete[]; clie
         aria-expanded={aberto}
         aria-label={aberto ? "Fechar lembretes" : "Lembretes"}
         title="Lembretes"
-        className={`fixed ${fundoBotao} z-[60] grid h-[52px] w-[52px] place-items-center rounded-full bg-accent text-accent-ink shadow-pop hover:brightness-110 print:hidden`}
+        className={`fixed ${fundoBotao} z-[60] grid h-[52px] w-[52px] place-items-center rounded-full bg-accent text-accent-ink shadow-pop hover:border-accent-hover hover:bg-accent-hover print:hidden`}
       >
         {aberto ? <span className="text-[20px] leading-none">✕</span> : <IconeLembrete className="h-6 w-6" />}
         {!aberto && vencidos.length + deHoje.length > 0 && (

@@ -32,7 +32,7 @@ export default async function Avisos() {
         }
       />
       {!avisos?.length ? (
-        <EstadoVazio>Nenhum aviso ainda.</EstadoVazio>
+        <EstadoVazio icone="sino" acao={{ href: "/inicio", rotulo: "Voltar ao Início" }}>Nenhum aviso ainda. Aprovações, ajustes e tarefas que chegarem para você aparecem aqui.</EstadoVazio>
       ) : (
         <ul className="rounded-xl border border-line bg-card">
           {avisos.map((a) => {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { diasDaGrade, DIAS_CURTOS, mesEAno, somarMes } from "@/lib/datas";
-import { estaAtrasada, rotuloEtapa, type Etapa } from "@/lib/dominio/tarefas";
+import { estaAtrasada, FUNDO_DO_TOM, rotuloEtapa, tomDaEtapa, type Etapa } from "@/lib/dominio/tarefas";
 import { Avatar } from "@/components/tarefa";
 import type { Pessoa, Tarefa } from "@/types/banco";
 
@@ -14,13 +14,7 @@ export type Ctx = {
 };
 
 // Cor da etiqueta no calendário (.chip.k-* do protótipo)
-function corDaEtiqueta(e: Etapa) {
-  if (e === "cliente") return "bg-warn-soft";
-  if (e === "ajuste") return "bg-bad-soft";
-  if (e === "aprovado" || e === "concluido") return "bg-ok-soft";
-  if (e === "agendado") return "bg-accent-soft";
-  return "bg-surface";
-}
+const corDaEtiqueta = (e: Etapa) => FUNDO_DO_TOM[tomDaEtapa(e)];
 
 // Grade do mês (sem consultas: recebe as tarefas já filtradas pelo mês)
 export type EtapaCalendario = {
@@ -213,11 +207,11 @@ export function VistaCalendario({
 
         <div className="flex flex-wrap gap-3.5 border-t border-line px-4 py-3 text-[12px] text-muted">
           {[
-            ["bg-surface border border-line", "Em produção"],
-            ["bg-warn-soft", "Com o cliente"],
+            ["bg-surface border border-line", "Não iniciado"],
+            ["bg-andamento-soft", "Em andamento"],
+            ["bg-warn-soft", "Com o cliente ou em validação"],
             ["bg-bad-soft", "Ajuste"],
-            ["bg-ok-soft", "Aprovado ou concluído"],
-            ["bg-accent-soft", "Agendado"],
+            ["bg-ok-soft", "Aprovado, agendado ou concluído"],
             ["bg-bad", "Atrasado"],
             ...(followups.length ? [["bg-card shadow-[inset_0_0_0_1px_var(--color-accent)]", "Follow-up do CRM"]] : []),
             ...(etapas.length ? [["bg-card border border-dashed border-muted", "Etapa de processo"]] : []),

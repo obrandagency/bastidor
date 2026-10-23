@@ -10,7 +10,7 @@ export function NovoRoteiro({ clientes, clienteFiltro }: { clientes: { id: strin
   const [estado, acao, enviando] = useActionState(criarRoteiro, undefined);
   return (
     <>
-      <button onClick={() => setAberto(true)} className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:brightness-110">
+      <button onClick={() => setAberto(true)} className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:border-accent-hover hover:bg-accent-hover">
         + Novo roteiro
       </button>
       {aberto && (

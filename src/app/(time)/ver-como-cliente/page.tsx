@@ -17,7 +17,7 @@ export default async function VerComoCliente() {
         descricao="Abre o portal com os dados de um cliente, do jeito que ele vê, sem permitir aprovar em nome dele."
       />
       {!clientes?.length ? (
-        <EstadoVazio>Nenhum cliente ativo.</EstadoVazio>
+        <EstadoVazio icone="portal" acao={{ href: "/clientes", rotulo: "Abrir a Central do cliente" }}>Nenhum cliente ativo para ver o portal.</EstadoVazio>
       ) : (
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,240px),1fr))] gap-3">
           {clientes.map((c) => (

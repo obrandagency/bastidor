@@ -46,7 +46,7 @@ export function MenuLateral({
   return (
     <div className={`grid min-h-full ${recolhido ? "md:grid-cols-[68px_minmax(0,1fr)]" : "md:grid-cols-[236px_minmax(0,1fr)]"}`}>
       <aside
-        className={`fixed inset-y-0 left-0 z-30 flex w-[260px] flex-col gap-[22px] overflow-y-auto border-r border-line bg-bg px-3.5 pb-6 pt-[calc(20px+env(safe-area-inset-top,0px))] transition-transform duration-200 md:sticky md:top-0 md:z-auto md:h-screen md:w-auto md:translate-x-0 md:pt-5 ${
+        className={`fixed inset-y-0 left-0 z-30 flex w-[260px] flex-col gap-[22px] overflow-y-auto border-r border-rail-line bg-rail px-3.5 pb-6 text-rail-ink pt-[calc(20px+env(safe-area-inset-top,0px))] transition-transform duration-200 md:sticky md:top-0 md:z-auto md:h-screen md:w-auto md:translate-x-0 md:pt-5 ${
           aberto ? "translate-x-0" : "-translate-x-full"
         } ${r("md:items-center md:px-2")}`}
       >
@@ -59,7 +59,7 @@ export function MenuLateral({
             onClick={alternar}
             aria-label={recolhido ? "Expandir menu" : "Recolher menu"}
             title={recolhido ? "Expandir menu" : "Recolher menu"}
-            className="hidden h-7 w-7 flex-none place-items-center rounded-lg text-rail-muted hover:bg-rail-line hover:text-ink md:grid"
+            className="hidden h-7 w-7 flex-none place-items-center rounded-lg text-rail-muted hover:bg-rail-line hover:text-white md:grid"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 5h16v14H4zM9 5v14" />
@@ -80,14 +80,14 @@ export function MenuLateral({
                   aria-current={ativo ? "page" : undefined}
                   title={recolhido ? item.rotulo : undefined}
                   className={`relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] ${
-                    ativo ? "bg-accent text-accent-ink" : "text-ink hover:bg-rail-line"
+                    ativo ? "bg-accent font-medium text-accent-ink" : "text-rail-ink/85 hover:bg-rail-line hover:text-white"
                   } ${r("md:h-10 md:w-10 md:justify-center md:px-0")}`}
                 >
                   <Icone nome={item.icone} className={ativo ? "" : "opacity-80"} />
                   <span className={r("md:sr-only")}>{item.rotulo}</span>
                   {!!contagens[item.href] && (
                     <span
-                      className={`ml-auto rounded-full px-[7px] font-mono text-[11px] ${ativo ? "bg-white/20" : "bg-rail-line text-ink"} ${r(
+                      className={`ml-auto rounded-full px-[7px] font-mono text-[11px] ${ativo ? "bg-white/20" : "bg-rail-line text-rail-ink"} ${r(
                         "md:absolute md:-right-1 md:-top-1 md:ml-0 md:bg-accent md:px-[5px] md:text-[10px] md:text-accent-ink",
                       )}`}
                     >
@@ -101,7 +101,7 @@ export function MenuLateral({
         ))}
         <div className={`mt-auto flex items-center gap-2.5 border-t border-rail-line p-2.5 ${r("md:flex-col md:gap-2 md:px-0")}`}>
           <Link href="/conta" title={recolhido ? `${pessoa.nome} · Minha conta` : undefined} className="flex-none">
-            <Avatar iniciais={pessoa.iniciais} nome={pessoa.nome} foto={pessoa.foto} />
+            <Avatar iniciais={pessoa.iniciais} nome={pessoa.nome} foto={pessoa.foto} classe="h-[26px] w-[26px] text-[10.5px] !bg-white !text-ink" />
           </Link>
           <Link href="/conta" className={`min-w-0 flex-1 hover:underline ${r("md:hidden")}`}>
             <div className="truncate font-medium">{pessoa.nome}</div>
@@ -121,7 +121,7 @@ export function MenuLateral({
               </span>
             )}
           </Link>
-          <BotaoSair />
+          <BotaoSair className="!text-rail-muted hover:!text-white" />
         </div>
       </aside>
 
@@ -130,7 +130,7 @@ export function MenuLateral({
       )}
 
       <div className="min-w-0">
-        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-bg px-4 py-2.5 md:hidden">
+        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-rail-line bg-rail px-4 py-2.5 text-rail-ink md:hidden">
           <button
             type="button"
             onClick={() => setAberto(true)}

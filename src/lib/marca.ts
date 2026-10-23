@@ -3,7 +3,7 @@
 
 export type Identidade = { nome_agencia: string; nome_sistema: string; logo: string | null; cor: string };
 
-export const IDENTIDADE_PADRAO: Identidade = { nome_agencia: "O.BRAND", nome_sistema: "Bastidor", logo: null, cor: "#1E4BFF" };
+export const IDENTIDADE_PADRAO: Identidade = { nome_agencia: "O.BRAND", nome_sistema: "Bastidor", logo: null, cor: "#2563EB" };
 export const BUCKET_MARCA = "marca";
 
 export function urlMarca(caminho: string | null | undefined) {
@@ -29,15 +29,18 @@ export function contraste(a: string, b: string) {
 // Botões, links e seleção usam a cor sobre fundo branco: precisa de pelo menos 3:1 para ler
 export const CONTRASTE_MINIMO = 3;
 
-// Cor principal, cor do texto em cima dela e tom claro de fundo (12% da cor sobre branco)
+const hex = (vs: number[]) => "#" + vs.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+
+// Cor principal, cor do texto em cima dela, tom claro de fundo (8% da cor sobre branco) e tom do hover (15% mais escuro)
 export function tonsDaCor(cor: string) {
-  const texto = contraste(cor, "#FFFFFF") >= contraste(cor, "#0A0C12") ? "#FFFFFF" : "#0A0C12";
-  const suave = "#" + rgb(cor).map((v) => Math.round(255 - (255 - v) * 0.1).toString(16).padStart(2, "0")).join("");
-  return { cor, texto, suave };
+  const texto = contraste(cor, "#FFFFFF") >= contraste(cor, "#111111") ? "#FFFFFF" : "#111111";
+  const suave = hex(rgb(cor).map((v) => 255 - (255 - v) * 0.08));
+  const hover = hex(rgb(cor).map((v) => v * 0.85));
+  return { cor, texto, suave, hover };
 }
 
 // Variáveis do tema (globals.css) trocadas pela cor da agência
 export function estiloDaCor(cor: string) {
   const t = tonsDaCor(cor);
-  return { "--color-accent": t.cor, "--color-accent-ink": t.texto, "--color-accent-soft": t.suave } as React.CSSProperties;
+  return { "--color-accent": t.cor, "--color-accent-hover": t.hover, "--color-accent-ink": t.texto, "--color-accent-soft": t.suave } as React.CSSProperties;
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { Avatar, PontoCliente, Prazo } from "@/components/tarefa";
-import { podeMover, proximaEtapa, rotuloEtapa, type Etapa, type TipoTarefa } from "@/lib/dominio/tarefas";
+import { BARRA_DO_TOM, podeMover, proximaEtapa, rotuloEtapa, tomDaEtapa, type Etapa, type TipoTarefa } from "@/lib/dominio/tarefas";
 import { moverTarefa } from "./acoes";
 
 export type Card = {
@@ -90,9 +90,9 @@ export function Quadro({
                   if (arrastando) mover(arrastando, col.id);
                   setArrastando(null);
                 }}
-                className={`flex flex-col gap-2 rounded-xl border p-2.5 transition-colors ${
-                  sobre === col.id ? "border-accent bg-accent-soft" : "border-transparent bg-surface"
-                } ${arrastando && !aceita && etapaDe(arrastando) !== col.id ? "opacity-60" : ""}`}
+                className={`flex flex-col gap-2 rounded-xl border border-t-[3px] p-2.5 transition-colors ${
+                  sobre === col.id ? "border-accent bg-accent-soft" : "border-line bg-surface"
+                } ${BARRA_DO_TOM[tomDaEtapa(col.id as Etapa)]} ${arrastando && !aceita && etapaDe(arrastando) !== col.id ? "opacity-60" : ""}`}
               >
                 <div className="flex items-center justify-between px-1 pb-1 pt-0.5 text-[13px] font-semibold">
                   <span>{col.rotulo}</span>

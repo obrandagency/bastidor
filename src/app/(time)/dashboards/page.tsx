@@ -131,25 +131,25 @@ export default async function Dashboards({ searchParams }: { searchParams: Promi
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] gap-4">
-        <Painel titulo="Funil de produção" extra={<span className="text-[12px] text-muted">conteúdos por etapa, agora</span>}>
+        <Painel icone="tarefas" tom="azul" titulo="Funil de produção" extra={<span className="text-[12px] text-muted">conteúdos por etapa, agora</span>}>
           <BarrasHorizontais itens={porEtapa} />
         </Painel>
-        <Painel titulo="Ajustes por cliente" extra={<span className="text-[12px] text-muted">pedidos pelo portal no mês</span>}>
+        <Painel icone="alerta" tom="vermelho" titulo="Ajustes por cliente" extra={<span className="text-[12px] text-muted">pedidos pelo portal no mês</span>}>
           <BarrasHorizontais itens={ajustesPorCliente} vazio="Nenhum pedido de ajuste no mês." />
         </Painel>
-        <Painel titulo="Tempo de aprovação" extra={<span className="text-[12px] text-muted">média por cliente</span>}>
+        <Painel icone="relogio" tom="ambar" titulo="Tempo de aprovação" extra={<span className="text-[12px] text-muted">média por cliente</span>}>
           <BarrasHorizontais itens={tempoAprovacao} vazio="Nenhuma aprovação pelo portal no mês." />
         </Painel>
-        <Painel titulo="Carga por pessoa" extra={<span className="text-[12px] text-muted">tarefas abertas, agora</span>}>
+        <Painel icone="pessoas" tom="violeta" titulo="Carga por pessoa" extra={<span className="text-[12px] text-muted">tarefas abertas, agora</span>}>
           <BarrasHorizontais itens={porPessoa} />
         </Painel>
-        <Painel titulo="Demandas da agência por área" extra={<span className="text-[12px] text-muted">em aberto, agora</span>}>
+        <Painel icone="lista" tom="azul" titulo="Demandas da agência por área" extra={<span className="text-[12px] text-muted">em aberto, agora</span>}>
           <BarrasHorizontais itens={porArea} vazio="Nenhuma demanda em aberto." />
         </Painel>
-        <Painel titulo="Horas registradas por cliente" extra={<span className="text-[12px] text-muted">tarefas do mês</span>}>
+        <Painel icone="relogio" tom="cinza" titulo="Horas registradas por cliente" extra={<span className="text-[12px] text-muted">tarefas do mês</span>}>
           <BarrasHorizontais itens={horasPorCliente} vazio="Nenhuma hora registrada no mês." />
         </Painel>
-        <Painel titulo="Por cliente" semPadding extra={<span className="text-[12px] text-muted">conteúdos do mês</span>}>
+        <Painel icone="clientes" tom="azul" titulo="Por cliente" semPadding extra={<span className="text-[12px] text-muted">conteúdos do mês</span>}>
           {(clientes ?? []).map((c) => {
             const lista = doMes.filter((t) => t.client_id === c.id);
             if (lista.length === 0) return null;

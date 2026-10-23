@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CabecalhoPagina } from "@/components/cabecalho-pagina";
+import { CabecalhoPagina, EstadoVazio } from "@/components/cabecalho-pagina";
 import { LogoCliente } from "@/components/tarefa";
 import { diaMes } from "@/lib/datas";
 import { dataHoraSP } from "@/lib/dominio/tarefas";
@@ -77,6 +77,11 @@ export default async function Roteiros({ searchParams }: { searchParams: Promise
         ))}
       </div>
 
+      {!roteiros?.length ? (
+        <EstadoVazio icone="roteiros" acao={<NovoRoteiro clientes={(clientes ?? []).filter((c) => c.ativo).map((c) => ({ id: c.id, nome: c.nome }))} clienteFiltro={busca.cliente} />}>
+          {busca.cliente || busca.situacao ? "Nenhum roteiro com esse filtro." : "Nenhum roteiro ainda. Crie o primeiro ou comece por um Reels no quadro de Tarefas."}
+        </EstadoVazio>
+      ) : (
       <section className="rounded-xl border border-line bg-card">
         {(roteiros ?? []).map((r) => {
           const c = (r.client_id && clientePor.get(r.client_id)) || null;
@@ -100,8 +105,8 @@ export default async function Roteiros({ searchParams }: { searchParams: Promise
             </Link>
           );
         })}
-        {!roteiros?.length && <p className="px-4 py-[18px] text-[13px] text-muted">Nenhum roteiro por aqui. Crie o primeiro em &quot;+ Novo roteiro&quot; ou a partir de um Reels no quadro de Tarefas.</p>}
       </section>
+      )}
     </>
   );
 }

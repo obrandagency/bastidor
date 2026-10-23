@@ -68,7 +68,7 @@ export function Numero({
   extra?: React.ReactNode;
 }) {
   return (
-    <div className={`rounded-xl border px-4 py-3.5 ${destaque ? "border-ink bg-ink text-bg" : "border-line bg-card"}`}>
+    <div className={`rounded-xl border px-4 py-3.5 ${destaque ? "border-rail bg-rail text-rail-ink" : "border-line bg-card"}`}>
       <b className={`block font-display text-[26px] font-bold leading-[1.1] tabular-nums md:text-[30px] ${alerta ? "text-bad" : ""}`}>{valor}</b>
       <span className="text-[12.5px] opacity-75">{rotulo}</span>
       {extra}

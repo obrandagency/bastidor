@@ -37,7 +37,7 @@ export function Gaveta({ fechar, rotulo, children }: { fechar: string; rotulo: s
         aria-modal="true"
         aria-label={rotulo}
         onClick={(e) => e.stopPropagation()}
-        className="flex h-full w-[min(560px,100%)] flex-col gap-4 overflow-y-auto bg-bg px-5 pb-[calc(28px+env(safe-area-inset-bottom,0px))] pt-[calc(20px+env(safe-area-inset-top,0px))] shadow-pop"
+        className="flex h-full w-[min(560px,100%)] flex-col gap-4 overflow-y-auto bg-card px-5 pb-[calc(28px+env(safe-area-inset-bottom,0px))] pt-[calc(20px+env(safe-area-inset-top,0px))] shadow-pop"
       >
         {children}
       </div>

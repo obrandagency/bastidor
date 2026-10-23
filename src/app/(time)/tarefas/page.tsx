@@ -114,7 +114,7 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
                 ↻ Recorrentes
               </Link>
             )}
-            <Link href={link({ nova: "1" })} scroll={false} className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:brightness-110">
+            <Link href={link({ nova: "1" })} scroll={false} className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:border-accent-hover hover:bg-accent-hover">
               {tipo === "demanda" ? "+ Nova demanda" : "+ Nova pauta"}
             </Link>
           </div>

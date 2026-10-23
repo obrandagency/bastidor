@@ -39,7 +39,7 @@ export const classeEntrada =
   "w-full min-w-0 rounded-lg border border-line bg-card px-2.5 py-2 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-soft)] focus:outline-none";
 
 const VARIANTES = {
-  principal: "border-accent bg-accent text-accent-ink hover:brightness-110",
+  principal: "border-accent bg-accent text-accent-ink hover:border-accent-hover hover:bg-accent-hover",
   normal: "border-line bg-card hover:border-ink",
   fantasma: "border-transparent bg-transparent hover:bg-surface",
 };

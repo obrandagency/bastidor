@@ -36,8 +36,8 @@ export function FormIdentidade({ identidade }: { identidade: Identidade }) {
             maxLength={7}
             className="w-[110px] rounded-lg border border-line bg-card px-2.5 py-2 font-mono uppercase focus:border-accent focus:outline-none"
           />
-          <button type="button" onClick={() => setCor("#1E4BFF")} className="text-[12.5px] text-muted hover:text-ink">
-            Voltar ao azul original
+          <button type="button" onClick={() => setCor("#2563EB")} className="text-[12.5px] text-muted hover:text-ink">
+            Voltar ao azul padrão
           </button>
         </div>
         <small className={`text-[12px] ${legivel ? "text-muted" : "text-bad"}`}>

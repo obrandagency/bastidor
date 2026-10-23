@@ -1,30 +1,37 @@
 @import "tailwindcss";
 
-/* Tokens do protótipo: fundo branco, preto e azul. Tema único, sem modo escuro. */
+/* Paleta da plataforma (direcionamento de 04/11): sidebar preta, conteúdo em fundo claro, cards brancos
+   com borda fina, azul de ação. Status: cinza (não iniciado), violeta (em andamento), âmbar (esperando),
+   vermelho (ajuste, atraso) e verde (aprovado, concluído), sempre com o nome junto. Tema único. */
 @theme {
-  --color-bg: #ffffff;
-  --color-surface: #f4f6fb;
+  --color-bg: #fafafa;
+  --color-surface: #f3f4f6;
   --color-card: #ffffff;
-  --color-ink: #0a0c12;
-  --color-muted: #5a6275;
-  --color-line: #e2e6ef;
-  --color-accent: #1e4bff;
+  --color-ink: #111111;
+  --color-muted: #6b7280;
+  --color-line: #e5e7eb;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
   --color-accent-ink: #ffffff;
-  --color-accent-soft: #ebefff;
-  --color-rail-muted: #6b7385;
-  --color-rail-line: #eef1f6;
-  --color-ok: #16895d;
-  --color-ok-soft: #e3f5ec;
-  --color-warn: #a86400;
-  --color-warn-soft: #fff1da;
-  --color-bad: #c93838;
-  --color-bad-soft: #fde8e8;
+  --color-accent-soft: #eff6ff;
+  --color-rail: #0f0f10;
+  --color-rail-ink: #f4f4f5;
+  --color-rail-muted: #9ca3af;
+  --color-rail-line: #26262a;
+  --color-andamento: #7c3aed;
+  --color-andamento-soft: #f5f3ff;
+  --color-ok: #15803d;
+  --color-ok-soft: #e7f6ec;
+  --color-warn: #b45309;
+  --color-warn-soft: #fef3e2;
+  --color-bad: #c62828;
+  --color-bad-soft: #fdecec;
 
   --font-display: var(--font-bricolage), "Helvetica Neue", Arial, sans-serif;
   --font-sans: var(--font-plex-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, Menlo, Consolas, monospace;
 
-  --shadow-pop: 0 12px 40px rgba(10, 12, 18, 0.16);
+  --shadow-pop: 0 12px 40px rgba(17, 17, 17, 0.16);
 }
 
 :root {

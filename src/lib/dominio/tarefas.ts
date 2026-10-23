@@ -78,13 +78,40 @@ export function diasEntre(de: string, ate: string) {
 }
 
 // Cor do selo da etapa (como .st-* no protótipo)
-export function corDaEtapa(e: Etapa) {
-  if (e === "cliente") return "bg-warn-soft text-warn border-transparent";
-  if (e === "ajuste") return "bg-bad-soft text-bad border-transparent";
-  if (e === "aprovado" || e === "concluido") return "bg-ok-soft text-ok border-transparent";
-  if (e === "agendado") return "bg-accent-soft text-accent border-transparent";
-  return "bg-surface text-muted border-line";
+// Cor de status (sempre com o nome junto): cinza não iniciado, violeta em andamento, âmbar esperando
+// alguém de fora, vermelho ajuste, verde aprovado ou concluído. O azul fica só para ação.
+type Tom = "cinza" | "violeta" | "ambar" | "vermelho" | "verde";
+export function tomDaEtapa(e: Etapa): Tom {
+  if (e === "cliente" || e === "validacao") return "ambar";
+  if (e === "ajuste") return "vermelho";
+  if (e === "aprovado" || e === "concluido" || e === "agendado") return "verde";
+  if (e === "copy" || e === "layout" || e === "revisao" || e === "fazendo") return "violeta";
+  return "cinza";
 }
+export const SELO_DO_TOM: Record<Tom, string> = {
+  cinza: "bg-surface text-muted border-line",
+  violeta: "bg-andamento-soft text-andamento border-transparent",
+  ambar: "bg-warn-soft text-warn border-transparent",
+  vermelho: "bg-bad-soft text-bad border-transparent",
+  verde: "bg-ok-soft text-ok border-transparent",
+};
+// Barra no topo da coluna do kanban
+export const BARRA_DO_TOM: Record<Tom, string> = {
+  cinza: "border-t-rail-muted",
+  violeta: "border-t-andamento",
+  ambar: "border-t-warn",
+  vermelho: "border-t-bad",
+  verde: "border-t-ok",
+};
+// Fundo das etiquetas do calendário
+export const FUNDO_DO_TOM: Record<Tom, string> = {
+  cinza: "bg-surface",
+  violeta: "bg-andamento-soft",
+  ambar: "bg-warn-soft",
+  vermelho: "bg-bad-soft",
+  verde: "bg-ok-soft",
+};
+export const corDaEtapa = (e: Etapa) => SELO_DO_TOM[tomDaEtapa(e)];
 
 // Brasil sem horário de verão desde 2019: São Paulo é sempre UTC-3
 export const paraTimestampSP = (data: string, hora: string) => `${data}T${hora}:00-03:00`;

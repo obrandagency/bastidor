@@ -16,9 +16,9 @@ const COR_SITUACAO: Record<string, string> = {
   "Em ajuste": "bg-bad-soft text-bad",
   Aprovado: "bg-ok-soft text-ok",
   Publicado: "bg-ok-soft text-ok",
-  Agendado: "bg-accent-soft text-accent",
-  "Em produção": "bg-surface text-muted",
-  "Em andamento": "bg-surface text-muted",
+  Agendado: "bg-ok-soft text-ok",
+  "Em produção": "bg-andamento-soft text-andamento",
+  "Em andamento": "bg-andamento-soft text-andamento",
   Concluído: "bg-ok-soft text-ok",
 };
 
@@ -67,7 +67,7 @@ export async function TelaAprovar({ clientId, somenteLeitura }: Alvo) {
   // O cliente só enxerga a própria linha em clients; a equipe pede pelo id
   const consulta = supabase.from("clients").select("cor");
   const { data: cliente } = await (clientId ? consulta.eq("id", clientId) : consulta.limit(1)).maybeSingle();
-  const cor = cliente?.cor ?? "#1E4BFF";
+  const cor = cliente?.cor ?? "#2563EB";
 
   const links = await linksDasArtes(conteudos.filter((c) => c.etapa === "cliente").flatMap((c) => c.artes.map((a) => a.caminho)));
   const { data: onboarding } = await supabase.rpc("portal_onboarding", clientId ? { p_client_id: clientId } : {});

@@ -9,22 +9,22 @@ function moldura(id: Identidade, titulo: string, corpo: string, botao?: { texto:
   const marca = logo
     ? `<img src="${esc(logo)}" alt="${esc(id.nome_agencia)}" height="32" style="height:32px;width:auto;vertical-align:middle;border:0">`
     : `<span style="display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;border-radius:7px;background:${cor};color:${corTexto};font-weight:bold">${esc(id.nome_sistema.charAt(0).toUpperCase())}</span>`;
-  return `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#F4F6FB;font-family:Arial,Helvetica,sans-serif;color:#0A0C12">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F6FB;padding:24px 12px"><tr><td align="center">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border:1px solid #E2E6EF;border-radius:12px">
+  return `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#FAFAFA;font-family:Arial,Helvetica,sans-serif;color:#111111">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAFAFA;padding:24px 12px"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px">
 <tr><td style="padding:22px 24px 0">${marca}
 <span style="font-weight:bold;font-size:16px;vertical-align:middle;margin-left:6px">${esc(id.nome_sistema)}</span></td></tr>
 <tr><td style="padding:18px 24px 4px"><h1 style="margin:0;font-size:20px;line-height:1.25">${titulo}</h1></td></tr>
 <tr><td style="padding:8px 24px 4px;font-size:14px;line-height:1.55">${corpo}</td></tr>
 ${botao ? `<tr><td style="padding:14px 24px 6px"><a href="${esc(botao.link)}" style="display:inline-block;background:${cor};color:${corTexto};text-decoration:none;padding:11px 18px;border-radius:8px;font-weight:bold;font-size:14px">${esc(botao.texto)}</a></td></tr>` : ""}
-<tr><td style="padding:16px 24px 22px;font-size:12px;color:#5A6275">${rodape ?? `${esc(id.nome_agencia)} · enviado pelo ${esc(id.nome_sistema)}`}</td></tr>
+<tr><td style="padding:16px 24px 22px;font-size:12px;color:#6B7280">${rodape ?? `${esc(id.nome_agencia)} · enviado pelo ${esc(id.nome_sistema)}`}</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
 const lista = (itens: string[]) =>
   `<ul style="padding-left:18px;margin:8px 0">${itens.map((t) => `<li style="margin:3px 0">${esc(t)}</li>`).join("")}</ul>`;
 
-const rodapeTime = (site: string) => `Para não receber estes e-mails, desligue em <a href="${esc(site)}/conta" style="color:#5A6275">Minha conta</a>.`;
+const rodapeTime = (site: string) => `Para não receber estes e-mails, desligue em <a href="${esc(site)}/conta" style="color:#6B7280">Minha conta</a>.`;
 
 export function emailParaAprovar(id: Identidade, nomePessoa: string, titulos: string[], linkPortal: string) {
   const n = titulos.length;
@@ -65,7 +65,7 @@ export function emailAvisoTime(id: Identidade, tipo: string, texto: string, link
 
 export function emailResumoDiario(id: Identidade, nome: string, venceAmanha: string[], atrasadas: string[], site: string, followups: string[] = []) {
   const partes = [
-    atrasadas.length ? `<b style="color:#C93838">Atrasadas (${atrasadas.length})</b>${lista(atrasadas)}` : "",
+    atrasadas.length ? `<b style="color:#C62828">Atrasadas (${atrasadas.length})</b>${lista(atrasadas)}` : "",
     venceAmanha.length ? `<b>Vencem amanhã (${venceAmanha.length})</b>${lista(venceAmanha)}` : "",
     followups.length ? `<b>Follow-ups do CRM, hoje e atrasados (${followups.length})</b>${lista(followups)}` : "",
   ].join("");

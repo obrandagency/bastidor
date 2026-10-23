@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { IconeQuadrado } from "@/components/icone";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { Painel } from "@/components/painel";
 import { Avatar, Miniatura, Prazo } from "@/components/tarefa";
@@ -212,26 +213,31 @@ async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
   return (
     <>
       <div className="mb-[18px] grid grid-cols-[repeat(auto-fit,minmax(min(100%,170px),1fr))] gap-3">
-        {[
-          [lista.length, "tarefas em aberto", "border-ink bg-ink text-bg"],
-          [atrasadas.length, "atrasadas", atrasadas.length ? "border-line bg-card [&_b]:text-bad" : "border-line bg-card"],
-          [esperando.length, "esperando o cliente", "border-line bg-card"],
-          [emAjuste, "em ajuste", "border-line bg-card"],
-        ].map(([n, rotulo, estilo]) => (
-          <div key={rotulo as string} className={`rounded-xl border px-4 py-3.5 ${estilo}`}>
-            <b className="block font-display text-[30px] font-bold leading-[1.1] tabular-nums">{n}</b>
-            <span className="text-[12.5px] opacity-75">{rotulo}</span>
+        {(
+          [
+            [lista.length, "tarefas em aberto", "tarefas", "azul"],
+            [atrasadas.length, "atrasadas", "alerta", "vermelho"],
+            [esperando.length, "esperando o cliente", "relogio", "ambar"],
+            [emAjuste, "em ajuste", "criacao", "violeta"],
+          ] as const
+        ).map(([n, rotulo, icone, tom]) => (
+          <div key={rotulo} className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3.5">
+            <IconeQuadrado nome={icone} tom={tom} grande />
+            <div>
+              <b className={`block font-display text-[28px] font-bold leading-[1.1] tabular-nums ${tom === "vermelho" && n > 0 ? "text-bad" : ""}`}>{n}</b>
+              <span className="text-[12.5px] text-muted">{rotulo}</span>
+            </div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] gap-4">
-        <Painel titulo="Precisa de atenção hoje" semPadding extra={<Link href="/tarefas" className="text-[12.5px] text-muted hover:text-ink">Abrir tarefas</Link>}>
+        <Painel icone="alerta" tom="vermelho" titulo="Precisa de atenção hoje" semPadding extra={<Link href="/tarefas" className="text-[12.5px] text-muted hover:text-ink">Abrir tarefas</Link>}>
           {[...atrasadas, ...venceHoje].map((t) => linha(t, <Prazo prazo={t.prazo} etapa={t.etapa} hoje={hoje} />))}
           {atrasadas.length + venceHoje.length === 0 && vazio("Nada atrasado nem vencendo hoje.")}
         </Painel>
 
-        <Painel titulo="Esperando o cliente" semPadding>
+        <Painel icone="relogio" tom="ambar" titulo="Esperando o cliente" semPadding>
           {esperando.map((t) => {
             const dias = t.enviado_cliente_em ? diasEntre(dataHoraSP(t.enviado_cliente_em).data, hoje) : 0;
             return linha(
@@ -245,7 +251,7 @@ async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
         </Painel>
 
         {(etapasHoje ?? []).length > 0 && (
-          <Painel titulo="Etapas de processo para hoje" semPadding>
+          <Painel icone="lista" tom="violeta" titulo="Etapas de processo para hoje" semPadding>
             {(etapasHoje ?? []).map((e) => {
               const r = e.responsavel_id ? pessoaPor.get(e.responsavel_id) : null;
               const dias = diasEntre(e.prazo, hoje);
@@ -266,7 +272,7 @@ async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
         )}
 
         {(followups ?? []).length > 0 && (
-          <Painel titulo="Follow-ups do CRM" semPadding extra={<Link href="/crm" className="text-[12.5px] text-muted hover:text-ink">Abrir CRM</Link>}>
+          <Painel icone="funil" tom="azul" titulo="Follow-ups do CRM" semPadding extra={<Link href="/crm" className="text-[12.5px] text-muted hover:text-ink">Abrir CRM</Link>}>
             {(followups ?? []).map((f) => {
               const r = f.responsavel_id ? pessoaPor.get(f.responsavel_id) : null;
               const dias = diasEntre(f.proximo_passo_em!, hoje);
@@ -286,7 +292,7 @@ async function Resumo({ hoje, link, clienteDe, pessoaPor }: Ctx) {
           </Painel>
         )}
 
-        <Painel titulo="Próximas publicações" semPadding>
+        <Painel icone="calendario" tom="verde" titulo="Próximas publicações" semPadding>
           {(proximas ?? []).map((t) => {
             const { data, hora } = dataHoraSP(t.publicar_em);
             return linha(t, <span className="font-mono">{diaMes(data)} {hora}</span>);

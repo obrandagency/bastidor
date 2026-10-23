@@ -41,7 +41,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
               {verInativos ? "Ver ativos" : "Ver inativos"}
             </Link>
             {gestao && (
-              <Link href="/clientes/novo" className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:brightness-110">
+              <Link href="/clientes/novo" className="rounded-lg border border-accent bg-accent px-3.5 py-2 font-medium text-accent-ink hover:border-accent-hover hover:bg-accent-hover">
                 Novo cliente
               </Link>
             )}
@@ -49,13 +49,15 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
         }
       />
       {gestao && recorrente > 0 && (
-        <div className="mb-4 inline-flex flex-col rounded-xl border border-ink bg-ink px-4 py-3 text-bg">
+        <div className="mb-4 inline-flex flex-col rounded-xl border border-rail bg-rail px-4 py-3 text-rail-ink">
           <b className="font-display text-[24px] font-bold leading-[1.1] tabular-nums">{reais(recorrente)}</b>
           <span className="text-[12.5px] opacity-75">por mês em contratos vigentes</span>
         </div>
       )}
       {!clientes?.length ? (
-        <EstadoVazio>{verInativos ? "Nenhum cliente inativo." : "Nenhum cliente cadastrado ainda."}</EstadoVazio>
+        <EstadoVazio icone="clientes" acao={!verInativos && gestao ? { href: "/clientes/novo", rotulo: "Cadastrar cliente" } : undefined}>
+          {verInativos ? "Nenhum cliente inativo." : "Nenhum cliente cadastrado ainda."}
+        </EstadoVazio>
       ) : (
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3">
           {clientes.map((c) => {

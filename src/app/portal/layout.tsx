@@ -17,16 +17,16 @@ export default async function LayoutPortal({ children }: { children: React.React
 
   return (
     <div className="min-h-full">
-      <header className="border-b border-line bg-bg">
+      <header className="bg-rail text-rail-ink">
         <div className="mx-auto flex max-w-[960px] flex-wrap items-center justify-between gap-3 px-4 pt-[calc(14px+env(safe-area-inset-top,0px))] pb-3.5 md:px-7">
           <Marca identidade={identidade} subtitulo={`Portal do cliente · ${identidade.nome_agencia}`} />
           <div className="flex items-center gap-3 text-right">
             {cliente && <LogoCliente nome={cliente.nome} cor={cliente.cor} logo={cliente.logo} classe="h-9 w-9 text-[14px]" />}
             <div className="min-w-0">
               <div className="truncate font-medium">{cliente?.nome}</div>
-              <small className="block text-[11.5px] text-muted">{pessoa.nome}</small>
+              <small className="block text-[11.5px] text-rail-muted">{pessoa.nome}</small>
             </div>
-            <BotaoSair />
+            <BotaoSair className="!text-rail-muted hover:!text-white" />
           </div>
         </div>
         <AbasPortal />

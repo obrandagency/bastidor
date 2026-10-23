@@ -116,7 +116,7 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-4">
-        <Painel titulo="Briefing">
+        <Painel icone="documento" tom="azul" titulo="Briefing">
           {gestao ? (
             <FormBriefing clientId={id} briefing={briefing} />
           ) : (
@@ -128,7 +128,7 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
           )}
         </Painel>
 
-        <Painel titulo="Tom de voz">
+        <Painel icone="voz" tom="violeta" titulo="Tom de voz">
           {gestao ? (
             <FormTom clientId={id} briefing={briefing} />
           ) : (
@@ -152,7 +152,7 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
           )}
         </Painel>
 
-        <Painel titulo="Identidade visual">
+        <Painel icone="paleta" tom="ambar" titulo="Identidade visual">
           {gestao ? (
             <FormIdentidade clientId={id} briefing={briefing} />
           ) : (
@@ -182,7 +182,7 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
           </p>
         </Painel>
 
-        <Painel titulo="Acessos">
+        <Painel icone="chave" tom="cinza" titulo="Acessos">
           {gestao ? (
             <FormAcessos clientId={id} briefing={briefing} />
           ) : (
@@ -201,7 +201,7 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
         </Painel>
 
         {contrato && (
-          <Painel titulo="Contrato" semPadding>
+          <Painel icone="contrato" tom="verde" titulo="Contrato" semPadding>
             {contrato.vigente ? (
               <div>
                 {contrato.vigente.valor_mensal !== null && <Linha rotulo="Valor mensal">{reais(contrato.vigente.valor_mensal)}</Linha>}
@@ -232,7 +232,7 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
           </Painel>
         )}
 
-        <Painel titulo="Atas de reunião" semPadding>
+        <Painel icone="lista" tom="azul" titulo="Atas de reunião" semPadding>
           <div className="flex flex-col gap-2 px-4 py-3.5">
             {(atas ?? []).map((a) => (
               <div key={a.id} className="flex items-start gap-2.5 rounded-[10px] border border-line px-[11px] py-[9px]">
@@ -252,7 +252,7 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
         </Painel>
 
         {gestao && (
-          <Painel titulo="Pessoas do cliente" extra={<span className="text-[12px] text-muted">aprovam no portal</span>} semPadding>
+          <Painel icone="pessoas" tom="violeta" titulo="Pessoas do cliente" extra={<span className="text-[12px] text-muted">aprovam no portal</span>} semPadding>
             <ul>
               {(pessoasCliente ?? []).map((p) => (
                 <li
@@ -276,7 +276,7 @@ export default async function CentralDoCliente({ params }: { params: Promise<{ i
         )}
 
         {eu.perfil === "socio" && (
-          <Painel titulo="Dados do cliente (LGPD)">
+          <Painel icone="escudo" tom="cinza" titulo="Dados do cliente (LGPD)">
             <DadosDoCliente clientId={id} nome={cliente.nome} />
           </Painel>
         )}

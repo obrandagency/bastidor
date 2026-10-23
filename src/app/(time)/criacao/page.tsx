@@ -26,7 +26,7 @@ export default async function Criacao({ searchParams }: { searchParams: Promise<
       descricao="Escreva a legenda e veja como o post fica no feed do cliente enquanto produz."
     />
   );
-  if (!cliente) return (<>{cabecalho}<EstadoVazio>Cadastre um cliente na Central do cliente para começar.</EstadoVazio></>);
+  if (!cliente) return (<>{cabecalho}<EstadoVazio icone="clientes" acao={{ href: "/clientes", rotulo: "Abrir a Central do cliente" }}>Cadastre um cliente para começar a criar.</EstadoVazio></>);
 
   const [{ data: producao }, { data: publicados }] = await Promise.all([
     supabase.from("tasks").select("*").eq("client_id", cliente.id).eq("tipo", "conteudo")
@@ -106,7 +106,7 @@ export default async function Criacao({ searchParams }: { searchParams: Promise<
             cliente={{ nome: cliente.nome, instagram: cliente.instagram, cor: cliente.cor }}
           />
         ) : (
-          <EstadoVazio>Selecione um conteúdo ou crie uma pauta em Tarefas.</EstadoVazio>
+          <EstadoVazio icone="criacao" acao={{ href: "/tarefas?nova=1", rotulo: "Criar pauta" }}>Selecione um conteúdo ao lado ou crie uma pauta nova.</EstadoVazio>
         )}
       </div>
     </>
