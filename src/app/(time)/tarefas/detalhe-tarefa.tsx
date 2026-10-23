@@ -5,6 +5,7 @@ import { dataBR, hojeSP } from "@/lib/datas";
 import { area, dataHoraSP, rotuloEtapa } from "@/lib/dominio/tarefas";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Evento, Nota, Tarefa } from "@/types/banco";
+import { criarRoteiroDoConteudo } from "../roteiros/acoes";
 import { EtapasTarefa, UsarProcesso } from "./etapas";
 import { Agendamento, Comentarios, Excluir, FormTarefa, Gaveta, NotificarCliente } from "./detalhe";
 
@@ -23,6 +24,7 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
     supabase.from("tarefa_etapas").select("id, nome, responsavel_id, prazo, feito_em, feito_por").eq("task_id", id).order("ordem").order("created_at"),
     supabase.from("processos").select("id, nome").eq("ativo", true).order("nome"),
   ]);
+  const { data: roteiros } = await supabase.from("roteiros").select("id, titulo").eq("task_id", id).order("created_at");
   if (!t) notFound();
   const c = (t.client_id && (todos ?? []).find((x) => x.id === t.client_id)) || INTERNO;
   const ajustes = (eventos ?? []).filter((e) => e.origem === "cliente" && e.para_etapa === "ajuste").length;
@@ -117,6 +119,21 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
 
       {(t.tipo === "conteudo" || podeExcluir) && (
         <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-line pt-3">
+          {t.tipo === "conteudo" &&
+            (roteiros ?? []).map((r) => (
+              <Link key={r.id} href={`/roteiros/${r.id}`} className="rounded-lg border border-line px-3.5 py-2 font-medium hover:border-ink">
+                Roteiro{(roteiros ?? []).length > 1 ? `: ${r.titulo}` : ""}
+              </Link>
+            ))}
+          {t.tipo === "conteudo" && !roteiros?.length && (t.formato === "reels" || t.formato === "stories") && (
+            <form action={criarRoteiroDoConteudo}>
+              <input type="hidden" name="task_id" value={t.id} />
+              <input type="hidden" name="titulo" value={t.titulo} />
+              <input type="hidden" name="client_id" value={t.client_id ?? "interno"} />
+              <input type="hidden" name="formato" value={t.formato} />
+              <button className="rounded-lg border border-line px-3.5 py-2 font-medium hover:border-ink">Criar roteiro</button>
+            </form>
+          )}
           {t.tipo === "conteudo" && t.client_id && (
             <Link
               href={`/criacao?cliente=${t.client_id}&conteudo=${t.id}`}

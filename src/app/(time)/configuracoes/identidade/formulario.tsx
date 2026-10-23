@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { Aviso, Botao, Campo } from "@/components/formulario";
 import { contraste, CONTRASTE_MINIMO, tonsDaCor, type Identidade } from "@/lib/marca";
-import { salvarIdentidade } from "./acoes";
+import { salvarDocumentos, salvarIdentidade } from "./acoes";
 
 const valida = (c: string) => /^#[0-9A-Fa-f]{6}$/.test(c);
 
@@ -66,6 +66,33 @@ export function FormIdentidade({ identidade }: { identidade: Identidade }) {
           {enviando ? "Salvando…" : "Salvar"}
         </Botao>
         {estado?.ok && <small className="text-[12.5px] text-ok">{estado.ok} Pode levar alguns segundos para aparecer em tudo.</small>}
+      </div>
+    </form>
+  );
+}
+
+export function FormDocumentos({ margemTopo, margemBase, rodape }: { margemTopo: number; margemBase: number; rodape: string }) {
+  const [estado, acao, enviando] = useActionState(salvarDocumentos, undefined);
+  return (
+    <form action={acao} className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:max-w-[360px]">
+        <Campo rotulo="Margem de cima (mm)" id="margem_topo" type="number" min={5} max={120} required defaultValue={margemTopo} />
+        <Campo rotulo="Margem de baixo (mm)" id="margem_base" type="number" min={5} max={120} required defaultValue={margemBase} />
+      </div>
+      <Campo
+        rotulo="Rodapé (sem timbrado)"
+        id="rodape"
+        maxLength={300}
+        defaultValue={rodape}
+        placeholder="Ex.: O.BRAND · CNPJ 00.000.000/0001-00 · obrandagency.com · contato@obrandagency.com"
+        dica="Aparece no pé das páginas enquanto não houver timbrado"
+      />
+      <div className="flex items-center gap-3">
+        <Botao pequeno variante="principal" disabled={enviando}>
+          {enviando ? "Salvando…" : "Salvar"}
+        </Botao>
+        {estado?.ok && <small className="text-[12.5px] text-ok">{estado.ok}</small>}
+        {estado?.erro && <small className="text-[12.5px] text-bad">{estado.erro}</small>}
       </div>
     </form>
   );

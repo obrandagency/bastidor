@@ -19,7 +19,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const { data: tarefas } = await supabase.from("tasks").select("*").eq("client_id", id);
   const ids = (tarefas ?? []).map((t) => t.id);
   const porTarefa = <T,>(r: { data: T[] | null }) => r.data ?? [];
-  const [contratos, briefing, atas, pessoas, convites, notas, eventos, artes, envios, onboarding, recorrencias] = await Promise.all([
+  const [contratos, briefing, atas, pessoas, convites, notas, eventos, artes, envios, onboarding, recorrencias, roteiros] = await Promise.all([
     supabase.from("contracts").select("*").eq("client_id", id),
     supabase.from("client_briefs").select("*").eq("client_id", id),
     supabase.from("meeting_notes").select("*").eq("client_id", id),
@@ -35,6 +35,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
       .eq("client_id", id)
       .maybeSingle(),
     supabase.from("recorrencias").select("*").eq("client_id", id),
+    supabase.from("roteiros").select("*, roteiro_cenas(*)").eq("client_id", id),
   ]);
   const listaArtes = porTarefa(artes as { data: { caminho: string }[] | null });
   const { data: links } = listaArtes.length
@@ -57,6 +58,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     emails_enviados: envios.data,
     onboarding: onboarding.data,
     tarefas_recorrentes: recorrencias.data,
+    roteiros: roteiros.data,
   };
   const nome = `bastidor-${String(cliente.nome_curto).toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${hojeSP()}.json`;
   return new NextResponse(JSON.stringify(exportacao, null, 2), {

@@ -46,3 +46,30 @@ export async function salvarLogoAgencia(caminho: string | null): Promise<Estado>
   atualizarTudo();
   return { ok: "Logo salvo." };
 }
+
+// Timbrado dos documentos (PDF dos roteiros): imagem A4 de fundo
+export async function salvarTimbrado(caminho: string | null): Promise<Estado> {
+  if (!(await exigirSocio())) return { erro: "Só o Sócio troca o timbrado." };
+  const supabase = await criarClienteServidor();
+  const { data: antes } = await supabase.from("identidade").select("timbrado").maybeSingle();
+  const { error } = await supabase.from("identidade").update({ timbrado: caminho }).eq("id", true);
+  if (error) return { erro: "Não foi possível salvar o timbrado." };
+  const { apagarImagemAntiga } = await import("@/lib/marca-servidor");
+  await apagarImagemAntiga(supabase, antes?.timbrado ?? null, caminho);
+  revalidatePath("/configuracoes/identidade");
+  return { ok: "Timbrado salvo." };
+}
+
+export async function salvarDocumentos(_: Estado, form: FormData): Promise<Estado> {
+  if (!(await exigirSocio())) return { erro: "Só o Sócio muda o timbrado." };
+  const margem_topo = Number(texto(form, "margem_topo"));
+  const margem_base = Number(texto(form, "margem_base"));
+  const rodape = texto(form, "rodape");
+  if (![margem_topo, margem_base].every((m) => Number.isInteger(m) && m >= 5 && m <= 120)) return { erro: "Margens entre 5 e 120 mm." };
+  if (rodape.length > 300) return { erro: "Rodapé com até 300 caracteres." };
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.from("identidade").update({ margem_topo, margem_base, rodape }).eq("id", true);
+  if (error) return { erro: "Não foi possível salvar." };
+  revalidatePath("/configuracoes/identidade");
+  return { ok: "Salvo." };
+}

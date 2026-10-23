@@ -5,8 +5,8 @@ import { Painel } from "@/components/painel";
 import { IDENTIDADE_PADRAO, urlMarca, type Identidade } from "@/lib/marca";
 import { exigirTime } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
-import { salvarLogoAgencia } from "./acoes";
-import { FormIdentidade } from "./formulario";
+import { salvarLogoAgencia, salvarTimbrado } from "./acoes";
+import { FormDocumentos, FormIdentidade } from "./formulario";
 
 export const metadata = { title: "Identidade da agência" };
 
@@ -14,8 +14,12 @@ export default async function PaginaIdentidade() {
   await exigirTime(["socio"]);
   const supabase = await criarClienteServidor();
   // Lida direto do banco (sem o cache) para mostrar sempre o que acabou de ser salvo
-  const { data } = await supabase.from("identidade").select("nome_agencia, nome_sistema, logo, cor").maybeSingle<Identidade>();
+  const { data } = await supabase
+    .from("identidade")
+    .select("nome_agencia, nome_sistema, logo, cor, timbrado, margem_topo, margem_base, rodape")
+    .maybeSingle<Identidade & { timbrado: string | null; margem_topo: number; margem_base: number; rodape: string }>();
   const identidade = data ?? IDENTIDADE_PADRAO;
+  const docs = { timbrado: data?.timbrado ?? null, margemTopo: data?.margem_topo ?? 35, margemBase: data?.margem_base ?? 25, rodape: data?.rodape ?? "" };
 
   return (
     <>
@@ -46,6 +50,24 @@ export default async function PaginaIdentidade() {
         </Painel>
         <Painel titulo="Nome e cor">
           <FormIdentidade identidade={identidade} />
+        </Painel>
+        <Painel titulo="Timbrado dos documentos">
+          <p className="mb-3 text-[12.5px] text-muted">
+            Fundo de todas as páginas do PDF dos roteiros. Envie a página do papel timbrado como imagem A4 em pé (PNG ou JPG, de preferência 2480 × 3508 px). Se só tiver em PDF, exporte a página como imagem.
+          </p>
+          <EnviarImagem
+            pasta="agencia"
+            atual={urlMarca(docs.timbrado)}
+            salvar={salvarTimbrado}
+            forma="livre"
+            maximo={2480}
+            rotulo="Enviar timbrado"
+            vazio={<span className="text-[11px] text-muted">A4</span>}
+          />
+          <div className="mt-4 border-t border-line pt-4">
+            <p className="mb-3 text-[12.5px] text-muted">As margens deixam o texto longe do cabeçalho e do rodapé do timbrado.</p>
+            <FormDocumentos margemTopo={docs.margemTopo} margemBase={docs.margemBase} rodape={docs.rodape} />
+          </div>
         </Painel>
       </div>
     </>

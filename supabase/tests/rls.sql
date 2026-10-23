@@ -586,6 +586,36 @@ select testes.ok(
   (select array_agg(e.prazo order by e.ordem) from public.tarefa_etapas e join public.tasks t on t.id = e.task_id where t.recorrencia_id = '00000000-0000-0000-0000-000000abc0f3') = array['2026-11-06', '2026-11-13', '2026-11-25']::date[],
   'processos: recorrente nasce com as etapas e termina na data dela');
 
+-- ---------------------------------------------------------------- roteiros
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+insert into public.roteiros (id, client_id, titulo) values ('00000000-0000-0000-0000-000000abc1a1', '00000000-0000-0000-0000-00000000000a', 'Reels de lançamento');
+insert into public.roteiro_cenas (roteiro_id, ordem, tempo, imagem, fala) values
+  ('00000000-0000-0000-0000-000000abc1a1', 1, '0-3s', 'Close no produto', 'Você já viu isso?'),
+  ('00000000-0000-0000-0000-000000abc1a1', 2, '3-10s', 'Mão abrindo a caixa', '');
+select testes.ok(testes.conta('select * from public.roteiro_cenas') = 2, 'roteiros: Criação escreve roteiro com cenas');
+select public.salvar_roteiro_cenas('00000000-0000-0000-0000-000000abc1a1', '[{"tempo":"0-5s","fala":"Oi"},{"imagem":"Logo"},{"fala":"Tchau"}]');
+select testes.ok((select array_agg(fala order by ordem) from public.roteiro_cenas) = array['Oi', '', 'Tchau'], 'roteiros: cenas regravadas na ordem da tela');
+select testes.recusa($$select public.salvar_roteiro_cenas('00000000-0000-0000-0000-000000abc1a1', ('[{"fala":"' || repeat('x', 4000) || '"}]')::jsonb)$$, 'roteiros: cena grande demais é recusada sem perder as outras');
+select testes.ok(testes.conta('select * from public.roteiro_cenas') = 3, 'roteiros: depois do erro as cenas continuam lá');
+update public.roteiros set situacao = 'revisao' where id = '00000000-0000-0000-0000-000000abc1a1';
+select testes.ok((select atualizado_por = auth.uid() from public.roteiros where id = '00000000-0000-0000-0000-000000abc1a1'), 'roteiros: registra quem atualizou');
+select testes.recusa($$update public.roteiros set situacao = 'publicado'$$, 'roteiros: situação só rascunho, revisão ou aprovado');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.roteiros') = 0 and testes.conta('select * from public.roteiro_cenas') = 0, 'roteiros: cliente não vê');
+select testes.recusa($$insert into public.roteiros (titulo) values ('x')$$, 'roteiros: cliente não cria');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+insert into public.roteiros (id, titulo) values ('00000000-0000-0000-0000-000000abc1a2', 'Institucional da agência');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select testes.recusa($$delete from public.roteiros where id = '00000000-0000-0000-0000-000000abc1a2'$$, 'roteiros: Criação não apaga roteiro de outra pessoa');
+delete from public.roteiros where id = '00000000-0000-0000-0000-000000abc1a1';
+select testes.ok(testes.conta('select * from public.roteiro_cenas') = 0, 'roteiros: quem criou apaga, e as cenas vão junto');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+update public.identidade set margem_topo = 40, rodape = 'O.BRAND · obrandagency.com';
+select testes.ok((select margem_topo = 40 from public.identidade), 'roteiros: Sócio ajusta margens e rodapé do timbrado');
+select testes.recusa($$update public.identidade set timbrado = 'https://exemplo.com/t.png'$$, 'roteiros: timbrado só do bucket da marca');
+reset role;
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (
