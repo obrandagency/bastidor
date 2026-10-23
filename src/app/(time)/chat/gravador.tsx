@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 const MAXIMO = 5 * 60; // segundos
 
-export const tempo = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+export const tempo = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 // Grava áudio pelo microfone (até 5 min). WebM/Opus no Chrome e Firefox, MP4/AAC no Safari e iPhone.
 export function Gravador({ enviar, desabilitado }: { enviar: (audio: Blob, tipo: string, segundos: number) => void; desabilitado?: boolean }) {

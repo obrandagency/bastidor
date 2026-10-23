@@ -10,7 +10,8 @@ import { diaMes, hojeSP } from "@/lib/datas";
 import { criarClienteNavegador } from "@/lib/supabase/client";
 import type { Anexo, MensagemChat, ReacaoChat } from "@/types/banco";
 import { apagarMensagem, buscarTarefas, editarMensagem, encaminhar, enviarMensagem, marcarLido, reagir } from "./acoes";
-import { Gravador, tempo } from "./gravador";
+import { Gravador } from "./gravador";
+import { PlayerAudio } from "./player-audio";
 import { SeletorEmoji } from "./seletor-emoji";
 
 type Pessoa = { id: string; nome: string; iniciais: string; foto: string | null };
@@ -96,6 +97,7 @@ export function Conversa({
   const [reacoes, setReacoes] = useState(reacoesIniciais);
   const [seletor, setSeletor] = useState<{ mensagemId: string; ancora: DOMRect } | null>(null);
   const [encaminhando, setEncaminhando] = useState<MensagemChat | null>(null);
+  const [menuAberto, setMenuAberto] = useState<string | null>(null);
   const [tarefasMarcadas, setTarefasMarcadas] = useState<Record<string, string>>({});
   const [sugestoesTarefa, setSugestoesTarefa] = useState<{ id: string; titulo: string; cliente: string }[]>([]);
   const [texto, setTexto] = useState("");
@@ -302,34 +304,39 @@ export function Conversa({
                     <span className="font-mono text-[11px] text-muted">{hora}</span>
                     {m.editada_em && <span className="text-[11px] text-muted">(editada)</span>}
                     {editando?.id !== m.id && (
-                      <span className="ml-auto flex gap-2.5 text-[12px] opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
-                        <button onClick={(e) => setSeletor({ mensagemId: m.id, ancora: e.currentTarget.getBoundingClientRect() })} className="text-muted hover:text-ink" title="Reagir">
-                          😊+
-                        </button>
+                      <span className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100 [@media(hover:none)]:opacity-100">
+                        <BotaoIcone rotulo="Reagir" onClick={(e) => setSeletor({ mensagemId: m.id, ancora: e.currentTarget.getBoundingClientRect() })}>
+                          <path d="M12 3a9 9 0 1 0 9 9M8.5 14.5s1.2 2 3.5 2 3.5-2 3.5-2M9 9.5v.01M15 9.5v.01M19 2v6M16 5h6" />
+                        </BotaoIcone>
                         {!arquivado && (
-                          <button onClick={() => setEncaminhando(m)} className="text-muted hover:text-ink">
-                            Encaminhar
-                          </button>
-                        )}
-                        {meu && !m.encaminhada && (
-                          <button onClick={() => setEditando({ id: m.id, ...paraCaixa(m.texto) })} className="text-muted hover:text-ink">
-                            Editar
-                          </button>
+                          <BotaoIcone rotulo="Encaminhar" onClick={() => setEncaminhando(m)}>
+                            <path d="M14 5l7 7-7 7M21 12H9a6 6 0 0 0-6 6v1" />
+                          </BotaoIcone>
                         )}
                         {(meu || podeApagarTudo) && (
-                        <button
-                          onClick={() =>
-                            confirm("Apagar esta mensagem?") &&
-                            iniciar(async () => {
-                              const r = await apagarMensagem(m.id);
-                              if (r?.erro) setErro(r.erro);
-                              else setMensagens((l) => l.filter((x) => x.id !== m.id));
-                            })
-                          }
-                          className="text-bad hover:underline"
-                        >
-                          Apagar
-                        </button>
+                          <MenuMais
+                            aberto={menuAberto === m.id}
+                            alternar={() => setMenuAberto((a) => (a === m.id ? null : m.id))}
+                            fechar={() => setMenuAberto(null)}
+                            itens={[
+                              ...(meu && !m.encaminhada ? [{ rotulo: "Editar", acao: () => setEditando({ id: m.id, ...paraCaixa(m.texto) }) }] : []),
+                              ...(meu || podeApagarTudo
+                                ? [
+                                    {
+                                      rotulo: "Apagar",
+                                      perigo: true,
+                                      acao: () =>
+                                        confirm("Apagar esta mensagem?") &&
+                                        iniciar(async () => {
+                                          const r = await apagarMensagem(m.id);
+                                          if (r?.erro) setErro(r.erro);
+                                          else setMensagens((l) => l.filter((x) => x.id !== m.id));
+                                        }),
+                                    },
+                                  ]
+                                : []),
+                            ]}
+                          />
                         )}
                       </span>
                     )}
@@ -376,10 +383,7 @@ export function Conversa({
                     <div className="mt-1.5 flex flex-wrap gap-2">
                       {m.anexos.map((a) =>
                         a.tipo.startsWith("audio/") ? (
-                          <span key={a.caminho} className="flex items-center gap-2 rounded-full border border-line bg-surface py-1 pl-1 pr-3">
-                            {links[a.caminho] ? <audio controls preload="metadata" src={links[a.caminho]} className="h-8 w-[240px] max-w-full" /> : <span className="px-2 text-[12px] text-muted">Carregando áudio…</span>}
-                            {a.duracao ? <span className="font-mono text-[11px] text-muted">{tempo(a.duracao)}</span> : null}
-                          </span>
+                          <PlayerAudio key={a.caminho} url={links[a.caminho]} caminho={a.caminho} duracao={a.duracao} />
                         ) : a.tipo.startsWith("image/") && links[a.caminho] ? (
                           <a key={a.caminho} href={links[a.caminho]} target="_blank" rel="noreferrer">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -517,6 +521,62 @@ export function Conversa({
   );
 }
 
+function BotaoIcone({ rotulo, onClick, children }: { rotulo: string; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} aria-label={rotulo} title={rotulo} className="grid h-7 w-7 place-items-center rounded-lg text-muted hover:bg-surface hover:text-ink">
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+        {children}
+      </svg>
+    </button>
+  );
+}
+
+// Três pontinhos com Editar e Apagar
+function MenuMais({ aberto, alternar, fechar, itens }: { aberto: boolean; alternar: () => void; fechar: () => void; itens: { rotulo: string; acao: () => void; perigo?: boolean }[] }) {
+  const caixa = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!aberto) return;
+    const fora = (e: MouseEvent) => !caixa.current?.contains(e.target as Node) && fechar();
+    const tecla = (e: KeyboardEvent) => e.key === "Escape" && fechar();
+    document.addEventListener("mousedown", fora);
+    window.addEventListener("keydown", tecla);
+    return () => {
+      document.removeEventListener("mousedown", fora);
+      window.removeEventListener("keydown", tecla);
+    };
+  }, [aberto, fechar]);
+  if (!itens.length) return null;
+  return (
+    <span ref={caixa} className="relative">
+      <button type="button" onClick={alternar} aria-label="Mais opções" aria-expanded={aberto} title="Mais opções" className="grid h-7 w-7 place-items-center rounded-lg text-muted hover:bg-surface hover:text-ink">
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current">
+          <circle cx="5" cy="12" r="1.7" />
+          <circle cx="12" cy="12" r="1.7" />
+          <circle cx="19" cy="12" r="1.7" />
+        </svg>
+      </button>
+      {aberto && (
+        <span role="menu" className="absolute right-0 top-8 z-30 flex w-[140px] flex-col overflow-hidden rounded-lg border border-line bg-card py-1 text-[13px] shadow-pop">
+          {itens.map((it) => (
+            <button
+              key={it.rotulo}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                fechar();
+                it.acao();
+              }}
+              className={`px-3 py-1.5 text-left hover:bg-surface ${it.perigo ? "text-bad" : ""}`}
+            >
+              {it.rotulo}
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
+  );
+}
+
 // Reações embaixo da mensagem: emoji, quantidade e quem reagiu (ao passar o mouse); clicar liga ou desliga a minha
 function Reacoes({
   lista,
@@ -531,10 +591,10 @@ function Reacoes({
   alternar: (emoji: string) => void;
   abrirSeletor: (ancora: DOMRect) => void;
 }) {
-  if (!lista.length) return null;
   const grupos = [...new Set(lista.map((r) => r.emoji))].map((emoji) => ({ emoji, pessoas: lista.filter((r) => r.emoji === emoji).map((r) => r.pessoa_id) }));
   return (
-    <div className="mt-1.5 flex flex-wrap gap-1">
+    // Sem reações, o botão de reagir só aparece ao passar o mouse (no celular, sempre)
+    <div className={`mt-1.5 flex flex-wrap gap-1 ${lista.length ? "" : "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"}`}>
       {grupos.map((g) => {
         const minha = g.pessoas.includes(eu);
         return (
@@ -555,9 +615,12 @@ function Reacoes({
         type="button"
         onClick={(e) => abrirSeletor(e.currentTarget.getBoundingClientRect())}
         aria-label="Adicionar reação"
-        className="rounded-full border border-dashed border-line px-2 py-px text-[12px] text-muted hover:border-muted"
+        title="Adicionar reação"
+        className="grid h-[26px] w-[30px] place-items-center rounded-lg bg-surface text-muted hover:text-ink"
       >
-        +
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3a9 9 0 1 0 9 9M8.5 14.5s1.2 2 3.5 2 3.5-2 3.5-2M9 9.5v.01M15 9.5v.01M19 2v6M16 5h6" />
+        </svg>
       </button>
     </div>
   );
