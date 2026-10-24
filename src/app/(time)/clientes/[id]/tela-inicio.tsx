@@ -79,7 +79,7 @@ export function TelaInicioCliente({
           {tempo.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
               <IconeQuadrado nome="relogio" tom="cinza" grande />
-              <p className="text-[13.5px] text-muted">Nenhuma hora registrada neste mês. As horas vêm do campo “Horas” das tarefas.</p>
+              <p className="text-[13.5px] text-muted">Nenhuma hora registrada neste mês. As horas vêm do rastreador de tempo das tarefas.</p>
             </div>
           ) : (
             <ul className="flex flex-col gap-3.5">

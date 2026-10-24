@@ -716,6 +716,49 @@ select testes.recusa($$insert into public.inspiracoes (client_id, titulo) values
 reset role;
 select set_config('request.jwt.claims', '', true);
 
+-- ---------------------------------------------------------------- rastreador de tempo
+select testes.ok((select count(*) from public.tempo_registros where manual) = 0, 'rastreador: começa sem contagens (horas dos testes entram depois)');
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select public.iniciar_contagem('00000000-0000-0000-0000-0000000000f3');
+select testes.ok(testes.conta($$select * from public.tempo_registros where fim is null and pessoa_id = auth.uid()$$) = 1, 'rastreador: Criação liga uma contagem');
+select public.iniciar_contagem('00000000-0000-0000-0000-0000000000f1');
+select testes.ok(testes.conta($$select * from public.tempo_registros where fim is null and pessoa_id = auth.uid()$$) = 1
+  and testes.conta($$select * from public.tempo_registros where task_id = '00000000-0000-0000-0000-0000000000f3' and fim is not null$$) = 1, 'rastreador: ligar outra tarefa para a anterior');
+select public.parar_contagem();
+select testes.ok(testes.conta($$select * from public.tempo_registros where fim is null$$) = 0, 'rastreador: parar encerra a contagem');
+insert into public.tempo_registros (task_id, inicio, fim, manual) values ('00000000-0000-0000-0000-0000000000f3', now() - interval '2 hours', now() - interval '30 minutes', true);
+select testes.ok((select horas from public.tasks where id = '00000000-0000-0000-0000-0000000000f3') >= 1.5, 'rastreador: horas da tarefa viram a soma das contagens');
+select testes.recusa($$update public.tempo_registros set inicio = inicio - interval '1 hour' where manual$$, 'rastreador: Criação não corrige a própria contagem');
+select testes.recusa($$delete from public.tempo_registros$$, 'rastreador: ninguém apaga a própria contagem');
+insert into public.tempo_registros (task_id, pessoa_id) values ('00000000-0000-0000-0000-0000000000f3', '00000000-0000-0000-0000-000000000002');
+select testes.ok(testes.conta($$select * from public.tempo_registros where pessoa_id = '00000000-0000-0000-0000-000000000002'$$) = 0, 'rastreador: não liga contagem em nome de outra pessoa (vira a própria)');
+select public.parar_contagem();
+select testes.recusa($$insert into public.tempo_registros (task_id, inicio, fim, manual) values ('00000000-0000-0000-0000-0000000000f3', now(), now() + interval '2 hours', true)$$, 'rastreador: não lança tempo no futuro');
+update public.tasks set horas = 99 where id = '00000000-0000-0000-0000-0000000000f3';
+select testes.ok((select horas from public.tasks where id = '00000000-0000-0000-0000-0000000000f3') < 99, 'rastreador: ninguém digita horas na tarefa');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select testes.recusa($$delete from public.tempo_registros$$, 'rastreador: Adm não apaga contagem');
+select testes.recusa($$update public.tempo_registros set fim = fim + interval '1 hour' where manual$$, 'rastreador: Adm não corrige contagem');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+update public.tempo_registros set fim = inicio + interval '3 hours' where manual and task_id = '00000000-0000-0000-0000-0000000000f3';
+select testes.ok((select horas from public.tasks where id = '00000000-0000-0000-0000-0000000000f3') >= 3, 'rastreador: Sócio corrige e as horas acompanham');
+delete from public.tempo_registros where manual and task_id = '00000000-0000-0000-0000-0000000000f3';
+select testes.ok(testes.conta($$select * from public.tempo_registros where manual and task_id = '00000000-0000-0000-0000-0000000000f3'$$) = 0, 'rastreador: Sócio apaga');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ca","role":"authenticated"}', true);
+select testes.ok(testes.conta('select * from public.tempo_registros') = 0, 'rastreador: cliente não vê');
+select testes.recusa($$select public.iniciar_contagem('00000000-0000-0000-0000-0000000000f1')$$, 'rastreador: cliente não liga contagem');
+reset role;
+select set_config('request.jwt.claims', '', true);
+-- Vigia: ligada há 5 horas avisa; de ontem para às 23h59
+insert into public.tempo_registros (task_id, pessoa_id, inicio) values ('00000000-0000-0000-0000-0000000000f3', '00000000-0000-0000-0000-000000000003', now() - interval '5 hours');
+select public.vigiar_contagens();
+select testes.ok(
+  testes.conta($$select * from public.notifications where tipo = 'contagem' and destinatario_id = '00000000-0000-0000-0000-000000000003'$$) >= 1,
+  'rastreador: avisa no sino a contagem longa ou a que passou da meia-noite');
+select testes.ok((select count(*) from public.tempo_registros where fim is null and inicio < date_trunc('day', now() at time zone 'America/Sao_Paulo') at time zone 'America/Sao_Paulo') = 0,
+  'rastreador: nenhuma contagem de ontem fica ligada');
+
 -- ---------------------------------------------------------------- revisão de segurança
 select testes.ok(not exists (select 1 from pg_tables where schemaname = 'public' and not rowsecurity), 'segurança: todas as tabelas do schema public com RLS');
 select testes.ok(not exists (

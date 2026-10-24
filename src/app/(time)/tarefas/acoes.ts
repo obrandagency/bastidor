@@ -68,18 +68,15 @@ export async function salvarTarefa(_: Estado, form: FormData): Promise<Estado> {
   const etapaOriginal = texto(form, "etapa_original");
   const responsavel = texto(form, "responsavel_id");
   const clientId = texto(form, "client_id");
-  const horas = texto(form, "horas");
 
   const dados: Record<string, unknown> = {
     titulo: texto(form, "titulo"),
     client_id: clientId === "interno" ? null : ouNulo(clientId),
     prazo: ouNulo(texto(form, "prazo")),
-    horas: horas === "" ? null : Number(horas.replace(",", ".")),
     texto: texto(form, "texto"),
     ...(tipo === "conteudo" ? { formato: texto(form, "formato") } : { area: texto(form, "area") }),
   };
   if (!dados.titulo) return { erro: "Dê um título." };
-  if (dados.horas !== null && !(Number(dados.horas) >= 0)) return { erro: "Horas precisa ser um número." };
 
   const supabase = await criarClienteServidor();
   // Etapa primeiro: no conteúdo, o banco troca o responsável para o padrão da nova etapa.

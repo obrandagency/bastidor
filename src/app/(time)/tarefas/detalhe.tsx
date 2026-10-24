@@ -139,15 +139,6 @@ export function FormTarefa({ tarefa, time, clientes }: { tarefa: Tarefa; time: O
           </Selecao>
         )}
         <Campo rotulo="Prazo" id="prazo" type="date" defaultValue={tarefa.prazo ?? ""} />
-        <Campo
-          rotulo="Horas registradas"
-          id="horas"
-          type="number"
-          min={0}
-          step={0.5}
-          defaultValue={tarefa.horas ?? ""}
-          className={`${classeEntrada} font-mono`}
-        />
       </div>
       {conteudo && <p className="-mt-2 text-[12px] text-muted">Mudar a etapa passa o conteúdo para o responsável padrão dela.</p>}
       <Legenda tipo={tarefa.tipo} inicial={tarefa.texto} />

@@ -35,7 +35,7 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
   else if (busca.cliente) consulta = consulta.eq("client_id", busca.cliente);
   if (busca.resp) consulta = consulta.eq("responsavel_id", busca.resp);
 
-  const [{ data: tarefas }, { data: clientes }, { data: time }, { data: ajustes }, abertas] = await Promise.all([
+  const [{ data: tarefas }, { data: clientes }, { data: time }, { data: ajustes }, abertas, { data: ligadas }] = await Promise.all([
     consulta.returns<Tarefa[]>(),
     supabase.from("clients").select("id, nome, nome_curto, cor, ativo").order("nome"),
     supabase.from("profiles").select("*").neq("perfil", "cliente").eq("ativo", true).order("nome").returns<Pessoa[]>(),
@@ -45,7 +45,11 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
         supabase.from("tasks").select("id", { count: "exact", head: true }).eq("tipo", t).not("etapa", "in", `(${FINALIZADAS.join(",")})`),
       ),
     ),
+    // Quem está contando tempo agora, para o relógio no card
+    supabase.from("tempo_registros").select("task_id, pessoa_id").is("fim", null),
   ]);
+  const contando = new Map<string, string[]>();
+  for (const l of ligadas ?? []) contando.set(l.task_id, [...(contando.get(l.task_id) ?? []), l.pessoa_id ?? ""]);
 
   // Demandas com processo: progresso e etapa atual no card
   const comProcesso = tipo === "demanda";
@@ -77,6 +81,7 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
       resp: r ? { iniciais: r.iniciais, nome: r.nome, foto: r.foto } : null,
       ajustesCliente: ajustesPor.get(t.id) ?? 0,
       recorrente: !!t.recorrencia_id,
+      contando: (contando.get(t.id) ?? []).map((pid) => (time ?? []).find((p) => p.id === pid)?.nome.split(" ")[0] ?? "Alguém"),
       etapas: etapasPor.has(t.id)
         ? {
             feitas: etapasPor.get(t.id)!.filter((e) => e.feito).length,

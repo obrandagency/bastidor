@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { Avatar, PontoCliente, SeloEtapa } from "@/components/tarefa";
 import { dataBR, hojeSP } from "@/lib/datas";
 import { area, dataHoraSP, rotuloEtapa } from "@/lib/dominio/tarefas";
+import { pessoaAtual } from "@/lib/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import type { Evento, Nota, Tarefa } from "@/types/banco";
 import { criarRoteiroDoConteudo } from "../roteiros/acoes";
 import { EtapasTarefa, UsarProcesso } from "./etapas";
+import { TempoTarefa, type RegistroTempo } from "./tempo";
 import { Agendamento, Comentarios, Excluir, FormTarefa, Gaveta, NotificarCliente } from "./detalhe";
 
 // Tarefa sem cliente = demanda interna da agência
@@ -24,7 +26,7 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
     supabase.from("tarefa_etapas").select("id, nome, responsavel_id, prazo, feito_em, feito_por").eq("task_id", id).order("ordem").order("created_at"),
     supabase.from("processos").select("id, nome").eq("ativo", true).order("nome"),
   ]);
-  const [{ data: roteiros }, { data: conversas }] = await Promise.all([
+  const [{ data: roteiros }, { data: conversas }, { data: tempos }, eu] = await Promise.all([
     supabase.from("roteiros").select("id, titulo").eq("task_id", id).order("created_at"),
     // Mensagens do chat que mencionaram esta tarefa com #
     supabase
@@ -33,6 +35,8 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
       .eq("task_id", id)
       .limit(20)
       .returns<{ chat_mensagens: { id: string; texto: string; autor_nome: string | null; created_at: string; canal_id: string; chat_canais: { nome: string } | null } }[]>(),
+    supabase.from("tempo_registros").select("id, pessoa_id, inicio, fim, manual, nota").eq("task_id", id).order("inicio", { ascending: false }),
+    pessoaAtual(),
   ]);
   const mencoes = (conversas ?? []).map((c) => c.chat_mensagens).sort((a, b) => b.created_at.localeCompare(a.created_at));
   if (!t) notFound();
@@ -45,6 +49,21 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
   // Cliente inativo continua aparecendo na tarefa antiga
   const clientes = t.client_id && !opcoesClientes.some((o) => o.id === t.client_id) ? [{ id: t.client_id, nome: c.nome }, ...opcoesClientes] : opcoesClientes;
   const agenda = dataHoraSP(t.publicar_em);
+  const registros: RegistroTempo[] = (tempos ?? []).map((r) => {
+    const p = (pessoas ?? []).find((x) => x.id === r.pessoa_id);
+    const ini = dataHoraSP(r.inicio);
+    return {
+      id: r.id,
+      pessoa: p ? { id: p.id, nome: p.nome, iniciais: p.iniciais, foto: p.foto } : null,
+      inicio: r.inicio,
+      fim: r.fim,
+      manual: r.manual,
+      nota: r.nota,
+      data: ini.data,
+      hora: ini.hora,
+      horaFim: dataHoraSP(r.fim).hora,
+    };
+  });
 
   return (
     <Gaveta fechar={fechar} rotulo={t.tipo === "demanda" ? "Demanda" : "Conteúdo"}>
@@ -100,6 +119,8 @@ export async function DetalheTarefa({ id, fechar, podeExcluir }: { id: string; f
         ) : (
           <UsarProcesso taskId={t.id} processos={processos ?? []} hoje={hojeSP()} />
         ))}
+
+      <TempoTarefa taskId={t.id} registros={registros} eu={eu?.id ?? ""} socio={eu?.perfil === "socio"} hoje={hojeSP()} />
 
       <Comentarios taskId={t.id} notas={notas ?? []} autores={autores} />
 

@@ -1,6 +1,7 @@
 import type { NomeIcone, TomIcone } from "@/components/icone";
 import { diaMes, hojeSP, mesPorExtenso, somarMes } from "@/lib/datas";
 import { estaAtrasada, FINALIZADAS, type Etapa } from "@/lib/dominio/tarefas";
+import { segundosEntre } from "@/lib/dominio/tempo";
 import type { Pessoa, Tarefa } from "@/types/banco";
 import type { TarefaResumo } from "../../inicio/resumo";
 import { DetalheTarefa } from "../../tarefas/detalhe-tarefa";
@@ -23,13 +24,14 @@ export default async function InicioCliente({ params, searchParams }: { params: 
 
   const [{ data: abertas }, { data: comHoras }, { data: time }, onboarding] = await Promise.all([
     supabase.from("tasks").select("*").eq("client_id", id).not("etapa", "in", "(aprovado,concluido)").order("prazo").returns<Tarefa[]>(),
+    // Contagens do rastreador encerradas no mês, em tarefas deste cliente
     supabase
-      .from("tasks")
-      .select("responsavel_id, horas")
-      .eq("client_id", id)
-      .not("horas", "is", null)
-      .gte("prazo", `${mes}-01`)
-      .lt("prazo", `${somarMes(mes, 1)}-01`),
+      .from("tempo_registros")
+      .select("pessoa_id, inicio, fim, tasks!inner(client_id)")
+      .eq("tasks.client_id", id)
+      .not("fim", "is", null)
+      .gte("inicio", new Date(`${mes}-01T00:00:00-03:00`).toISOString())
+      .lt("inicio", new Date(`${somarMes(mes, 1)}-01T00:00:00-03:00`).toISOString()),
     supabase.from("profiles").select("*").neq("perfil", "cliente").returns<Pessoa[]>(),
     lerOnboarding(supabase, id),
   ]);
@@ -42,9 +44,9 @@ export default async function InicioCliente({ params, searchParams }: { params: 
   const agendados = lista.filter((t) => t.etapa === "agendado");
   const atrasadas = lista.filter((t) => estaAtrasada(t, hoje));
   const horasPor = new Map<string, number>();
-  for (const t of comHoras ?? []) {
-    const k = t.responsavel_id ?? "";
-    horasPor.set(k, (horasPor.get(k) ?? 0) + Number(t.horas ?? 0));
+  for (const r of comHoras ?? []) {
+    const k = r.pessoa_id ?? "";
+    horasPor.set(k, (horasPor.get(k) ?? 0) + segundosEntre(r.inicio, r.fim) / 3600);
   }
   const horasMes = [...horasPor.values()].reduce((a, n) => a + n, 0);
   const pendentes = demandas.length + producao.length;

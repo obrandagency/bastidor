@@ -17,6 +17,7 @@ export type Card = {
   resp: { iniciais: string; nome: string; foto?: string | null } | null;
   ajustesCliente: number;
   recorrente: boolean;
+  contando?: string[]; // quem está com o rastreador ligado nesta tarefa
   etapas?: { feitas: number; total: number; atual: string | null }; // demanda com processo
   href: string;
 };
@@ -121,8 +122,20 @@ export function Quadro({
                         <span className="truncate">
                           {c.clienteNome} · {c.detalhe}
                         </span>
+                        {!!c.contando?.length && (
+                          <span
+                            className="ml-auto flex flex-none items-center gap-1 rounded-full bg-ok-soft px-1.5 py-px text-[10.5px] font-medium text-ok"
+                            title={`Contando tempo agora: ${c.contando.join(", ")}`}
+                          >
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ok" />
+                            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3 fill-none stroke-current" strokeWidth={2} strokeLinecap="round">
+                              <path d="M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 9v4l2.5 1.5M10 2h4" />
+                            </svg>
+                            <span className="sr-only">Contando tempo agora: {c.contando.join(", ")}</span>
+                          </span>
+                        )}
                         {c.recorrente && (
-                          <span className="ml-auto flex-none" title="Tarefa recorrente" aria-label="Tarefa recorrente">
+                          <span className={`${c.contando?.length ? "" : "ml-auto"} flex-none`} title="Tarefa recorrente" aria-label="Tarefa recorrente">
                             ↻
                           </span>
                         )}
